@@ -1,0 +1,45 @@
+= Compiling the licorne module =
+
+mkdir build
+cd build
+
+If you are on a debian-based distro:
+cmake -DCMAKE_INSTALL_TARGET=/usr ..
+
+If you are on ArchLinux or any other distro where python = python3
+cmake -DPYTHON_EXECUTABLE=$(which python2) -DPYTHON_INCLUDE_DIR=$(echo /usr/include/python2*) -DPYTHON_LIBRARY=$(echo /usr/lib/libpython2.*.so) -DCMAKE_INSTALL_PREFIX=/usr ..
+
+The output should look like this:
+-- The CXX compiler identification is GNU 4.7.2
+-- The C compiler identification is GNU 4.7.2
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Build type not specified: defaulting to release.
+-- Boost version: 1.52.0
+-- Found the following Boost libraries:
+--   filesystem
+--   system
+-- Found PkgConfig: /usr/bin/pkg-config (found version "0.28") 
+-- checking for module 'gruel'
+--   found gruel, version 3.6.4git
+-- Found GRUEL: /lib64/libgruel.so  
+-- checking for module 'gnuradio-core'
+--   found gnuradio-core, version 3.6.4git
+-- Found GNURADIO_CORE: /lib64/libgnuradio-core.so  
+-- checking for module 'cppunit'
+--   found cppunit, version 1.13.1
+-- Found CPPUNIT: /usr/lib64/libcppunit.so;dl  
+-- Found SWIG: /usr/bin/swig (found version "2.0.9") 
+-- Found PythonLibs: /usr/lib/libpython2.7.so (found version "2.7.3") 
+-- Found Doxygen: /usr/bin/doxygen (found version "1.8.3.1") 
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/mupuf/gnuradio/extra_modules/gr-licorne/build
+
+WARNING: Make sure PythonLibs links on a python2 lib and not python3!
