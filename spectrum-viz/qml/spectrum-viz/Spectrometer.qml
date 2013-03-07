@@ -1,0 +1,153 @@
+import QtQuick 2.0
+
+Canvas {
+	id: canvas
+	antialiasing: true
+
+	property int margin_top: 10
+	property int margin_bottom: 10
+	property int margin_left: 10
+	property int margin_right: 10
+
+	property int power_range_high: -30
+	property int power_range_low: -110
+	property real freq_low:  2400000000
+	property real freq_high: 2484000000
+
+	function value_normalize(value, norm_value, toHigher)
+	{
+		if (value % norm_value != 0)
+		{
+			value = Math.floor(value / norm_value) * norm_value
+			if (toHigher === 1)
+				value += norm_value
+		}
+
+		return value
+	}
+
+	function biggestSize(ctx, str1, str2)
+	{
+		var str1_size = ctx.measureText(str1)
+		var str2_size = ctx.measureText(str2)
+
+		if (str1_size.width > str2_size.width)
+			return str1_size
+		else
+			return str2_size;
+	}
+
+	function freqToText(freq)
+	{
+		var units = ["Hz", "kHz", "MHz", "GHz", "THz"]
+		var unit = 0
+
+		while (freq > 1000 && unit < 5)
+		{
+			freq /= 1000;
+			unit++;
+		}
+
+		return freq.toFixed(3) + " " + units[unit]
+	}
+
+	function getCoordinates(ctx, freq, power)
+	{
+		var font_height = 10
+		var dB_bar_text_size = biggestSize(ctx, canvas.power_range_low, canvas.power_range_high)
+		var dB_bar_x_offset = canvas.margin_left + dB_bar_text_size.width + 5
+		var freq_bar_top_y_offset = font_height
+		var freq_bar_bottom_y_offset = font_height + 10	// 5 for the mark and 3 for the spacing
+		var graph_width = canvas.width - dB_bar_x_offset - canvas.margin_right
+		var graph_height = canvas.height - canvas.margin_top - freq_bar_top_y_offset - freq_bar_bottom_y_offset - canvas.margin_bottom
+		var freq_range = canvas.freq_high - canvas.freq_low
+		var power_range = canvas.power_range_low - canvas.power_range_high
+
+		var pos = {
+			x: dB_bar_x_offset + graph_width * (freq - canvas.freq_low) / freq_range,
+			y: canvas.margin_top + font_height + graph_height * (power - canvas.power_range_high) / power_range,
+			toString: function () {
+				return "[" + this.x + "," + this.y + "]"
+			}
+		}
+
+		return pos
+	}
+
+	function drawGrid(ctx)
+	{
+		ctx.save();
+
+		var top_left = getCoordinates(ctx, freq_low, canvas.power_range_high)
+		var bottom_right = getCoordinates(ctx, freq_high, canvas.power_range_low)
+
+		// draw the dB lines
+		ctx.beginPath()
+		ctx.strokeStyle = "grey"
+		ctx.lineWidth = 0.25
+		ctx.fillStyle = "black"
+		ctx.textAlign = "right"
+		ctx.textBaseline = "middle"
+		for (var power = canvas.power_range_high; power >= canvas.power_range_low; power-=10)
+		{
+			var pos_start = getCoordinates(ctx, freq_low, power)
+			var pos_end = getCoordinates(ctx, freq_high, power)
+
+			ctx.fillText(power, pos_start.x - 5, pos_start.y)
+			ctx.fill()
+
+			ctx.moveTo(pos_start.x, pos_start.y);
+			ctx.lineTo(pos_end.x, pos_end.y)
+			ctx.stroke()
+		}
+		ctx.closePath()
+
+		// draw the axis
+		ctx.strokeStyle = "black"
+		ctx.lineWidth = 2
+		ctx.beginPath();
+		ctx.moveTo(top_left.x, top_left.y);
+		ctx.lineTo(top_left.x, bottom_right.y)
+		ctx.lineTo(bottom_right.x, bottom_right.y)
+		ctx.stroke()
+		ctx.closePath()
+
+		// draw the frequencies
+		ctx.beginPath()
+		ctx.lineWidth = 2
+		ctx.textAlign = "center"
+		ctx.textBaseline = "top"
+		var freq_range = canvas.freq_high - canvas.freq_low
+		for (var i = 0; i < 10; i++)
+		{
+			var freq = freq_low + i * Math.floor(freq_range / 9)
+			var pos = getCoordinates(ctx, freq, canvas.power_range_low)
+
+			//console.log(freqToText(freq_low + i * (canvas.bandwidth / 10)))
+			ctx.fillText(freqToText(freq), pos.x, pos.y + 8)
+			ctx.fill()
+
+			ctx.moveTo(pos.x, pos.y - 5);
+			ctx.lineTo(pos.x, pos.y + 5)
+			ctx.stroke()
+		}
+		ctx.closePath()
+
+		ctx.restore()
+	}
+
+	onCanvasSizeChanged: requestPaint()
+	onCanvasWindowChanged: requestPaint()
+
+	onPaint: {
+		var ctx = canvas.getContext('2d');
+		ctx.save();
+
+		// erase everything
+		ctx.fillStyle = "white";
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+		drawGrid(ctx)
+		ctx.restore();
+	}
+}
