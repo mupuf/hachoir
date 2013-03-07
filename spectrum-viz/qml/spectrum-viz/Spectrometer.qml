@@ -11,8 +11,8 @@ Canvas {
 
 	property int power_range_high: -30
 	property int power_range_low: -110
-	property real freq_low:  2400000000
-	property real freq_high: 2484000000
+	property real freq_low:  868000000
+	property real freq_high: 888000000
 
 	function value_normalize(value, norm_value, toHigher)
 	{
@@ -48,7 +48,7 @@ Canvas {
 			unit++;
 		}
 
-		return freq.toFixed(3) + " " + units[unit]
+		return freq.toFixed(2) + " " + units[unit]
 	}
 
 	function getCoordinates(ctx, freq, power)
@@ -79,6 +79,7 @@ Canvas {
 		ctx.save();
 
 		var top_left = getCoordinates(ctx, freq_low, canvas.power_range_high)
+		var bottom_left = getCoordinates(ctx, freq_low, canvas.power_range_low)
 		var bottom_right = getCoordinates(ctx, freq_high, canvas.power_range_low)
 
 		// draw the dB lines
@@ -132,6 +133,49 @@ Canvas {
 			ctx.stroke()
 		}
 		ctx.closePath()
+
+		// draw the actual power state
+		var spectrum = [[868000000, -90],
+						[869000000, -83],
+						[870000000, -84],
+						[871000000, -86],
+						[872000000, -70],
+						[873000000, -40],
+						[874000000, -45],
+						[875000000, -82],
+						[876000000, -93],
+						[877000000, -30],
+						[878000000, -60],
+						[879000000, -100],
+						[880000000, -83],
+						[881000000, -89],
+						[882000000, -91],
+						[883000000, -89],
+						[884000000, -90],
+						[885000000, -70],
+						[886000000, -36],
+						[887000000, -50],
+						[888000000, -90]]
+
+		var gradientFill = ctx.createLinearGradient(top_left.x, top_left.y, bottom_left.x, bottom_left.y)
+		gradientFill.addColorStop(0, Qt.rgba(1, 0, 0, 0.3));
+		gradientFill.addColorStop(0.5, Qt.rgba(0, 0.8, 0, 0.3));
+		gradientFill.addColorStop(1, Qt.rgba(0, 0, 0.8, 0.3));
+
+		ctx.strokeStyle = "black"
+		ctx.fillStyle = gradientFill
+		ctx.lineWidth = 1.5
+		ctx.beginPath()
+		ctx.moveTo(bottom_left.x, bottom_left.y)
+		for (var i = 0; i < spectrum.length; i++)
+		{
+			var pos = getCoordinates(ctx, spectrum[i][0], spectrum[i][1])
+			ctx.lineTo(pos.x, pos.y)
+		}
+		ctx.lineTo(bottom_right.x, bottom_right.y)
+		ctx.closePath()
+		ctx.stroke()
+		ctx.fill()
 
 		ctx.restore()
 	}
