@@ -166,17 +166,18 @@ Canvas {
 		ctx.fillStyle = gradientFill
 		ctx.lineWidth = 1.5
 		ctx.beginPath()
-		ctx.moveTo(bottom_left.x, bottom_left.y)
-
 		var size = SensingNode.startReading()
 		for (var i = 0; i < size; i++)
 		{
 			var sample = SensingNode.getSample(i)
-			var pos = getCoordinates(ctx, sample["freq"], sample["dbm"])
+			pos = getCoordinates(ctx, sample["freq"], sample["dbm"])
+
+			if (i == 0)
+				ctx.moveTo(pos.x, bottom_left.y)
 			ctx.lineTo(pos.x, pos.y)
 		}
 		SensingNode.stopReading()
-		ctx.lineTo(bottom_right.x, bottom_right.y)
+		ctx.lineTo(pos.x, bottom_right.y)
 		ctx.closePath()
 		ctx.stroke()
 		ctx.fill()
