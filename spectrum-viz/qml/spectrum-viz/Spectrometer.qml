@@ -167,17 +167,26 @@ Canvas {
 		ctx.lineWidth = 1.5
 		ctx.beginPath()
 		ctx.moveTo(bottom_left.x, bottom_left.y)
-		for (var i = 0; i < spectrum.length; i++)
+
+		var size = SensingNode.startReading()
+		for (var i = 0; i < size; i++)
 		{
-			var pos = getCoordinates(ctx, spectrum[i][0], spectrum[i][1])
+			var sample = SensingNode.getSample(i)
+			var pos = getCoordinates(ctx, sample["freq"], sample["dbm"])
 			ctx.lineTo(pos.x, pos.y)
 		}
+		SensingNode.stopReading()
 		ctx.lineTo(bottom_right.x, bottom_right.y)
 		ctx.closePath()
 		ctx.stroke()
 		ctx.fill()
 
 		ctx.restore()
+	}
+
+	Connections {
+		target: SensingNode
+		onTemperatureChanged: console.log("The temperatureChanged ")
 	}
 
 	onCanvasSizeChanged: requestPaint()
