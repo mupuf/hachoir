@@ -28,8 +28,8 @@ public:
 	Q_INVOKABLE void stopReading();
 	
 signals:
-	void temperatureChanged(int temp);
-
+	void powerRangeChanged(qreal high, qreal low);
+	void frequencyRangeChanged(qreal high, qreal low);
 public slots:
 	
 };

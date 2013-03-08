@@ -187,7 +187,14 @@ Canvas {
 
 	Connections {
 		target: SensingNode
-		onTemperatureChanged: console.log("The temperatureChanged ")
+		onPowerRangeChanged: {
+			power_range_high = high
+			power_range_low = low
+		}
+		onFrequencyRangeChanged: {
+			freq_high = high
+			freq_low = low
+		}
 	}
 
 	onCanvasSizeChanged: requestPaint()
