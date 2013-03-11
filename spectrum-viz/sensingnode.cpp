@@ -2,8 +2,9 @@
 
 #include <QVector>
 
-SensingNode::SensingNode(QObject *parent) :
-	QObject(parent), frontBuffer(new QVector<SpectrumSample>)
+SensingNode::SensingNode(QTcpSocket *socket, int clientID, QObject *parent) :
+	QObject(parent), clientSocket(socket), clientID(clientID),
+	frontBuffer(new QVector<SpectrumSample>)
 {
 	frontBuffer->append(SpectrumSample(868000000, -90));
 	frontBuffer->append(SpectrumSample(869000000, -83));
@@ -11,6 +12,9 @@ SensingNode::SensingNode(QObject *parent) :
 	frontBuffer->append(SpectrumSample(871000000, -86));
 	frontBuffer->append(SpectrumSample(872000000, -70));
 	frontBuffer->append(SpectrumSample(873000000, -40));
+
+	connect(clientSocket, SIGNAL(disconnected()), this, SLOT(clientDisconnected()));
+	connect(clientSocket, SIGNAL(disconnected()), clientSocket, SLOT(deleteLater()));
 }
 
 int SensingNode::startReading()
@@ -33,4 +37,9 @@ QMap<QString, QVariant> SensingNode::getSample(int i)
 void SensingNode::stopReading()
 {
 	swapMutex.unlock();
+}
+
+void SensingNode::clientDisconnected()
+{
+	emit requestDestroy(clientID);
 }
