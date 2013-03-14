@@ -166,21 +166,21 @@ class qa_hachoir_f (gr_unittest.TestCase):
 		#self.tb.run ()
 		## check data
 		
-	def test_001_t (self):
-		samp_rate = 32000
-		self.noise = noise = .005
-		self.ampl = ampl = .4
-		self.gr_sig_source_x0 = gr.sig_source_f(samp_rate, gr.GR_COS_WAVE, 350, ampl, 0)
-		self.gr_sig_source_x = gr.sig_source_f(samp_rate, gr.GR_COS_WAVE, 1000, ampl, 0)
-		self.gr_noise_source_x = gr.noise_source_f(gr.GR_GAUSSIAN, noise, 0)
-		self.gr_add_xx = gr.add_vff(1)
-		sqr = licorne.hachoir_f(freq=2500000, samplerate=samp_rate, fft_size=1024, window_type=1)
-		self.tb.connect((self.gr_sig_source_x0, 0), (self.gr_add_xx, 0))
-		self.tb.connect((self.gr_sig_source_x, 0), (self.gr_add_xx, 1))
-		self.tb.connect((self.gr_noise_source_x, 0), (self.gr_add_xx, 2))
-		self.tb.connect((self.gr_add_xx, 0), sqr)
-		self.tb.run ()
-		# check data
+	#def test_001_t (self):
+		#samp_rate = 32000
+		#self.noise = noise = .005
+		#self.ampl = ampl = .4
+		#self.gr_sig_source_x0 = gr.sig_source_f(samp_rate, gr.GR_COS_WAVE, 350, ampl, 0)
+		#self.gr_sig_source_x = gr.sig_source_f(samp_rate, gr.GR_COS_WAVE, 1000, ampl, 0)
+		#self.gr_noise_source_x = gr.noise_source_f(gr.GR_GAUSSIAN, noise, 0)
+		#self.gr_add_xx = gr.add_vff(1)
+		#sqr = licorne.hachoir_f(freq=2500000, samplerate=samp_rate, fft_size=1024, window_type=1)
+		#self.tb.connect((self.gr_sig_source_x0, 0), (self.gr_add_xx, 0))
+		#self.tb.connect((self.gr_sig_source_x, 0), (self.gr_add_xx, 1))
+		#self.tb.connect((self.gr_noise_source_x, 0), (self.gr_add_xx, 2))
+		#self.tb.connect((self.gr_add_xx, 0), sqr)
+		#self.tb.run ()
+		## check data
 
 
 if __name__ == '__main__':

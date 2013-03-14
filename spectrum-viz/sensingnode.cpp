@@ -15,6 +15,7 @@ SensingNode::SensingNode(QTcpSocket *socket, int clientID, QObject *parent) :
 
 	connect(clientSocket, SIGNAL(disconnected()), this, SLOT(clientDisconnected()));
 	connect(clientSocket, SIGNAL(disconnected()), clientSocket, SLOT(deleteLater()));
+	connect(clientSocket, SIGNAL(readyRead()), this, SLOT(dataReady()));
 }
 
 int SensingNode::startReading()
@@ -42,4 +43,35 @@ void SensingNode::stopReading()
 void SensingNode::clientDisconnected()
 {
 	emit requestDestroy(clientID);
+}
+
+#include <stdint.h>
+void SensingNode::dataReady()
+{
+	QByteArray header = clientSocket->read(19);
+	union {
+		uint8_t  *u08;
+		uint16_t *u16;
+		uint32_t *u32;
+		uint64_t *u64;
+		float *f;
+	} ptr;
+	ptr.u08 = (uint8_t *)header.data();
+
+	uint64_t centralFreq = *ptr.u64++;
+	uint64_t sampleRate = *ptr.u64++;
+	uint16_t fftSize = *ptr.u16++;
+
+	frontBuffer->clear();
+
+	while (clientSocket->bytesAvailable() < (fftSize / 2));
+
+	QByteArray data = clientSocket->read(fftSize / 2);
+	for (int i = 0; i < fftSize / 2; i++)
+	{
+		float freq = centralFreq + i * sampleRate / fftSize;
+		frontBuffer->append(SpectrumSample(freq, (char)data.at(i)));
+	}
+
+	emit dataChanged();
 }

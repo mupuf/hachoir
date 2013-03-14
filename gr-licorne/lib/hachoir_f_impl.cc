@@ -25,6 +25,7 @@
 #include <gr_io_signature.h>
 #include <gri_fft.h>
 
+
 #include "hachoir_f_impl.h"
 
 #include <stdio.h>
@@ -45,8 +46,12 @@ namespace licorne {
 	: gr_block("hachoir_f",
 			gr_make_io_signature(1, 1, sizeof (float)),
 			gr_make_io_signature(0, 0, sizeof (float))),
+			socket(ios),
 			_freq(freq), _samplerate(samplerate)
 	{
+		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 21334);
+		socket.connect(endpoint);
+
 		update_fft_params(fft_size, (gr_firdes::win_type) window_type);
 	}
 
@@ -118,6 +123,16 @@ namespace licorne {
 		gr_complex *dst = fft->get_inbuf();
 		size_t i;
 
+		uint8_t buffer[5120];
+		union {
+			uint8_t  *u08;
+			uint16_t *u16;
+			uint32_t *u32;
+			uint64_t *u64;
+			float *f;
+		} ptr;
+		ptr.u08 = buffer;
+
 		/* apply the window and copy to input buffer */
 		for (i = 0; i < length && i < fft_size(); i++)
 			dst[i] = src[i] * win[i];
@@ -132,16 +147,24 @@ namespace licorne {
 		/* process the output */
 		std::vector<float> mag(length / 2);
 		gr_complex *out = fft->get_outbuf();
+
+		*ptr.u08++ = 1;
+		*ptr.u64++ = 0; // central frequency
+		*ptr.u64++ = sample_rate(); // sampling rate
+		*ptr.u16++ = fft_size();
 		for (i = 0; i < length / 2; i++) {
 			float freq = i * sample_rate() / fft_size();
 			float real = out[i].real();
 			float imag = out[i].imag();
 			mag[i] = sqrt(real*real + imag*imag);
+			*ptr.u08++ = (char)mag[i];
 			printf("%.0f,%f,%f\n", freq, mag[i], log(mag[i]));
 		}
 		printf("\n");
+
+		socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
 		
-		exit(1);
+		//exit(1);
 		
 		return mag;
 	}

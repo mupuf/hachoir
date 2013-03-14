@@ -6,10 +6,12 @@ Canvas {
 
 	property int clientID: -1
 
-	property int power_range_high: -30
+	property int power_range_high: +10
 	property int power_range_low: -110
-	property real freq_low:  868000000
-	property real freq_high: 888000000
+	/*property real freq_low:  868000000
+	property real freq_high: 888000000*/
+	property real freq_low:  0
+	property real freq_high: 32000
 
 	property int margin_top: 10
 	property int margin_bottom: 10
@@ -170,6 +172,9 @@ Canvas {
 
 	Connections {
 		target: SensingServer.sensingNode(clientID)
+		onDataChanged: {
+			requestPaint()
+		}
 		onPowerRangeChanged: {
 			power_range_high = high
 			power_range_low = low

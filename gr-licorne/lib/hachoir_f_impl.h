@@ -27,6 +27,9 @@
 #include <stdint.h>
 #include <memory>
 
+#include <boost/asio.hpp>
+#include <boost/array.hpp>
+
 namespace gr {
 namespace licorne {
 
@@ -38,6 +41,10 @@ namespace licorne {
 		int _samplerate;
 		int _fft_size;
 		gr_firdes::win_type _window_type;
+
+		/* sockets */
+		boost::asio::io_service ios;
+		boost::asio::ip::tcp::socket socket;
 
 		/* internals */
 		std::auto_ptr<float> _buffer;

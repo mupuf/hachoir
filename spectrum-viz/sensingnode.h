@@ -22,7 +22,7 @@ private:
 	QReadWriteLock swapMutex;
 	QMutex backBufferMutex;
 
-	QSharedPointer< QVector<SpectrumSample> > frontBuffer, backBuffer;
+	QSharedPointer< QVector<SpectrumSample> > frontBuffer, backBuffer, inputBuffer;
 public:
 	explicit SensingNode(QTcpSocket *socket, int clientID, QObject *parent = 0);
 
@@ -32,13 +32,14 @@ public:
 	Q_INVOKABLE void stopReading();
 
 signals:
+	void dataChanged();
 	void powerRangeChanged(qreal high, qreal low);
 	void frequencyRangeChanged(qreal high, qreal low);
 	void requestDestroy(int clientID);
 
 private slots:
 	void clientDisconnected();
-
+	void dataReady();
 };
 
 #endif // SENSINGNODE_H
