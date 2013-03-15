@@ -46,7 +46,7 @@ namespace gr {
         * class. licorne::hachoir_f::make is the public interface for
         * creating new instances.
         */
-       static sptr make(int freq, int samplerate, int fft_size, int window_type);
+       static sptr make(double freq, int samplerate, int fft_size, int window_type);
     };
 
   } // namespace licorne

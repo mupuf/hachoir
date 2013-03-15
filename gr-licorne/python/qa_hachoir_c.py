@@ -200,9 +200,9 @@ class qa_hachoir_c (gr_unittest.TestCase):
 		## check data
 
 	def test_001_t (self):
-		samp_rate = 32000
-		freq=0.902e9
-		gain=31.5
+		samp_rate = 8000000
+		freq=0.9005e9
+		gain=60
 		ant = "TX/RX"
 		self.uhd_usrp_source_0 = uhd.usrp_source(
 					device_addr="",
@@ -212,13 +212,13 @@ class qa_hachoir_c (gr_unittest.TestCase):
 					),
 				)
 		self.uhd_usrp_source_0.set_time_source("external", 0)
-		self.uhd_usrp_source_0.set_subdev_spec("B:0", 0)
+		self.uhd_usrp_source_0.set_subdev_spec("A:0", 0)
 		self.uhd_usrp_source_0.set_samp_rate(samp_rate)
 		self.uhd_usrp_source_0.set_center_freq(freq, 0)
 		self.uhd_usrp_source_0.set_gain(gain, 0)
 		self.uhd_usrp_source_0.set_antenna(ant, 0)
 		self.uhd_usrp_source_0.set_bandwidth(samp_rate, 0)
-		sqr = licorne.hachoir_c(freq=2500000, samplerate=samp_rate, fft_size=1024, window_type=1)
+		sqr = licorne.hachoir_c(freq=freq, samplerate=samp_rate, fft_size=1024, window_type=1)
 		self.tb.connect((self.uhd_usrp_source_0, 0), (sqr, 0))
 		self.tb.run ()
 		# check data

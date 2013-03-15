@@ -66,18 +66,21 @@ void SensingNode::dataReady()
 
 	frontBuffer->clear();
 
-	while (clientSocket->bytesAvailable() < (fftSize / 2))
+	while (clientSocket->bytesAvailable() < (fftSize))
 	{
 		QCoreApplication::processEvents();
 	}
 
-	QByteArray data = clientSocket->read(fftSize / 2);
-	for (int i = 0; i < fftSize / 2; i++)
+	float start = centralFreq - (sampleRate / 2);
+	float end = centralFreq + (sampleRate / 2);
+
+	QByteArray data = clientSocket->read(fftSize);
+	for (int i = 0; i < fftSize; i++)
 	{
-		float freq = centralFreq + i * sampleRate / fftSize;
+		float freq = start + i * sampleRate / fftSize;
 		frontBuffer->append(SpectrumSample(freq, (char)data.at(i)));
 	}
 
-	emit frequencyRangeChanged(centralFreq + sampleRate/2, centralFreq);
+	emit frequencyRangeChanged(start, end);
 	emit dataChanged();
 }

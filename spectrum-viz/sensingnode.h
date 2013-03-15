@@ -34,7 +34,7 @@ public:
 signals:
 	void dataChanged();
 	void powerRangeChanged(qreal high, qreal low);
-	void frequencyRangeChanged(qreal high, qreal low);
+	void frequencyRangeChanged(qreal low, qreal high);
 	void requestDestroy(int clientID);
 
 private slots:

@@ -34,7 +34,7 @@ namespace gr {
 namespace licorne {
 
 	hachoir_c::sptr
-	hachoir_c::make(int freq, int samplerate, int fft_size, int window_type)
+	hachoir_c::make(double freq, int samplerate, int fft_size, int window_type)
 	{
 		return gnuradio::get_initial_sptr (new hachoir_c_impl(freq, samplerate, fft_size, window_type));
 	}
@@ -42,7 +42,7 @@ namespace licorne {
 	/*
 	* The private constructor
 	*/
-	hachoir_c_impl::hachoir_c_impl(int freq, int samplerate, int fft_size, int window_type)
+	hachoir_c_impl::hachoir_c_impl(double freq, int samplerate, int fft_size, int window_type)
 	: gr_block("hachoir_f",
 			gr_make_io_signature(1, 1, sizeof (gr_complex)),
 			gr_make_io_signature(0, 0, sizeof (gr_complex))),
@@ -148,14 +148,14 @@ namespace licorne {
 		fft->execute();
 		
 		/* process the output */
-		std::vector<float> pwr(length / 2);
+		std::vector<float> pwr(length);
 		gr_complex *out = fft->get_outbuf();
 
 		*ptr.u08++ = 1;
 		*ptr.u64++ = central_freq(); // central frequency
 		*ptr.u64++ = sample_rate(); // sampling rate
 		*ptr.u16++ = fft_size();
-		for (i = 0; i < length / 2; i++) {
+		for (i = 0; i < length; i++) {
 			float freq = i * sample_rate() / fft_size();
 			float real = out[i].real();
 			float imag = out[i].imag();
@@ -167,10 +167,12 @@ namespace licorne {
 			*ptr.u08++ = (char) pwr[i];
 			//printf("%.0f,%f,%f\n", freq, mag, pwr[i]);
 		}
-		printf("\n");
+		//printf("\n");
 
-		socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
-		
+		if (id++ % 10) {
+			socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
+		}
+
 		//exit(1);
 		
 		return pwr;

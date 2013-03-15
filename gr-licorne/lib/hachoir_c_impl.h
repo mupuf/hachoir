@@ -56,7 +56,7 @@ namespace licorne {
 		void update_fft_params(int fft_size, gr_firdes::win_type window_type);
 
 	public:
-		hachoir_c_impl(int freq, int samplerate, int fft_size, int window_type);
+		hachoir_c_impl(double freq, int samplerate, int fft_size, int window_type);
 		~hachoir_c_impl();
 
 		void forecast (int noutput_items, gr_vector_int &ninput_items_required);
