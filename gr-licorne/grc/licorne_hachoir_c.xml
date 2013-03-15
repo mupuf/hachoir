@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <block>
-  <name>hachoir_f</name>
-  <key>licorne_hachoir_f</key>
+  <name>hachoir_c</name>
+  <key>licorne_hachoir_c</key>
   <category>licorne</category>
   <import>import licorne</import>
-  <make>licorne.hachoir_f(freq, samplerate, fft_size, window_size)</make>
+  <make>licorne.hachoir_c(freq, samplerate, fft_size, window_size)</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
        * name

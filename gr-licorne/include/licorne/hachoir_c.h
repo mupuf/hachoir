@@ -33,10 +33,10 @@ namespace gr {
      * \ingroup licorne
      *
      */
-    class LICORNE_API hachoir_f : virtual public gr_block
+    class LICORNE_API hachoir_c : virtual public gr_block
     {
     public:
-       typedef boost::shared_ptr<hachoir_f> sptr;
+       typedef boost::shared_ptr<hachoir_c> sptr;
 
        /*!
         * \brief Return a shared_ptr to a new instance of licorne::hachoir_f.

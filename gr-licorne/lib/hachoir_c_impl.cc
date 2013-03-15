@@ -26,26 +26,26 @@
 #include <gri_fft.h>
 
 
-#include "hachoir_f_impl.h"
+#include "hachoir_c_impl.h"
 
 #include <stdio.h>
 
 namespace gr {
 namespace licorne {
 
-	hachoir_f::sptr
-	hachoir_f::make(int freq, int samplerate, int fft_size, int window_type)
+	hachoir_c::sptr
+	hachoir_c::make(int freq, int samplerate, int fft_size, int window_type)
 	{
-		return gnuradio::get_initial_sptr (new hachoir_f_impl(freq, samplerate, fft_size, window_type));
+		return gnuradio::get_initial_sptr (new hachoir_c_impl(freq, samplerate, fft_size, window_type));
 	}
 
 	/*
 	* The private constructor
 	*/
-	hachoir_f_impl::hachoir_f_impl(int freq, int samplerate, int fft_size, int window_type)
+	hachoir_c_impl::hachoir_c_impl(int freq, int samplerate, int fft_size, int window_type)
 	: gr_block("hachoir_f",
-			gr_make_io_signature(1, 1, sizeof (float)),
-			gr_make_io_signature(0, 0, sizeof (float))),
+			gr_make_io_signature(1, 1, sizeof (gr_complex)),
+			gr_make_io_signature(0, 0, sizeof (gr_complex))),
 			socket(ios),
 			_freq(freq), _samplerate(samplerate)
 	{
@@ -58,23 +58,23 @@ namespace licorne {
 	/*
 	* Our virtual destructor.
 	*/
-	hachoir_f_impl::~hachoir_f_impl()
+	hachoir_c_impl::~hachoir_c_impl()
 	{
 	}
 
 	void
-	hachoir_f_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
+	hachoir_c_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
 	{
 		ninput_items_required[0] = noutput_items;
 	}
 
 	int
-	hachoir_f_impl::general_work (int noutput_items,
+	hachoir_c_impl::general_work (int noutput_items,
 			gr_vector_int &ninput_items,
 			gr_vector_const_void_star &input_items,
 			gr_vector_void_star &output_items)
 	{
-		const float *in = (const float *) input_items[0];
+		const gr_complex *in = (const gr_complex *) input_items[0];
 		int i;
 		
 		i = 0;
@@ -100,7 +100,7 @@ namespace licorne {
 	}
 	
 	void 
-	hachoir_f_impl::update_fft_params(int fft_size, gr_firdes::win_type window_type)
+	hachoir_c_impl::update_fft_params(int fft_size, gr_firdes::win_type window_type)
 	{
 		/* reconstruct the window when the fft_size of the window type changes */
 		if (fft_size != _fft_size || window_type != _window_type)
@@ -108,7 +108,7 @@ namespace licorne {
 		
 		if (fft_size != _fft_size) {
 			fft.reset(new gri_fft_complex (fft_size));
-			_buffer.reset(new float[fft_size]);
+			_buffer.reset(new gr_complex[fft_size]);
 			_buffer_pos = 0;
 		}
 
@@ -117,7 +117,7 @@ namespace licorne {
 	}
 	
 	std::vector<float>
-	hachoir_f_impl::calc_fft(const float *src, size_t length)
+	hachoir_c_impl::calc_fft(const gr_complex *src, size_t length)
 	{
 		static int id = 0;
 		gr_complex *dst = fft->get_inbuf();
@@ -134,8 +134,11 @@ namespace licorne {
 		ptr.u08 = buffer;
 
 		/* apply the window and copy to input buffer */
-		for (i = 0; i < length && i < fft_size(); i++)
+		float window_power = 0;
+		for (i = 0; i < length && i < fft_size(); i++) {
 			dst[i] = src[i] * win[i];
+			window_power += win[i]*win[i];
+		}
 		
 		/* add padding samples when length < fft_size */
 		for (i = i; i < fft_size(); i++)
@@ -145,20 +148,24 @@ namespace licorne {
 		fft->execute();
 		
 		/* process the output */
-		std::vector<float> mag(length / 2);
+		std::vector<float> pwr(length / 2);
 		gr_complex *out = fft->get_outbuf();
 
 		*ptr.u08++ = 1;
-		*ptr.u64++ = 0; // central frequency
+		*ptr.u64++ = central_freq(); // central frequency
 		*ptr.u64++ = sample_rate(); // sampling rate
 		*ptr.u16++ = fft_size();
 		for (i = 0; i < length / 2; i++) {
 			float freq = i * sample_rate() / fft_size();
 			float real = out[i].real();
 			float imag = out[i].imag();
-			mag[i] = sqrt(real*real + imag*imag);
-			*ptr.u08++ = (char)mag[i];
-			printf("%.0f,%f,%f\n", freq, mag[i], log(mag[i]));
+
+			float mag = sqrt(real*real + imag*imag);
+			pwr[i] = 10 * log10(mag) - 20 * log10(fft_size()) - 10 * log10(window_power/fft_size());
+
+
+			*ptr.u08++ = (char) pwr[i];
+			//printf("%.0f,%f,%f\n", freq, mag, pwr[i]);
 		}
 		printf("\n");
 
@@ -166,7 +173,7 @@ namespace licorne {
 		
 		//exit(1);
 		
-		return mag;
+		return pwr;
 	}
 
 } /* namespace licorne */

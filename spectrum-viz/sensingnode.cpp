@@ -46,6 +46,7 @@ void SensingNode::clientDisconnected()
 }
 
 #include <stdint.h>
+#include <QCoreApplication>
 void SensingNode::dataReady()
 {
 	QByteArray header = clientSocket->read(19);
@@ -58,13 +59,17 @@ void SensingNode::dataReady()
 	} ptr;
 	ptr.u08 = (uint8_t *)header.data();
 
+	uint8_t msg_type = *ptr.u08++;
 	uint64_t centralFreq = *ptr.u64++;
 	uint64_t sampleRate = *ptr.u64++;
 	uint16_t fftSize = *ptr.u16++;
 
 	frontBuffer->clear();
 
-	while (clientSocket->bytesAvailable() < (fftSize / 2));
+	while (clientSocket->bytesAvailable() < (fftSize / 2))
+	{
+		QCoreApplication::processEvents();
+	}
 
 	QByteArray data = clientSocket->read(fftSize / 2);
 	for (int i = 0; i < fftSize / 2; i++)
@@ -73,5 +78,6 @@ void SensingNode::dataReady()
 		frontBuffer->append(SpectrumSample(freq, (char)data.at(i)));
 	}
 
+	emit frequencyRangeChanged(centralFreq + sampleRate/2, centralFreq);
 	emit dataChanged();
 }

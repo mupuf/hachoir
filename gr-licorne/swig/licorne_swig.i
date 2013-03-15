@@ -8,8 +8,8 @@
 %include "licorne_swig_doc.i"
 
 %{
-#include "licorne/hachoir_f.h"
+#include "licorne/hachoir_c.h"
 %}
 
-%include "licorne/hachoir_f.h"
-GR_SWIG_BLOCK_MAGIC2(licorne, hachoir_f);
+%include "licorne/hachoir_c.h"
+GR_SWIG_BLOCK_MAGIC2(licorne, hachoir_c);

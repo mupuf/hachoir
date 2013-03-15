@@ -26,13 +26,13 @@
  */
 
 #include "qa_licorne.h"
-#include "qa_hachoir_f.h"
+#include "qa_hachoir_c.h"
 
 CppUnit::TestSuite *
 qa_licorne::suite()
 {
   CppUnit::TestSuite *s = new CppUnit::TestSuite("licorne");
-  s->addTest(gr::licorne::qa_hachoir_f::suite());
+  s->addTest(gr::licorne::qa_hachoir_c::suite());
 
   return s;
 }

@@ -19,28 +19,20 @@
  */
 
 
-#ifndef _QA_HACHOIR_F_H_
-#define _QA_HACHOIR_F_H_
+#include "qa_hachoir_c.h"
+#include <cppunit/TestAssert.h>
 
-#include <cppunit/extensions/HelperMacros.h>
-#include <cppunit/TestCase.h>
+#include <licorne/hachoir_c.h>
 
 namespace gr {
   namespace licorne {
 
-    class qa_hachoir_f : public CppUnit::TestCase
+    void
+    qa_hachoir_c::t1()
     {
-    public:
-      CPPUNIT_TEST_SUITE(qa_hachoir_f);
-      CPPUNIT_TEST(t1);
-      CPPUNIT_TEST_SUITE_END();
-
-    private:
-      void t1();
-    };
+        // Put test here
+    }
 
   } /* namespace licorne */
 } /* namespace gr */
-
-#endif /* _QA_HACHOIR_F_H_ */
 

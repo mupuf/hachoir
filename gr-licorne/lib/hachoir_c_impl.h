@@ -21,7 +21,7 @@
 #ifndef INCLUDED_LICORNE_HACHOIR_F_IMPL_H
 #define INCLUDED_LICORNE_HACHOIR_F_IMPL_H
 
-#include <licorne/hachoir_f.h>
+#include <licorne/hachoir_c.h>
 #include <gr_firdes.h>
 
 #include <stdint.h>
@@ -33,7 +33,7 @@
 namespace gr {
 namespace licorne {
 
-	class hachoir_f_impl : public hachoir_f
+	class hachoir_c_impl : public hachoir_c
 	{
 	private:
 		/* parameters */
@@ -47,17 +47,17 @@ namespace licorne {
 		boost::asio::ip::tcp::socket socket;
 
 		/* internals */
-		std::auto_ptr<float> _buffer;
+		std::auto_ptr<gr_complex> _buffer;
 		size_t _buffer_pos;
 		std::vector<float> win;
 		std::auto_ptr<gri_fft_complex> fft;
 	
-		std::vector<float> calc_fft(const float *src, size_t length);
+		std::vector<float> calc_fft(const gr_complex *src, size_t length);
 		void update_fft_params(int fft_size, gr_firdes::win_type window_type);
 
 	public:
-		hachoir_f_impl(int freq, int samplerate, int fft_size, int window_type);
-		~hachoir_f_impl();
+		hachoir_c_impl(int freq, int samplerate, int fft_size, int window_type);
+		~hachoir_c_impl();
 
 		void forecast (int noutput_items, gr_vector_int &ninput_items_required);
 
@@ -67,8 +67,7 @@ namespace licorne {
 				gr_vector_const_void_star &input_items,
 				gr_vector_void_star &output_items);
 		
-		int central_freq() const { return _freq;};
-		double set_central_freq() const { return _freq;};
+		double central_freq() const { return _freq;};
 		int sample_rate() const { return _samplerate;};
 		int fft_size() const { return _fft_size;};
 		gr_firdes::win_type window_type() const { return _window_type;};

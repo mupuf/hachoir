@@ -26,7 +26,7 @@ include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
 add_library(gnuradio-licorne SHARED
-    hachoir_f_impl.cc )
+    hachoir_c_impl.cc )
 target_link_libraries(gnuradio-licorne ${Boost_LIBRARIES} ${GRUEL_LIBRARIES} ${GNURADIO_CORE_LIBRARIES})
 set_target_properties(gnuradio-licorne PROPERTIES DEFINE_SYMBOL "gnuradio_licorne_EXPORTS")
 
@@ -49,7 +49,7 @@ include_directories(${CPPUNIT_INCLUDE_DIRS})
 list(APPEND test_licorne_sources
   ${CMAKE_CURRENT_SOURCE_DIR}/test_licorne.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/qa_licorne.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/qa_hachoir_f.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/qa_hachoir_c.cc
 )
 
 add_executable(test-licorne ${test_licorne_sources})
