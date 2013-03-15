@@ -58,7 +58,7 @@ Canvas {
 		return freq.toFixed(2) + " " + units[unit]
 	}
 
-	function getCoordinates(ctx, freq, power)
+	function getCoordinatesPreCache(ctx)
 	{
 		var font_height = 10
 		var dB_bar_text_size = biggestSize(ctx, canvas.power_range_low, canvas.power_range_high)
@@ -70,9 +70,27 @@ Canvas {
 		var freq_range = canvas.freq_high - canvas.freq_low
 		var power_range = canvas.power_range_low - canvas.power_range_high
 
+		var cache = {
+			font_height: font_height,
+			dB_bar_x_offset: dB_bar_x_offset,
+			graph_width: graph_width,
+			graph_height: graph_height,
+			freq_range: freq_range,
+			power_range: power_range,
+			x_offset: dB_bar_x_offset,
+			y_offset: canvas.margin_top + font_height,
+			x_factor: graph_width / freq_range,
+			y_factor: graph_height / power_range
+		}
+
+		return cache;
+	}
+
+	function getCoordinates(ctx, cache, freq, power)
+	{
 		var pos = {
-			x: dB_bar_x_offset + graph_width * (freq - canvas.freq_low) / freq_range,
-			y: canvas.margin_top + font_height + graph_height * (power - canvas.power_range_high) / power_range,
+			x: cache.x_offset + cache.x_factor * (freq - canvas.freq_low),
+			y: cache.y_offset + cache.y_factor * (power - canvas.power_range_high),
 			toString: function () {
 				return "[" + this.x + "," + this.y + "]"
 			}
@@ -85,9 +103,11 @@ Canvas {
 	{
 		ctx.save();
 
-		var top_left = getCoordinates(ctx, freq_low, canvas.power_range_high)
-		var bottom_left = getCoordinates(ctx, freq_low, canvas.power_range_low)
-		var bottom_right = getCoordinates(ctx, freq_high, canvas.power_range_low)
+		var gc_cache = getCoordinatesPreCache(ctx)
+
+		var top_left = getCoordinates(ctx, gc_cache, freq_low, canvas.power_range_high)
+		var bottom_left = getCoordinates(ctx, gc_cache, freq_low, canvas.power_range_low)
+		var bottom_right = getCoordinates(ctx, gc_cache, freq_high, canvas.power_range_low)
 
 		// draw the dB lines
 		ctx.beginPath()
@@ -98,8 +118,8 @@ Canvas {
 		ctx.textBaseline = "middle"
 		for (var power = canvas.power_range_high; power >= canvas.power_range_low; power-=10)
 		{
-			var pos_start = getCoordinates(ctx, freq_low, power)
-			var pos_end = getCoordinates(ctx, freq_high, power)
+			var pos_start = getCoordinates(ctx, gc_cache, freq_low, power)
+			var pos_end = getCoordinates(ctx, gc_cache, freq_high, power)
 
 			ctx.fillText(power, pos_start.x - 5, pos_start.y)
 			ctx.fill()
@@ -129,7 +149,7 @@ Canvas {
 		for (var i = 0; i < 10; i++)
 		{
 			var freq = freq_low + i * Math.floor(freq_range / 9)
-			var pos = getCoordinates(ctx, freq, canvas.power_range_low)
+			var pos = getCoordinates(ctx, gc_cache, freq, canvas.power_range_low)
 
 			//console.log(freqToText(freq_low + i * (canvas.bandwidth / 10)))
 			ctx.fillText(freqToText(freq), pos.x, pos.y + 8)
@@ -155,7 +175,7 @@ Canvas {
 		for (var i = 0; i < size; i++)
 		{
 			var sample = SensingNode.getSample(i)
-			pos = getCoordinates(ctx, sample["freq"], sample["dbm"])
+			pos = getCoordinates(ctx, gc_cache, sample["freq"], sample["dbm"])
 
 			if (i == 0)
 				ctx.moveTo(pos.x, bottom_left.y)
