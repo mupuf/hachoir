@@ -120,7 +120,9 @@ namespace licorne {
 	hachoir_c_impl::calc_fft(const gr_complex *src, size_t length)
 	{
 		static int id = 0;
+		static std::vector<float> pwr(length);
 		gr_complex *dst = fft->get_inbuf();
+		size_t average = 16;
 		size_t i;
 
 		uint8_t buffer[5120];
@@ -148,28 +150,30 @@ namespace licorne {
 		fft->execute();
 		
 		/* process the output */
-		std::vector<float> pwr(length);
 		gr_complex *out = fft->get_outbuf();
-
-		*ptr.u08++ = 1;
-		*ptr.u64++ = central_freq(); // central frequency
-		*ptr.u64++ = sample_rate(); // sampling rate
-		*ptr.u16++ = fft_size();
-		for (i = 0; i < length; i++) {
-			float freq = i * sample_rate() / fft_size();
-			float real = out[i].real();
-			float imag = out[i].imag();
-
+		int nb_bins = length - 1 + length % 2; //make it odd
+		for (i = 0; i < nb_bins; i++) {
+			int n = (i + nb_bins/2 ) %nb_bins;
+			float real = out[n].real();
+			float imag = out[n].imag();
 			float mag = sqrt(real*real + imag*imag);
-			pwr[i] = 10 * log10(mag) - 20 * log10(fft_size()) - 10 * log10(window_power/fft_size());
-
-
-			*ptr.u08++ = (char) pwr[i];
-			//printf("%.0f,%f,%f\n", freq, mag, pwr[i]);
+			float pwr_i = 20 * log10(fabs(mag)) - 20 * log10(fft_size()) - 10 * log10(window_power/fft_size()) + 3;
+			pwr[i] += pwr_i;
 		}
-		//printf("\n");
 
-		if (id++ % 10) {
+		if ((id++ % average) == 0) {
+			*ptr.u08++ = 1;
+			*ptr.u64++ = central_freq(); // central frequency
+			*ptr.u64++ = sample_rate(); // sampling rate
+			*ptr.u16++ = fft_size();
+			for (i = 0; i < length; i++) {
+				float freq = i * sample_rate() / fft_size();
+				*ptr.u08++ = (char) (pwr[i] / average);
+
+				pwr[i] = 0;
+				//printf("%.0f,%f,%f\n", freq, mag, pwr[i]);
+			}
+
 			socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
 		}
 

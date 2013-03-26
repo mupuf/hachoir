@@ -7,7 +7,7 @@ Canvas {
 	property int clientID: -1
 
 	property int power_range_high: -30
-	property int power_range_low: -90
+	property int power_range_low: -100
 	/*property real freq_low:  868000000
 	property real freq_high: 888000000*/
 	property real freq_low:  0
