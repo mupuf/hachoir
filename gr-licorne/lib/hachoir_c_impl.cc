@@ -25,7 +25,6 @@
 #include <gr_io_signature.h>
 #include <gri_fft.h>
 
-
 #include "hachoir_c_impl.h"
 
 #include <stdio.h>
@@ -104,7 +103,7 @@ namespace licorne {
 	{
 		/* reconstruct the window when the fft_size of the window type changes */
 		if (fft_size != _fft_size || window_type != _window_type)
-			win = gr_firdes::window(window_type, fft_size, 6.76); // 6.76 is cargo-culted
+			win.reset(fft_size, window_type);
 		
 		if (fft_size != _fft_size) {
 			fft.reset(new gri_fft_complex (fft_size));
@@ -116,14 +115,12 @@ namespace licorne {
 		_window_type = _window_type;
 	}
 	
-	std::vector<float>
+	Fft
 	hachoir_c_impl::calc_fft(const gr_complex *src, size_t length)
 	{
 		static int id = 0;
-		static std::vector<float> pwr(length);
-		gr_complex *dst = fft->get_inbuf();
-		size_t average = 16;
-		size_t i;
+		int average = 1;
+		struct timeval time;
 
 		uint8_t buffer[5120];
 		union {
@@ -135,43 +132,21 @@ namespace licorne {
 		} ptr;
 		ptr.u08 = buffer;
 
-		/* apply the window and copy to input buffer */
-		float window_power = 0;
-		for (i = 0; i < length && i < fft_size(); i++) {
-			dst[i] = src[i] * win[i];
-			window_power += win[i]*win[i];
-		}
-		
-		/* add padding samples when length < fft_size */
-		for (i = i; i < fft_size(); i++)
-			dst[i] = 0;
-		
-		/* execute the fft */
-		fft->execute();
-		
-		/* process the output */
-		gr_complex *out = fft->get_outbuf();
-		int nb_bins = length - 1 + length % 2; //make it odd
-		for (i = 0; i < nb_bins; i++) {
-			int n = (i + nb_bins/2 ) %nb_bins;
-			float real = out[n].real();
-			float imag = out[n].imag();
-			float mag = sqrt(real*real + imag*imag);
-			float pwr_i = 20 * log10(fabs(mag)) - 20 * log10(fft_size()) - 10 * log10(window_power/fft_size()) + 3;
-			pwr[i] += pwr_i;
-		}
+		gettimeofday(&time, NULL);
+		uint64_t time_ns = (time.tv_sec * 1000000 + time.tv_usec) * 1000;
+		Fft new_fft(fft_size(), central_freq(), sample_rate(),
+		     (gri_fft_complex *)fft.get(), win, src, length, time_ns);
 
-		if ((id++ % average) == 0) {
+		if ((id++ % 512) == 0) {
 			*ptr.u08++ = 1;
-			*ptr.u64++ = central_freq(); // central frequency
-			*ptr.u64++ = sample_rate(); // sampling rate
-			*ptr.u16++ = fft_size();
-			for (i = 0; i < length; i++) {
-				float freq = i * sample_rate() / fft_size();
-				*ptr.u08++ = (char) (pwr[i] / average);
+			*ptr.u08++ = 0;
+			*ptr.u16++ = new_fft.fftSize(); //steps
+			*ptr.u64++ = new_fft.startFrequency(); // start freq
+			*ptr.u64++ = new_fft.endFrequency(); // end freq
+			*ptr.u64++ = new_fft.time_ns();
 
-				pwr[i] = 0;
-				//printf("%.0f,%f,%f\n", freq, mag, pwr[i]);
+			for (int i = 0; i < new_fft.fftSize(); i++) {
+				*ptr.u08++ = (char) (new_fft[i] / average);
 			}
 
 			socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
@@ -179,7 +154,7 @@ namespace licorne {
 
 		//exit(1);
 		
-		return pwr;
+		return new_fft;
 	}
 
 } /* namespace licorne */

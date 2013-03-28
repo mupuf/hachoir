@@ -48,9 +48,9 @@ class qa_hachoir_c (gr_unittest.TestCase):
 
 	def test_001_t (self):
 		samp_rate = 8000000
-		freq=0.901e9
-		#freq=2.464e9
-		gain=45
+		freq=0.899e9
+		#freq=2.463e9
+		gain=60
 		ant = "TX/RX"
 		self.uhd_usrp_source_0 = uhd.usrp_source(
 					device_addr="",

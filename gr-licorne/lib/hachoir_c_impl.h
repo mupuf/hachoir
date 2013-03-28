@@ -30,6 +30,9 @@
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 
+#include "fftwindow.h"
+#include "fft.h"
+
 namespace gr {
 namespace licorne {
 
@@ -49,10 +52,10 @@ namespace licorne {
 		/* internals */
 		std::auto_ptr<gr_complex> _buffer;
 		size_t _buffer_pos;
-		std::vector<float> win;
+		FftWindow win;
 		std::auto_ptr<gri_fft_complex> fft;
 	
-		std::vector<float> calc_fft(const gr_complex *src, size_t length);
+		Fft calc_fft(const gr_complex *src, size_t length);
 		void update_fft_params(int fft_size, gr_firdes::win_type window_type);
 
 	public:

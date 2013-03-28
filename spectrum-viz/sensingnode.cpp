@@ -46,10 +46,11 @@ void SensingNode::clientDisconnected()
 }
 
 #include <stdint.h>
+#include <sys/time.h>
 #include <QCoreApplication>
 void SensingNode::dataReady()
 {
-	QByteArray header = clientSocket->read(19);
+	QByteArray header = clientSocket->read(28);
 	union {
 		uint8_t  *u08;
 		uint16_t *u16;
@@ -60,27 +61,27 @@ void SensingNode::dataReady()
 	ptr.u08 = (uint8_t *)header.data();
 
 	uint8_t msg_type = *ptr.u08++;
-	uint64_t centralFreq = *ptr.u64++;
-	uint64_t sampleRate = *ptr.u64++;
-	uint16_t fftSize = *ptr.u16++;
+	uint8_t padding = *ptr.u08++;
+	uint16_t steps = *ptr.u16++;
+	uint64_t start = *ptr.u64++;
+	uint64_t end = *ptr.u64++;
+	uint64_t time_ns = *ptr.u64++;
 
-	frontBuffer->clear();
+	if (msg_type | 0x1)
+		frontBuffer->clear();
 
-	while (clientSocket->bytesAvailable() < (fftSize))
+	while (clientSocket->bytesAvailable() < (steps))
 	{
 		QCoreApplication::processEvents();
 	}
 
-	float start = centralFreq - (sampleRate / 2);
-	float end = centralFreq + (sampleRate / 2);
-
-	QByteArray data = clientSocket->read(fftSize);
-	for (int i = 0; i < fftSize; i++)
+	QByteArray data = clientSocket->read(steps);
+	for (int i = 0; i < steps; i++)
 	{
-		float freq = start + i * sampleRate / fftSize;
+		float freq = start + i * (end-start) / steps;
 		frontBuffer->append(SpectrumSample(freq, (char)data.at(i)));
 	}
 
-	emit frequencyRangeChanged(start, end);
+	emit frequencyRangeChanged(start,  end);
 	emit dataChanged();
 }
