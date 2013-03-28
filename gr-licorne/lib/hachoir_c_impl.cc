@@ -29,6 +29,8 @@
 
 #include <stdio.h>
 
+#include "fftaverage.h"
+
 namespace gr {
 namespace licorne {
 
@@ -115,12 +117,15 @@ namespace licorne {
 		_window_type = _window_type;
 	}
 	
-	Fft
+	boost::shared_ptr<Fft>
 	hachoir_c_impl::calc_fft(const gr_complex *src, size_t length)
 	{
 		static int id = 0;
-		int average = 1;
 		struct timeval time;
+		static FftAverage noisefloor(fft_size(), central_freq(), sample_rate(), 10000);
+		static FftAverage avr(fft_size(), central_freq(), sample_rate(), 20);
+		static uint64_t averageFFTTime = 0;
+		int period = 4;
 
 		uint8_t buffer[5120];
 		union {
@@ -132,21 +137,40 @@ namespace licorne {
 		} ptr;
 		ptr.u08 = buffer;
 
-		gettimeofday(&time, NULL);
-		uint64_t time_ns = (time.tv_sec * 1000000 + time.tv_usec) * 1000;
-		Fft new_fft(fft_size(), central_freq(), sample_rate(),
-		     (gri_fft_complex *)fft.get(), win, src, length, time_ns);
+		fft->set_nthreads(8);
 
-		if ((id++ % 512) == 0) {
+		gettimeofday(&time, NULL);
+		uint64_t time_ns = (time.tv_sec * 1000000 + time.tv_usec);
+
+		boost::shared_ptr<Fft> new_fft(new Fft(fft_size(), central_freq(),
+						       sample_rate(),
+						       (gri_fft_complex *)fft.get(),
+						       win, src, length, time_ns));
+
+
+		noisefloor.addFft(new_fft);
+		avr.addFft(new_fft);
+
+		gettimeofday(&time, NULL);
+		uint64_t time_ns_after = (time.tv_sec * 1000000 + time.tv_usec);
+		averageFFTTime += (time_ns_after - time_ns);
+
+		if ((id++ % period) == 0) {
+			/*Fft avr(avr);
+			avr -= noisefloor;*/
+
+			std::cerr << "the fft took (ns): " << averageFFTTime / period << std::endl;
+			averageFFTTime = 0;
+
 			*ptr.u08++ = 1;
 			*ptr.u08++ = 0;
-			*ptr.u16++ = new_fft.fftSize(); //steps
-			*ptr.u64++ = new_fft.startFrequency(); // start freq
-			*ptr.u64++ = new_fft.endFrequency(); // end freq
-			*ptr.u64++ = new_fft.time_ns();
+			*ptr.u16++ = avr.fftSize(); //steps
+			*ptr.u64++ = avr.startFrequency(); // start freq
+			*ptr.u64++ = avr.endFrequency(); // end freq
+			*ptr.u64++ = avr.time_ns();
 
-			for (int i = 0; i < new_fft.fftSize(); i++) {
-				*ptr.u08++ = (char) (new_fft[i] / average);
+			for (int i = 0; i < avr.fftSize(); i++) {
+				*ptr.u08++ = (char) (avr[i] - noisefloor[i]);
 			}
 
 			socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));

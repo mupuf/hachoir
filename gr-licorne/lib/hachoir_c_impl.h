@@ -55,7 +55,7 @@ namespace licorne {
 		FftWindow win;
 		std::auto_ptr<gri_fft_complex> fft;
 	
-		Fft calc_fft(const gr_complex *src, size_t length);
+		boost::shared_ptr<Fft> calc_fft(const gr_complex *src, size_t length);
 		void update_fft_params(int fft_size, gr_firdes::win_type window_type);
 
 	public:

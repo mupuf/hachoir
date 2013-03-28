@@ -3,11 +3,12 @@ import QtQuick 2.0
 Canvas {
 	id: canvas
 	antialiasing: true
+	renderStrategy: Canvas.Immediate
 
 	property int clientID: -1
 
-	property int power_range_high: 0
-	property int power_range_low: -100
+	property int power_range_high: 40
+	property int power_range_low: -10
 	/*property real freq_low:  868000000
 	property real freq_high: 888000000*/
 	property real freq_low:  0
@@ -17,6 +18,7 @@ Canvas {
 	property int margin_bottom: 10
 	property int margin_left: 10
 	property int margin_right: 10
+	property int i:0
 
 	Component.onCompleted: {
 	}
@@ -221,5 +223,10 @@ Canvas {
 
 		drawGrid(ctx)
 		ctx.restore();
+
+		if (i < 1024) {
+			save("/tmp/heya_" + i + ".png");
+			i++;
+		}
 	}
 }

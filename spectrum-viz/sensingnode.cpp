@@ -4,7 +4,7 @@
 
 SensingNode::SensingNode(QTcpSocket *socket, int clientID, QObject *parent) :
 	QObject(parent), clientSocket(socket), clientID(clientID),
-	frontBuffer(new QVector<SpectrumSample>)
+	frontBuffer(new QVector<SpectrumSample>), pwr_min(125), pwr_max(-125)
 {
 	frontBuffer->append(SpectrumSample(868000000, -90));
 	frontBuffer->append(SpectrumSample(869000000, -83));
@@ -76,12 +76,19 @@ void SensingNode::dataReady()
 	}
 
 	QByteArray data = clientSocket->read(steps);
+
 	for (int i = 0; i < steps; i++)
 	{
 		float freq = start + i * (end-start) / steps;
-		frontBuffer->append(SpectrumSample(freq, (char)data.at(i)));
+		char pwr = data.at(i);
+		if (pwr < pwr_min)
+			pwr_min = pwr;
+		if (pwr > pwr_max)
+			pwr_max = pwr;
+		frontBuffer->append(SpectrumSample(freq, pwr));
 	}
 
 	emit frequencyRangeChanged(start,  end);
+	emit powerRangeChanged((pwr_max + 20) / 10 * 10, (pwr_min - 20) / 10 * 10);
 	emit dataChanged();
 }

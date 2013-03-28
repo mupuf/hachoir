@@ -28,6 +28,7 @@ link_directories(${Boost_LIBRARY_DIRS})
 list(APPEND gnuradio_licorne_sources
   ${CMAKE_CURRENT_SOURCE_DIR}/fftwindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fft.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/fftaverage.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/hachoir_c_impl.cc
 )
 

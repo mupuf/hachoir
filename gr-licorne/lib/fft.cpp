@@ -1,10 +1,20 @@
 #include "fft.h"
 
+Fft::Fft()
+{
+
+}
+
+/*Fft::Fft(const Fft &other) : _fft_size(other._fft_size), _central_frequency(other._central_frequency),
+	_sample_rate(other._sample_rate), _time_ns(other._time_ns), _pwr(other._pwr)
+{
+}*/
+
 Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 	 gri_fft_complex *fft, FftWindow &win, const gr_complex *src, size_t length,
 	 uint64_t time_ns) : _fft_size(fftSize),
 	_central_frequency(centralFrequency), _sample_rate(sampleRate),
-	_time_ns(time_ns), pwr(fftSize)
+	_time_ns(time_ns), _pwr(fftSize)
 {
 	int i;
 
@@ -30,9 +40,58 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 		float imag = out[n].imag();
 		float mag = sqrt(real*real + imag*imag);
 
-		pwr[i] = 20 * log10(fabs(mag))
+		_pwr[i] = 20 * log10(fabs(mag))
 			- 20 * log10(fftSize)
 			- 10 * log10(win.windowPower()/fftSize)
 			+ 3;
 	}
+}
+
+Fft & Fft::operator+=(const Fft &rhs)
+{
+	/* check that we are adding an fft of the same type */
+	if (rhs.fftSize() != fftSize() ||
+	    rhs.centralFrequency() != centralFrequency() ||
+	    rhs.sampleRate() != sampleRate()) {
+		std::cerr << "FftAverage::operator+: Tried to add an fft with different characteristics";
+		std::cerr << std::endl;
+		return *this;
+	}
+
+	for (int i = 0; i < fftSize(); i++)
+		_pwr[i] += rhs.operator [](i);
+
+	return *this;
+}
+
+Fft & Fft::operator-=(const Fft &rhs)
+{
+	std::cerr << "operator-=(): start" << std::endl;
+
+	/* check that we are adding an fft of the same type */
+	if (rhs.fftSize() != fftSize() ||
+	    rhs.centralFrequency() != centralFrequency() ||
+	    rhs.sampleRate() != sampleRate()) {
+		std::cerr << "FftAverage::operator+: Tried to add an fft with different characteristics";
+		std::cerr << std::endl;
+		return *this;
+	}
+
+	std::cerr << "operator-=(): 2" << std::endl;
+
+	for (int i = 0; i < fftSize(); i++)
+		_pwr[i] -= rhs.operator [](i);
+
+	std::cerr << "operator-=(): end" << std::endl;
+	return *this;
+}
+
+const Fft Fft::operator+(const Fft &other) const
+{
+	return Fft(*this) += other;
+}
+
+const Fft Fft::operator-(const Fft &other) const
+{
+	return Fft(*this) -= other;
 }

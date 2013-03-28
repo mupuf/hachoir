@@ -10,13 +10,17 @@
 
 class Fft
 {
+protected:
 	uint16_t _fft_size;
 	uint64_t _central_frequency;
 	uint64_t _sample_rate;
 	uint64_t _time_ns;
 
-	std::vector<float> pwr;
+	std::vector<float> _pwr;
+
+	Fft();
 public:
+	//Fft(const Fft &other);
 	Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 	    gri_fft_complex *fft, FftWindow &win, const gr_complex *src, size_t length,
 	    uint64_t time_ns);
@@ -29,12 +33,16 @@ public:
 	uint64_t startFrequency() const { return freqAtBin(0); }
 	uint64_t endFrequency() const { return freqAtBin(_fft_size - 1); }
 
-	float operator[](size_t i) const { return pwr[i]; }
 	uint64_t freqAtBin(uint16_t i) const
 	{
-		assert(i < _nb_bins);
+		assert(i < _fft_size);
 		return _central_frequency - (_sample_rate / 2) + i * _sample_rate / _fft_size;
 	}
+	virtual float operator[](size_t i) const { return _pwr[i]; }
+	virtual Fft & operator+=(const Fft &other);
+	virtual Fft &  operator-=(const Fft &other);
+	virtual const Fft operator+(const Fft &other) const;
+	virtual const Fft operator-(const Fft &other) const;
 };
 
 #endif // FFT_H

@@ -23,6 +23,10 @@ private:
 	QMutex backBufferMutex;
 
 	QSharedPointer< QVector<SpectrumSample> > frontBuffer, backBuffer, inputBuffer;
+
+	/* hold the maximum and the minimum received power */
+	char pwr_min;
+	char pwr_max;
 public:
 	explicit SensingNode(QTcpSocket *socket, int clientID, QObject *parent = 0);
 
