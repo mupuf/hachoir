@@ -9,8 +9,6 @@ Canvas {
 
 	property int power_range_high: 40
 	property int power_range_low: -10
-	/*property real freq_low:  868000000
-	property real freq_high: 888000000*/
 	property real freq_low:  0
 	property real freq_high: 32000
 
