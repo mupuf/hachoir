@@ -25,14 +25,15 @@
 #include <licorne/hachoir_c.h>
 
 namespace gr {
-  namespace licorne {
+namespace licorne {
 
-    void
-    qa_hachoir_c::t1()
-    {
-        // Put test here
-    }
+	void
+	qa_hachoir_c::t1()
+	{
+		//hachoir_c::sptr hachoir = hachoir_c::make(940000000, 8000000, 256, 1);
 
-  } /* namespace licorne */
+	}
+
+} /* namespace licorne */
 } /* namespace gr */
 

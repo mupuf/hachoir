@@ -30,6 +30,7 @@
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 
+#include "samplesringbuffer.h"
 #include "fftwindow.h"
 #include "fft.h"
 
@@ -48,6 +49,10 @@ namespace licorne {
 		/* sockets */
 		boost::asio::io_service ios;
 		boost::asio::ip::tcp::socket socket;
+
+		/* time-domain ring buffer */
+		struct RBMarker { uint64_t freq; uint64_t time; };
+		SamplesRingBuffer<gr_complex, RBMarker> _ringBuf;
 
 		/* internals */
 		std::auto_ptr<gr_complex> _buffer;

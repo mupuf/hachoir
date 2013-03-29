@@ -32,6 +32,8 @@ list(APPEND gnuradio_licorne_sources
   ${CMAKE_CURRENT_SOURCE_DIR}/hachoir_c_impl.cc
 )
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 add_library(gnuradio-licorne SHARED ${gnuradio_licorne_sources})
 target_link_libraries(gnuradio-licorne ${Boost_LIBRARIES} ${GRUEL_LIBRARIES} ${GNURADIO_CORE_LIBRARIES})
 set_target_properties(gnuradio-licorne PROPERTIES DEFINE_SYMBOL "gnuradio_licorne_EXPORTS")

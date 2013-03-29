@@ -48,7 +48,8 @@ namespace licorne {
 			gr_make_io_signature(1, 1, sizeof (gr_complex)),
 			gr_make_io_signature(0, 0, sizeof (gr_complex))),
 			socket(ios),
-			_freq(freq), _samplerate(samplerate)
+			_freq(freq), _samplerate(samplerate),
+			_ringBuf(1000 * fft_size * sizeof(gr_complex))
 	{
 		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 21334);
 		socket.connect(endpoint);
@@ -76,8 +77,20 @@ namespace licorne {
 			gr_vector_void_star &output_items)
 	{
 		const gr_complex *in = (const gr_complex *) input_items[0];
+		struct timeval time;
+		//SamplesRingBufferMarkerId
 		int i;
-		
+
+		gettimeofday(&time, NULL);
+		uint64_t time_ns = (time.tv_sec * 1000000 + time.tv_usec);
+
+		fprintf(stderr, "general_work: noutput_items = %i\n",
+			noutput_items);
+
+		/*RBMarker m = { central_freq(), time_ns };
+		_ringBuf.addMarker(m, 0);
+		_ringBuf.addSamples(in, noutput_items);*/
+
 		i = 0;
 		do {
 			/* Fill up the buffer if possible */
