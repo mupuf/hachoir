@@ -29,6 +29,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
+#include <boost/thread.hpp>
 
 #include "samplesringbuffer.h"
 #include "fftwindow.h"
@@ -51,16 +52,13 @@ namespace licorne {
 		boost::asio::ip::tcp::socket socket;
 
 		/* time-domain ring buffer */
-		struct RBMarker { uint64_t freq; uint64_t time; };
 		SamplesRingBuffer<gr_complex, RBMarker> _ringBuf;
 
 		/* internals */
-		std::auto_ptr<gr_complex> _buffer;
-		size_t _buffer_pos;
+		boost::thread fftThread;
 		FftWindow win;
-		std::auto_ptr<gri_fft_complex> fft;
 	
-		boost::shared_ptr<Fft> calc_fft(const gr_complex *src, size_t length);
+		boost::shared_ptr<Fft> calc_fft();
 		void update_fft_params(int fft_size, gr_firdes::win_type window_type);
 
 	public:
@@ -75,15 +73,15 @@ namespace licorne {
 				gr_vector_const_void_star &input_items,
 				gr_vector_void_star &output_items);
 		
-		double central_freq() const { return _freq;};
-		int sample_rate() const { return _samplerate;};
-		int fft_size() const { return _fft_size;};
-		gr_firdes::win_type window_type() const { return _window_type;};
+		double central_freq() const { return _freq;}
+		int sample_rate() const { return _samplerate;}
+		int fft_size() const { return _fft_size;}
+		gr_firdes::win_type window_type() const { return _window_type;}
 		
-		void set_central_freq(double freq) { _freq = freq;};
-		void set_sample_rate(int samplerate) { _samplerate = samplerate;};
-		void set_FFT_size(int fft_size) { update_fft_params(fft_size, window_type()); };
-		void set_window_type(int win_type) { update_fft_params(fft_size(), (gr_firdes::win_type) win_type); };
+		void set_central_freq(double freq) { _freq = freq;}
+		void set_sample_rate(int samplerate) { _samplerate = samplerate;}
+		void set_FFT_size(int fft_size) { update_fft_params(fft_size, window_type()); }
+		void set_window_type(int win_type) { update_fft_params(fft_size(), (gr_firdes::win_type) win_type); }
 	};
 
 } // namespace licorne

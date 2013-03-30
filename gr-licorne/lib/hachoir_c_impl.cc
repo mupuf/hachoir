@@ -44,17 +44,19 @@ namespace licorne {
 	* The private constructor
 	*/
 	hachoir_c_impl::hachoir_c_impl(double freq, int samplerate, int fft_size, int window_type)
-	: gr_block("hachoir_f",
+		: gr_block("hachoir_f",
 			gr_make_io_signature(1, 1, sizeof (gr_complex)),
 			gr_make_io_signature(0, 0, sizeof (gr_complex))),
 			socket(ios),
 			_freq(freq), _samplerate(samplerate),
-			_ringBuf(1000 * fft_size * sizeof(gr_complex))
+			_ringBuf(10000 * fft_size)
 	{
 		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 21334);
 		socket.connect(endpoint);
 
 		update_fft_params(fft_size, (gr_firdes::win_type) window_type);
+
+		fftThread = boost::thread(&hachoir_c_impl::calc_fft, this);
 	}
 
 	/*
@@ -78,35 +80,15 @@ namespace licorne {
 	{
 		const gr_complex *in = (const gr_complex *) input_items[0];
 		struct timeval time;
-		//SamplesRingBufferMarkerId
 		int i;
 
 		gettimeofday(&time, NULL);
 		uint64_t time_ns = (time.tv_sec * 1000000 + time.tv_usec);
 
-		fprintf(stderr, "general_work: noutput_items = %i\n",
-			noutput_items);
-
-		/*RBMarker m = { central_freq(), time_ns };
+		RBMarker m = { central_freq(), time_ns };
 		_ringBuf.addMarker(m, 0);
-		_ringBuf.addSamples(in, noutput_items);*/
+		_ringBuf.addSamples(in, noutput_items);
 
-		i = 0;
-		do {
-			/* Fill up the buffer if possible */
-			for (i = i; i < noutput_items && _buffer_pos < _fft_size; i++)
-				_buffer.get()[_buffer_pos++] = in[i];
-			
-			/* Do the FFT */
-			if (_buffer_pos == _fft_size)
-			{
-				calc_fft(_buffer.get(), _fft_size);
-			}
-			
-			/* reset buffer_pos */
-			_buffer_pos = 0;
-		} while (i < noutput_items);
-		
 		consume_each (noutput_items);
 
 		// Tell runtime system how many output items we produced.
@@ -119,26 +101,22 @@ namespace licorne {
 		/* reconstruct the window when the fft_size of the window type changes */
 		if (fft_size != _fft_size || window_type != _window_type)
 			win.reset(fft_size, window_type);
-		
-		if (fft_size != _fft_size) {
-			fft.reset(new gri_fft_complex (fft_size));
-			_buffer.reset(new gr_complex[fft_size]);
-			_buffer_pos = 0;
-		}
 
 		_fft_size = fft_size;
 		_window_type = _window_type;
 	}
 	
 	boost::shared_ptr<Fft>
-	hachoir_c_impl::calc_fft(const gr_complex *src, size_t length)
+	hachoir_c_impl::calc_fft()
 	{
 		static int id = 0;
 		struct timeval time;
 		static FftAverage noisefloor(fft_size(), central_freq(), sample_rate(), 10000);
 		static FftAverage avr(fft_size(), central_freq(), sample_rate(), 20);
 		static uint64_t averageFFTTime = 0;
-		int period = 4;
+		int period = 200;
+
+		gri_fft_complex fft(fft_size());
 
 		uint8_t buffer[5120];
 		union {
@@ -148,50 +126,52 @@ namespace licorne {
 			uint64_t *u64;
 			float *f;
 		} ptr;
-		ptr.u08 = buffer;
 
-		fft->set_nthreads(8);
+		while (1)
+		{
+			ptr.u08 = buffer;
 
-		gettimeofday(&time, NULL);
-		uint64_t time_ns = (time.tv_sec * 1000000 + time.tv_usec);
+			gettimeofday(&time, NULL);
+			uint64_t time_ns = (time.tv_sec * 1000000 + time.tv_usec) * 1000;
 
-		boost::shared_ptr<Fft> new_fft(new Fft(fft_size(), central_freq(),
-						       sample_rate(),
-						       (gri_fft_complex *)fft.get(),
-						       win, src, length, time_ns));
+			boost::shared_ptr<Fft> new_fft(new Fft(fft_size(), central_freq(),
+							       sample_rate(),
+							       &fft,
+							       win, _ringBuf, time_ns));
 
 
-		noisefloor.addFft(new_fft);
-		avr.addFft(new_fft);
+			noisefloor.addFft(new_fft);
+			avr.addFft(new_fft);
 
-		gettimeofday(&time, NULL);
-		uint64_t time_ns_after = (time.tv_sec * 1000000 + time.tv_usec);
-		averageFFTTime += (time_ns_after - time_ns);
+			gettimeofday(&time, NULL);
+			uint64_t time_ns_after = (time.tv_sec * 1000000 + time.tv_usec) * 1000;
+			averageFFTTime += (time_ns_after - time_ns);
 
-		if ((id++ % period) == 0) {
-			/*Fft avr(avr);
-			avr -= noisefloor;*/
+			if ((id++ % period) == 0) {
+				/*Fft avr(avr);
+				avr -= noisefloor;*/
 
-			std::cerr << "the fft took (ns): " << averageFFTTime / period << std::endl;
-			averageFFTTime = 0;
+				std::cerr << averageFFTTime / period << std::endl;
+				averageFFTTime = 0;
 
-			*ptr.u08++ = 1;
-			*ptr.u08++ = 0;
-			*ptr.u16++ = avr.fftSize(); //steps
-			*ptr.u64++ = avr.startFrequency(); // start freq
-			*ptr.u64++ = avr.endFrequency(); // end freq
-			*ptr.u64++ = avr.time_ns();
+				#if 0
+				*ptr.u08++ = 1;
+				*ptr.u08++ = 0;
+				*ptr.u16++ = avr.fftSize(); //steps
+				*ptr.u64++ = avr.startFrequency(); // start freq
+				*ptr.u64++ = avr.endFrequency(); // end freq
+				*ptr.u64++ = avr.time_ns();
 
-			for (int i = 0; i < avr.fftSize(); i++) {
-				*ptr.u08++ = (char) (avr[i] - noisefloor[i]);
+				for (int i = 0; i < avr.fftSize(); i++) {
+					*ptr.u08++ = (char) (avr[i] - noisefloor[i]);
+				}
+
+				socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
+				#endif
 			}
-
-			socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
 		}
 
-		//exit(1);
-		
-		return new_fft;
+		//return new_fft;
 	}
 
 } /* namespace licorne */

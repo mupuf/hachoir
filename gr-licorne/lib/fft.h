@@ -7,6 +7,7 @@
 #include <gri_fft.h>
 
 #include "fftwindow.h"
+#include "ringBufferHachoir.h"
 
 class Fft
 {
@@ -18,11 +19,15 @@ protected:
 
 	std::vector<float> _pwr;
 
+	void doFFt(uint16_t fftSize, FftWindow &win, gri_fft_complex *fft);
 	Fft();
 public:
 	//Fft(const Fft &other);
 	Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 	    gri_fft_complex *fft, FftWindow &win, const gr_complex *src, size_t length,
+	    uint64_t time_ns);
+	Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
+	    gri_fft_complex *fft, FftWindow &win, SamplesRingBufferHachoir &ringBuffer,
 	    uint64_t time_ns);
 
 	uint64_t fftSize() const { return _fft_size; }

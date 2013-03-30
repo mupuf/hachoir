@@ -1,5 +1,28 @@
 #include "fft.h"
 
+void Fft::doFFt(uint16_t fftSize, FftWindow &win, gri_fft_complex *fft)
+{
+	int i;
+
+	fft->execute();
+
+	/* process the output */
+	gr_complex *out = fft->get_outbuf();
+	for (i = 0; i < fftSize; i++) {
+		int n = (i + fftSize/2 ) % fftSize;
+
+		float real = out[n].real();
+		float imag = out[n].imag();
+		float mag = sqrt(real*real + imag*imag);
+
+		_pwr[i] = 20 * log10(fabs(mag))
+			- 20 * log10(fftSize)
+			- 10 * log10(win.windowPower()/fftSize)
+			+ 3;
+	}
+
+}
+
 Fft::Fft()
 {
 
@@ -29,22 +52,37 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 	for (i = i; i < fftSize; i++)
 		dst[i] = 0;
 
-	fft->execute();
+	doFFt(fftSize, win, fft);
+}
 
-	/* process the output */
-	gr_complex *out = fft->get_outbuf();
-	for (i = 0; i < fftSize; i++) {
-		int n = (i + fftSize/2 ) % fftSize;
+Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
+    gri_fft_complex *fft, FftWindow &win, SamplesRingBufferHachoir &ringBuffer,
+    uint64_t time_ns) : _fft_size(fftSize),
+	_central_frequency(centralFrequency), _sample_rate(sampleRate),
+	_time_ns(time_ns), _pwr(fftSize)
+{
+	gr_complex *dst = fft->get_inbuf();
+	gr_complex *samples;
 
-		float real = out[n].real();
-		float imag = out[n].imag();
-		float mag = sqrt(real*real + imag*imag);
+	size_t restartPos;
+	size_t length = ringBuffer.requestReadLastN(fftSize, &restartPos, &samples);
 
-		_pwr[i] = 20 * log10(fabs(mag))
-			- 20 * log10(fftSize)
-			- 10 * log10(win.windowPower()/fftSize)
-			+ 3;
-	}
+	size_t currentPos = 0;
+	do
+	{
+		int i;
+
+		/* apply the window and copy to the input buffer */
+		for (i = 0; i < length; i++) {
+			dst[i] = samples[i] * win[i];
+		}
+		currentPos += length;
+
+		if (currentPos < fftSize)
+			length = ringBuffer.requestRead(restartPos, fftSize - currentPos, &samples);
+	} while(currentPos < fftSize);
+
+	doFFt(fftSize, win, fft);
 }
 
 Fft & Fft::operator+=(const Fft &rhs)

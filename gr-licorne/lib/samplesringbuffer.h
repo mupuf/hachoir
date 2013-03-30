@@ -39,17 +39,19 @@ public:
 	/** request the address of the N'th Sample before the end
 	 *
 	 * WARNING: This function returns the number of bytes readable that
-	 * can be lower than $length (due to the wrapping).
+	* can be lower than $length (due to the wrapping). In this case,
+	* restartPos will contain the position at which you should read.
 	 */
-	size_t requestReadLastN(size_t n, Sample **samples)
+	size_t requestReadLastN(size_t n, size_t *restartPos, Sample **samples)
 	{
 		int64_t wantedPos = (_ring_length + _cur.load() - n) % _ring_length;
 		size_t packetSize = n;
 
-		/* check that we won't be wrapping around  */
+		/* check that we won't be wrapping around */
 		if (wantedPos + n >= _ring_length)
 			packetSize = (_ring_length - wantedPos);
 
+		*restartPos = 0;
 		*samples = (_ring.get() + wantedPos);
 
 		return packetSize;
@@ -84,6 +86,7 @@ public:
 		size_t cur = _cur.load();
 		size_t packetSize = requestRead(cur, length, samples);
 		cur = (cur + packetSize) % _ring_length;
+		_cur.store(cur);
 
 		/* delete the markers that have been overridden */
 		typename std::list<MarkerInternal>::iterator it =_markers.begin();
@@ -98,7 +101,7 @@ public:
 	 *
 	 * It returns the location of the data that has been copied
 	 */
-	size_t addSamples(Sample *samples, size_t length)
+	size_t addSamples(const Sample *samples, size_t length)
 	{
 		size_t begin = _cur.load();;
 
@@ -120,8 +123,8 @@ public:
 	/// This function adds a marker $offset samples before the current position
 	SamplesRingBufferMarkerId addMarker(Marker marker, size_t offset)
 	{
-		int64_t wantedPos = (_ring_length + _cur.load() - offset) % _ring_length;
-		MarkerInternal m = {_marker_id++, wantedPos, marker};
+	size_t wantedPos = (_ring_length + _cur.load() - offset) % _ring_length;
+	MarkerInternal m = {_marker_id++, wantedPos, marker};
 
 		typename std::list<MarkerInternal>::reverse_iterator rit;
 		for (rit =_markers.rbegin(); rit!=_markers.rend(); ++rit) {
