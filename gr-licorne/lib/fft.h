@@ -7,7 +7,7 @@
 #include <gri_fft.h>
 
 #include "fftwindow.h"
-#include "ringBufferHachoir.h"
+#include "samplesringbuffer.h"
 
 class Fft
 {
@@ -27,8 +27,7 @@ public:
 	    gri_fft_complex *fft, FftWindow &win, const gr_complex *src, size_t length,
 	    uint64_t time_ns);
 	Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
-	    gri_fft_complex *fft, FftWindow &win, SamplesRingBufferHachoir &ringBuffer,
-	    uint64_t time_ns);
+	    gri_fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer);
 
 	uint64_t fftSize() const { return _fft_size; }
 	uint64_t centralFrequency() const { return _central_frequency; }

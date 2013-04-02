@@ -42,7 +42,7 @@ namespace licorne {
 	{
 	private:
 		/* parameters */
-		double _freq;
+		uint64_t _freq;
 		int _samplerate;
 		int _fft_size;
 		gr_firdes::win_type _window_type;
@@ -52,7 +52,7 @@ namespace licorne {
 		boost::asio::ip::tcp::socket socket;
 
 		/* time-domain ring buffer */
-		SamplesRingBuffer<gr_complex, RBMarker> _ringBuf;
+		SamplesRingBuffer _ringBuf;
 
 		/* internals */
 		boost::thread fftThread;
@@ -60,6 +60,7 @@ namespace licorne {
 	
 		boost::shared_ptr<Fft> calc_fft();
 		void update_fft_params(int fft_size, gr_firdes::win_type window_type);
+		uint64_t getTimeNs();
 
 	public:
 		hachoir_c_impl(double freq, int samplerate, int fft_size, int window_type);
@@ -73,7 +74,7 @@ namespace licorne {
 				gr_vector_const_void_star &input_items,
 				gr_vector_void_star &output_items);
 		
-		double central_freq() const { return _freq;}
+		uint64_t central_freq() const { return _freq;}
 		int sample_rate() const { return _samplerate;}
 		int fft_size() const { return _fft_size;}
 		gr_firdes::win_type window_type() const { return _window_type;}
