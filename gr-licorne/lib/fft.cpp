@@ -8,6 +8,8 @@ void Fft::doFFt(uint16_t fftSize, FftWindow &win, gri_fft_complex *fft)
 
 	/* process the output */
 	gr_complex *out = fft->get_outbuf();
+	float logFftSize = log10(fftSize);
+	float logWindowPower = log10(win.windowPower()/fftSize);
 	for (i = 0; i < fftSize; i++) {
 		int n = (i + fftSize/2 ) % fftSize;
 
@@ -15,9 +17,9 @@ void Fft::doFFt(uint16_t fftSize, FftWindow &win, gri_fft_complex *fft)
 		float imag = out[n].imag();
 		float mag = sqrt(real*real + imag*imag);
 
-		_pwr[i] = 20 * log10(fabs(mag))
-			- 20 * log10(fftSize)
-			- 10 * log10(win.windowPower()/fftSize)
+		_pwr[i] = 20 * (float)log10(fabs(mag))
+			- 20 * logFftSize
+			- 10 * logWindowPower
 			+ 3;
 	}
 

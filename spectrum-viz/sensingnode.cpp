@@ -48,9 +48,20 @@ void SensingNode::clientDisconnected()
 #include <stdint.h>
 #include <sys/time.h>
 #include <QCoreApplication>
+
+QByteArray SensingNode::readExactlyNBytes(QTcpSocket *socket, size_t n)
+{
+	while (clientSocket->bytesAvailable() < n)
+	{
+		QCoreApplication::processEvents();
+	}
+
+	return clientSocket->read(n);
+}
+
 void SensingNode::dataReady()
 {
-	QByteArray header = clientSocket->read(28);
+	QByteArray header = readExactlyNBytes(clientSocket, 28);
 	union {
 		uint8_t  *u08;
 		uint16_t *u16;
@@ -70,12 +81,7 @@ void SensingNode::dataReady()
 	if (msg_type | 0x1)
 		frontBuffer->clear();
 
-	while (clientSocket->bytesAvailable() < (steps))
-	{
-		QCoreApplication::processEvents();
-	}
-
-	QByteArray data = clientSocket->read(steps);
+	QByteArray data = readExactlyNBytes(clientSocket, steps);
 
 	for (int i = 0; i < steps; i++)
 	{
@@ -90,5 +96,6 @@ void SensingNode::dataReady()
 
 	emit frequencyRangeChanged(start,  end);
 	emit powerRangeChanged((pwr_max + 20) / 10 * 10, (pwr_min - 20) / 10 * 10);
+	emit timeChanged(time_ns);
 	emit dataChanged();
 }

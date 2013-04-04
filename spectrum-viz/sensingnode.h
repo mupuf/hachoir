@@ -27,6 +27,8 @@ private:
 	/* hold the maximum and the minimum received power */
 	char pwr_min;
 	char pwr_max;
+
+	QByteArray readExactlyNBytes(QTcpSocket *socket, size_t n);
 public:
 	explicit SensingNode(QTcpSocket *socket, int clientID, QObject *parent = 0);
 
@@ -39,6 +41,7 @@ signals:
 	void dataChanged();
 	void powerRangeChanged(qreal high, qreal low);
 	void frequencyRangeChanged(qreal low, qreal high);
+	void timeChanged(qreal timeNs);
 	void requestDestroy(int clientID);
 
 private slots:

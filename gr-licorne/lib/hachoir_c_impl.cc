@@ -132,7 +132,7 @@ namespace licorne {
 	{
 		static int id = 0;
 		static FftAverage noisefloor(fft_size(), central_freq(), sample_rate(), 10000);
-		static FftAverage avr(fft_size(), central_freq(), sample_rate(), 20);
+		static FftAverage avr(fft_size(), central_freq(), sample_rate(), 30);
 		static uint64_t averageFFTTime = 0;
 		int period = 1;
 
@@ -146,6 +146,9 @@ namespace licorne {
 			uint64_t *u64;
 			float *f;
 		} ptr;
+
+		while (_ringBuf.currentSize() < fft_size())
+			fftThread.yield();
 
 		while (1)
 		{
@@ -180,7 +183,7 @@ namespace licorne {
 				*ptr.u64++ = avr.time_ns();
 
 				for (int i = 0; i < avr.fftSize(); i++) {
-					*ptr.u08++ = (char) (avr[i] - noisefloor[i]);
+					*ptr.u08++ = (char) (avr[i]/* - noisefloor[i]*/);
 				}
 
 				socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));

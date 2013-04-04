@@ -11,6 +11,7 @@ Canvas {
 	property int power_range_low: -10
 	property real freq_low:  0
 	property real freq_high: 32000
+	property real time: 0
 
 	property int margin_top: 10
 	property int margin_bottom: 10
@@ -202,6 +203,9 @@ Canvas {
 		onFrequencyRangeChanged: {
 			freq_high = high
 			freq_low = low
+		}
+		onTimeChanged: {
+			time = timeNs
 		}
 		onRequestDestroy: {
 			canvas.destroy()
