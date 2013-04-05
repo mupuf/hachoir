@@ -97,7 +97,7 @@ public:
 	size_t requestWrite(size_t length, Sample **samples)
 	{
 		// reserve the space in the ring buffer
-		size_t cur = _cur.load();
+		size_t cur = _cur.load(), oldCur = cur;
 		size_t packetSize = requestRead(cur, length, samples);
 		cur = (cur + packetSize) % _ring_length;
 		_cur.store(cur);
@@ -108,7 +108,7 @@ public:
 
 		/* delete the markers that have been overridden */
 		typename std::list<MarkerInternal>::iterator it =_markers.begin();
-		while (it != _markers.end() && (*it).pos < cur)
+		while (it != _markers.end() && (*it).pos >= oldCur && (*it).pos < cur)
 			it = _markers.erase(it);
 
 		return packetSize;
@@ -180,15 +180,24 @@ exit:
 
 	bool findMarker(size_t pos, Marker &marker, size_t &markerPos)
 	{
-		typename std::list<MarkerInternal>::reverse_iterator rit;
-		for (rit =_markers.rbegin(); rit!=_markers.rend(); ++rit) {
-			if ((*rit).pos < pos) {
-				marker = (*rit).m;
-				markerPos = (*rit).pos;
-				return true;
-			}
+		typename std::list<MarkerInternal>::reverse_iterator rit = _markers.rbegin();
+
+		/* go back in the markers until the marker's pos is
+		 * higher than the wanted pos
+		 */
+		while (rit != _markers.rend() && (*rit).pos < pos)
+			++rit;
+
+		while (rit != _markers.rend() && (*rit).pos > pos)
+			++rit;
+
+		if (rit == _markers.rend())
+			return false;
+		else {
+			marker = (*rit).m;
+			markerPos = (*rit).pos;
+			return true;
 		}
-		return false;
 	}
 
 	void debugContent()

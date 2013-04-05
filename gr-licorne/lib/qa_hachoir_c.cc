@@ -42,7 +42,7 @@ namespace licorne {
 
 		gr_file_source_sptr file = gr_make_file_source(sizeof(gr_complex), filepath.c_str(), true);
 		gr_throttle::sptr throttle = gr_make_throttle(sizeof(gr_complex), 8000000);
-		hachoir_c::sptr hachoir = hachoir_c::make(940000000, 8000000, 256, 1);
+		hachoir_c::sptr hachoir = hachoir_c::make(940000000, 8000000, 512, 1);
 		topblock->connect(file, 0, throttle, 0);
 		topblock->connect(throttle, 0, hachoir, 0);
 		topblock->run();

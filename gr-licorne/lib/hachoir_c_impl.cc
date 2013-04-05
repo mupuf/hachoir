@@ -98,9 +98,12 @@ namespace licorne {
 		}
 		sampleCount += noutput_items;
 
-		RBMarker m = { central_freq(), curTime };
-		_ringBuf.addMarker(m, 0);
 		_ringBuf.addSamples(in, noutput_items);
+
+		RBMarker m = { central_freq(), curTime };
+		_ringBuf.addMarker(m, noutput_items);
+
+		sleep(1);
 
 		consume_each (noutput_items);
 
@@ -130,11 +133,10 @@ namespace licorne {
 	boost::shared_ptr<Fft>
 	hachoir_c_impl::calc_fft()
 	{
-		static int id = 0;
-		static FftAverage noisefloor(fft_size(), central_freq(), sample_rate(), 10000);
-		static FftAverage avr(fft_size(), central_freq(), sample_rate(), 30);
-		static uint64_t averageFFTTime = 0;
-		int period = 1;
+		int id = 0;
+		FftAverage noisefloor(fft_size(), central_freq(), sample_rate(), 10000);
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 10);
+		int period = 3;
 
 		gri_fft_complex fft(fft_size());
 
@@ -150,30 +152,50 @@ namespace licorne {
 		while (_ringBuf.currentSize() < fft_size())
 			fftThread.yield();
 
+		uint64_t lastUpdate = getTimeNs();
+		float lastFFtTime = 0, FFtTimeAverage = 0;
+		uint64_t fftCount = 0;
+
 		while (1)
 		{
 			ptr.u08 = buffer;
 
 			uint64_t time_ns = getTimeNs();
 
-			boost::shared_ptr<Fft> new_fft(new Fft(fft_size(), central_freq(),
+			boost::shared_ptr<Fft> new_fft(new Fft(fft_size(),
+							       central_freq(),
 							       sample_rate(),
 							       &fft,
 							       win, _ringBuf));
 
 
+			if (lastFFtTime > 0)
+				FFtTimeAverage += (new_fft->time_ns() - lastFFtTime);
+			else
+				fprintf(stderr, "new_fft->time_ns() == 0!\n");
+			lastFFtTime = new_fft->time_ns();
+
 			noisefloor.addFft(new_fft);
 			avr.addFft(new_fft);
 
-			uint64_t time_ns_after = getTimeNs();
-			averageFFTTime += (time_ns_after - time_ns);
+			uint64_t curTime = getTimeNs();
+			uint64_t time_diff = curTime - lastUpdate;
+			if (time_diff > 1000000000) {
+				float fftRate = fftCount / ((float)time_diff / 1000000000);
+				float fftCoverage = fftRate * fft_size() / sample_rate();
+				fprintf(stderr, "fftCoverage = %f, averageFftTime = %f: FFT rate = %f (fftCount = %llu, time_diff = %llu)\n",
+					fftCoverage, FFtTimeAverage / fftCount, fftRate, fftCount, time_diff);
+				lastUpdate = curTime;
+				fftCount = 0;
+				FFtTimeAverage = 0;
+			} else
+				fftCount++;
 
 			if ((id++ % period) == 0) {
 				/*Fft avr(avr);
 				avr -= noisefloor;*/
 
 				//std::cerr << averageFFTTime / period << std::endl;
-				averageFFTTime = 0;
 
 				*ptr.u08++ = 1;
 				*ptr.u08++ = 0;
