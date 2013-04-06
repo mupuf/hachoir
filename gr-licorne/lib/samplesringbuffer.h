@@ -22,23 +22,22 @@ public:
 		return marker.time + offset * sampleTime;
 	}
 
-	uint64_t timeAtMarker(uint64_t markerId)
+	uint64_t timeAtMarker(uint64_t markerPos)
 	{
 		RBMarker marker;
-		size_t pos;
 
-		if (getMarker(markerId, marker, pos))
+		if (getMarker(markerPos, &marker))
 			return timeAtWithMarker(marker, 0);
 		else
 			return 0;
 	}
 
-	uint64_t timeAt(size_t pos)
+	uint64_t timeAt(uint64_t pos)
 	{
 		RBMarker marker;
-		size_t markerPos;
+		uint64_t markerPos;
 
-		if (findMarker(pos, marker, markerPos))
+		if (findMarker(pos, &marker, &markerPos))
 			return timeAtWithMarker(marker, pos - markerPos);
 		else
 			return 0;

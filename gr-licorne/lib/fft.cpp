@@ -81,8 +81,10 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 		}
 		currentPos += length;
 
-		if (currentPos < fftSize)
-			length = ringBuffer.requestRead(restartPos, fftSize - currentPos, &samples);
+		if (currentPos < fftSize) {
+			size_t len = fftSize - currentPos;
+			bool found = ringBuffer.requestRead(restartPos, &len, &samples);
+		}
 	} while(currentPos < fftSize);
 
 	doFFt(fftSize, win, fft);

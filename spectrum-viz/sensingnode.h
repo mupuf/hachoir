@@ -28,7 +28,7 @@ private:
 	char pwr_min;
 	char pwr_max;
 
-	QByteArray readExactlyNBytes(QTcpSocket *socket, size_t n);
+	QByteArray readExactlyNBytes(QTcpSocket *socket, qint64 n);
 public:
 	explicit SensingNode(QTcpSocket *socket, int clientID, QObject *parent = 0);
 

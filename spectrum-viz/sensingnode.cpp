@@ -49,14 +49,14 @@ void SensingNode::clientDisconnected()
 #include <sys/time.h>
 #include <QCoreApplication>
 
-QByteArray SensingNode::readExactlyNBytes(QTcpSocket *socket, size_t n)
+QByteArray SensingNode::readExactlyNBytes(QTcpSocket *socket, qint64 n)
 {
-	while (clientSocket->bytesAvailable() < n)
+	while (socket->bytesAvailable() < n)
 	{
 		QCoreApplication::processEvents();
 	}
 
-	return clientSocket->read(n);
+	return socket->read(n);
 }
 
 void SensingNode::dataReady()

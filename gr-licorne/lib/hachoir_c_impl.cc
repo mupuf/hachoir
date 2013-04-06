@@ -1,17 +1,17 @@
 /* -*- c++ -*- */
-/* 
+/*
  * Copyright 2013 <+YOU OR YOUR COMPANY+>.
- * 
+ *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3, or (at your option)
  * any later version.
- * 
+ *
  * This software is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this software; see the file COPYING.  If not, write to
  * the Free Software Foundation, Inc., 51 Franklin Street,
@@ -30,6 +30,8 @@
 #include <stdio.h>
 
 #include "fftaverage.h"
+
+void ringBufferTest();
 
 namespace gr {
 namespace licorne {
@@ -98,20 +100,20 @@ namespace licorne {
 		}
 		sampleCount += noutput_items;
 
-		_ringBuf.addSamples(in, noutput_items);
+		uint64_t pos = _ringBuf.addSamples(in, noutput_items);
 
 		RBMarker m = { central_freq(), curTime };
-		_ringBuf.addMarker(m, noutput_items);
+		_ringBuf.addMarker(m, pos);
 
-		sleep(1);
+		_ringBuf.validateWrite();
 
 		consume_each (noutput_items);
 
 		// Tell runtime system how many output items we produced.
 		return noutput_items;
 	}
-	
-	void 
+
+	void
 	hachoir_c_impl::update_fft_params(int fft_size, gr_firdes::win_type window_type)
 	{
 		/* reconstruct the window when the fft_size of the window type changes */
@@ -129,13 +131,13 @@ namespace licorne {
 		gettimeofday(&time, NULL);
 		return (time.tv_sec * 1000000 + time.tv_usec) * 1000;
 	}
-	
+
 	boost::shared_ptr<Fft>
 	hachoir_c_impl::calc_fft()
 	{
 		int id = 0;
 		FftAverage noisefloor(fft_size(), central_freq(), sample_rate(), 10000);
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 10);
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 1);
 		int period = 3;
 
 		gri_fft_complex fft(fft_size());
@@ -149,7 +151,7 @@ namespace licorne {
 			float *f;
 		} ptr;
 
-		while (_ringBuf.currentSize() < fft_size())
+		while (_ringBuf.size() < fft_size())
 			fftThread.yield();
 
 		uint64_t lastUpdate = getTimeNs();
@@ -171,9 +173,10 @@ namespace licorne {
 
 			if (lastFFtTime > 0)
 				FFtTimeAverage += (new_fft->time_ns() - lastFFtTime);
-			else
-				fprintf(stderr, "new_fft->time_ns() == 0!\n");
 			lastFFtTime = new_fft->time_ns();
+
+			if (lastFFtTime == 0)
+				fprintf(stderr, "new_fft->time_ns() == 0!\n");
 
 			noisefloor.addFft(new_fft);
 			avr.addFft(new_fft);
@@ -191,6 +194,7 @@ namespace licorne {
 			} else
 				fftCount++;
 
+#if 1
 			if ((id++ % period) == 0) {
 				/*Fft avr(avr);
 				avr -= noisefloor;*/
@@ -210,11 +214,69 @@ namespace licorne {
 
 				socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
 			}
-		}
+#endif
 
+		}
 		//return new_fft;
 	}
 
 } /* namespace licorne */
 } /* namespace gr */
 
+void ringBufferTest()
+{
+	RingBuffer<float, float> r(10);
+
+	r.debugContent();
+
+	float a[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 };
+	r.addSamples(a, 23);
+	r.debugContent();
+	r.validateWrite();
+	r.debugContent();
+
+	r.clear();
+
+	r.debugContent();
+	for (float i = 0; i < 20; i++) {
+		r.addSamples(&i, 1);
+		if (((int)i % 3) == 0)
+			r.addMarker(i, i);
+		r.validateWrite();
+		r.debugContent();
+	}
+
+	for (float i = 0; i < 30; i++) {
+		float *sample;
+		size_t len = 5, newLen = len;
+		bool found = r.requestRead(i, &newLen, &sample);
+		fprintf(stderr, "requestRead(%.0f, %i): ", i, len);
+		fprintf(stderr, "ret = %s", found?"true":"false");
+		fprintf(stderr, ", len = %i", newLen);
+		if (found) {
+			fprintf(stderr, ", sample = ( ", sample[0]);
+			for (int e = 0; e < newLen; e++)
+				fprintf(stderr, "%.0f ", sample[e]);
+			fprintf(stderr, ")");
+		}
+		fprintf(stderr, "\n");
+	}
+
+	for (float i = 0; i < 30; i++) {
+		float marker = 0;
+		bool found = r.getMarker(i, &marker);
+		fprintf(stderr, "getMarker(%.0f): found = %s, marker = %.0f\n",
+		i, found?"true":"false", marker);
+	}
+
+	for (float i = 0; i < 30; i++) {
+		float marker;
+		uint64_t markerPos;
+		marker = markerPos = 0;
+		bool found = r.findMarker(i, &marker, &markerPos);
+		fprintf(stderr, "findMarker(%.0f): found = %s, marker = %.0f, markerPos = %llu\n",
+		i, found?"true":"false", marker, markerPos);
+	}
+
+	exit(1);
+}
