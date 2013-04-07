@@ -188,6 +188,10 @@ Canvas {
 		ctx.stroke()
 		ctx.fill()
 
+		// set the current time
+		ctx.fillStyle = "black"
+		ctx.fillText(time + "ns", parent.width - 100, 3)
+
 		ctx.restore()
 	}
 
@@ -226,9 +230,9 @@ Canvas {
 		drawGrid(ctx)
 		ctx.restore();
 
-		if (i < 1024) {
+		/*if (i < 1024) {
 			save("/tmp/heya_" + i + ".png");
 			i++;
-		}
+		}*/
 	}
 }
