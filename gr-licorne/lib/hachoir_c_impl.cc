@@ -51,10 +51,12 @@ namespace licorne {
 			gr_make_io_signature(0, 0, sizeof (gr_complex))),
 			socket(ios),
 			_freq(freq), _samplerate(samplerate),
-			_ringBuf(10000 * fft_size, samplerate)
+			_ringBuf(10000 * fft_size)
 	{
 		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 21334);
 		socket.connect(endpoint);
+
+		this->set_max_noutput_items(fft_size/4);
 
 		update_fft_params(fft_size, (gr_firdes::win_type) window_type);
 
@@ -85,6 +87,8 @@ namespace licorne {
 		const gr_complex *in = (const gr_complex *) input_items[0];
 		int i;
 
+		//fprintf(stderr, "noutput_items = %u\n", noutput_items);
+
 		uint64_t curTime = getTimeNs();
 		if (lastUpdate == 0)
 			lastUpdate = curTime;
@@ -102,7 +106,7 @@ namespace licorne {
 
 		uint64_t pos = _ringBuf.addSamples(in, noutput_items);
 
-		RBMarker m = { central_freq(), curTime };
+		RBMarker m = { central_freq(), sample_rate(), curTime };
 		_ringBuf.addMarker(m, pos);
 
 		_ringBuf.validateWrite();
@@ -136,9 +140,9 @@ namespace licorne {
 	hachoir_c_impl::calc_fft()
 	{
 		int id = 0;
-		FftAverage noisefloor(fft_size(), central_freq(), sample_rate(), 10000);
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 1);
-		int period = 3;
+		FftAverage noisefloor(fft_size(), central_freq(), sample_rate(), 20000);
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 20);
+		int period = 1;
 
 		gri_fft_complex fft(fft_size());
 
@@ -155,14 +159,12 @@ namespace licorne {
 			fftThread.yield();
 
 		uint64_t lastUpdate = getTimeNs();
-		float lastFFtTime = 0, FFtTimeAverage = 0;
+		uint64_t lastFFtTime = 0, FFtTimeAverage = 0;
 		uint64_t fftCount = 0;
 
 		while (1)
 		{
 			ptr.u08 = buffer;
-
-			uint64_t time_ns = getTimeNs();
 
 			boost::shared_ptr<Fft> new_fft(new Fft(fft_size(),
 							       central_freq(),
@@ -175,9 +177,6 @@ namespace licorne {
 				FFtTimeAverage += (new_fft->time_ns() - lastFFtTime);
 			lastFFtTime = new_fft->time_ns();
 
-			if (lastFFtTime == 0)
-				fprintf(stderr, "new_fft->time_ns() == 0!\n");
-
 			noisefloor.addFft(new_fft);
 			avr.addFft(new_fft);
 
@@ -187,7 +186,7 @@ namespace licorne {
 				float fftRate = fftCount / ((float)time_diff / 1000000000);
 				float fftCoverage = fftRate * fft_size() / sample_rate();
 				fprintf(stderr, "fftCoverage = %f, averageFftTime = %f: FFT rate = %f (fftCount = %llu, time_diff = %llu)\n",
-					fftCoverage, FFtTimeAverage / fftCount, fftRate, fftCount, time_diff);
+					fftCoverage, ((float)FFtTimeAverage) / fftCount, fftRate, fftCount, time_diff);
 				lastUpdate = curTime;
 				fftCount = 0;
 				FFtTimeAverage = 0;
@@ -206,10 +205,10 @@ namespace licorne {
 				*ptr.u16++ = avr.fftSize(); //steps
 				*ptr.u64++ = avr.startFrequency(); // start freq
 				*ptr.u64++ = avr.endFrequency(); // end freq
-				*ptr.u64++ = avr.time_ns();
+				*ptr.u64++ = lastFFtTime /*avr.time_ns()*/;
 
 				for (int i = 0; i < avr.fftSize(); i++) {
-					*ptr.u08++ = (char) (avr[i]/* - noisefloor[i]*/);
+					*ptr.u08++ = (char) (avr[i] - noisefloor[i]);
 				}
 
 				socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
@@ -223,6 +222,7 @@ namespace licorne {
 } /* namespace licorne */
 } /* namespace gr */
 
+#if 0
 void ringBufferTest()
 {
 	RingBuffer<float, float> r(10);
@@ -280,3 +280,4 @@ void ringBufferTest()
 
 	exit(1);
 }
+#endif

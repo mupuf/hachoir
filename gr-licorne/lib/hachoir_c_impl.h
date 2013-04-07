@@ -1,17 +1,17 @@
 /* -*- c++ -*- */
-/* 
+/*
  * Copyright 2013 <+YOU OR YOUR COMPANY+>.
- * 
+ *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3, or (at your option)
  * any later version.
- * 
+ *
  * This software is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this software; see the file COPYING.  If not, write to
  * the Free Software Foundation, Inc., 51 Franklin Street,
@@ -43,7 +43,7 @@ namespace licorne {
 	private:
 		/* parameters */
 		uint64_t _freq;
-		int _samplerate;
+		uint64_t _samplerate;
 		int _fft_size;
 		gr_firdes::win_type _window_type;
 
@@ -57,7 +57,7 @@ namespace licorne {
 		/* internals */
 		boost::thread fftThread;
 		FftWindow win;
-	
+
 		boost::shared_ptr<Fft> calc_fft();
 		void update_fft_params(int fft_size, gr_firdes::win_type window_type);
 		uint64_t getTimeNs();
@@ -73,12 +73,12 @@ namespace licorne {
 				gr_vector_int &ninput_items,
 				gr_vector_const_void_star &input_items,
 				gr_vector_void_star &output_items);
-		
+
 		uint64_t central_freq() const { return _freq;}
-		int sample_rate() const { return _samplerate;}
+		uint64_t sample_rate() const { return _samplerate;}
 		int fft_size() const { return _fft_size;}
 		gr_firdes::win_type window_type() const { return _window_type;}
-		
+
 		void set_central_freq(double freq) { _freq = freq;}
 		void set_sample_rate(int samplerate) { _samplerate = samplerate;}
 		void set_FFT_size(int fft_size) { update_fft_params(fft_size, window_type()); }

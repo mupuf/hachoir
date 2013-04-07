@@ -87,6 +87,10 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 		}
 	} while(currentPos < fftSize);
 
+	/* check that the data has not been overriden while we were reading it! */
+	if (ringBuffer.isPositionValid(startPos))
+		return;
+
 	doFFt(fftSize, win, fft);
 }
 

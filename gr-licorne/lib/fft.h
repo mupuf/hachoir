@@ -32,7 +32,7 @@ public:
 	uint64_t fftSize() const { return _fft_size; }
 	uint64_t centralFrequency() const { return _central_frequency; }
 	uint64_t sampleRate() const { return _sample_rate; }
-	uint64_t time_ns() const { return _time_ns; }
+	virtual uint64_t time_ns() const { return _time_ns; }
 
 	uint64_t startFrequency() const { return freqAtBin(0); }
 	uint64_t endFrequency() const { return freqAtBin(_fft_size - 1); }

@@ -21,6 +21,7 @@ public:
 
 	size_t averageCount() const { return _average; }
 	size_t currentAverageCount() const { return ffts.size(); }
+	uint64_t time_ns() const { return ffts.at(0)->time_ns(); }
 
 	virtual float operator[](size_t i) const { return _pwr[i] / currentAverageCount(); }
 };
