@@ -280,8 +280,6 @@ public:
 	 */
 	bool requestRead(uint64_t pos, size_t *length, Sample **samples)
 	{
-		size_t packetSize = *length;
-
 		if (!isPositionValid(pos)) {
 			*length = 0;
 			return false;

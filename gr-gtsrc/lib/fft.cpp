@@ -37,7 +37,7 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 	_central_frequency(centralFrequency), _sample_rate(sampleRate),
 	_time_ns(time_ns), _pwr(fftSize)
 {
-	int i;
+	size_t i;
 
 	gr_complex *dst = fft->get_inbuf();
 
@@ -61,7 +61,7 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 	gr_complex *dst = fft->get_inbuf();
 	gr_complex *samples;
 
-	size_t startPos, restartPos;
+	uint64_t startPos, restartPos;
 	size_t length = ringBuffer.requestReadLastN(fftSize, &startPos, &restartPos, &samples);
 
 	_time_ns = ringBuffer.timeAt(startPos);
@@ -69,7 +69,7 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 	size_t currentPos = 0;
 	do
 	{
-		int i;
+		size_t i;
 
 		/* apply the window and copy to the input buffer */
 		for (i = 0; i < length; i++) {
@@ -79,7 +79,7 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 
 		if (currentPos < fftSize) {
 			size_t len = fftSize - currentPos;
-			bool found = ringBuffer.requestRead(restartPos, &len, &samples);
+			ringBuffer.requestRead(restartPos, &len, &samples);
 		}
 	} while(currentPos < fftSize);
 

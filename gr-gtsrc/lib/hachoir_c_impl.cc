@@ -49,9 +49,8 @@ namespace gtsrc {
 		: gr_block("hachoir_f",
 			gr_make_io_signature(1, 1, sizeof (gr_complex)),
 			gr_make_io_signature(0, 0, sizeof (gr_complex))),
-			socket(ios),
 			_freq(freq), _samplerate(samplerate),
-			_ringBuf(10000 * fft_size)
+			socket(ios), _ringBuf(10000 * fft_size)
 	{
 		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 21334);
 		socket.connect(endpoint);
@@ -85,7 +84,6 @@ namespace gtsrc {
 		static uint64_t lastUpdate = 0;
 		static uint64_t sampleCount = 0;
 		const gr_complex *in = (const gr_complex *) input_items[0];
-		int i;
 
 		//fprintf(stderr, "noutput_items = %u\n", noutput_items);
 
@@ -136,7 +134,7 @@ namespace gtsrc {
 		return (time.tv_sec * 1000000 + time.tv_usec) * 1000;
 	}
 
-	boost::shared_ptr<Fft>
+	void
 	hachoir_c_impl::calc_fft()
 	{
 		int id = 0;
@@ -216,7 +214,6 @@ namespace gtsrc {
 #endif
 
 		}
-		//return new_fft;
 	}
 
 } /* namespace gtsrc */

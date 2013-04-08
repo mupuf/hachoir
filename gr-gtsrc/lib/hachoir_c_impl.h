@@ -44,7 +44,7 @@ namespace gtsrc {
 		/* parameters */
 		uint64_t _freq;
 		uint64_t _samplerate;
-		int _fft_size;
+		uint16_t _fft_size;
 		gr_firdes::win_type _window_type;
 
 		/* sockets */
@@ -58,7 +58,7 @@ namespace gtsrc {
 		boost::thread fftThread;
 		FftWindow win;
 
-		boost::shared_ptr<Fft> calc_fft();
+		void calc_fft();
 		void update_fft_params(int fft_size, gr_firdes::win_type window_type);
 		uint64_t getTimeNs();
 
@@ -76,7 +76,7 @@ namespace gtsrc {
 
 		uint64_t central_freq() const { return _freq;}
 		uint64_t sample_rate() const { return _samplerate;}
-		int fft_size() const { return _fft_size;}
+		uint16_t  fft_size() const { return _fft_size;}
 		gr_firdes::win_type window_type() const { return _window_type;}
 
 		void set_central_freq(double freq) { _freq = freq;}

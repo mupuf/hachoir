@@ -29,13 +29,13 @@ void FftAverage::addFft(boost::shared_ptr<Fft> fft)
 	if (ffts.size() == _average) {
 		boost::shared_ptr<Fft> oldFft = ffts.at(0);
 
-		for (int i = 0; i < fftSize(); i++)
+		for (size_t i = 0; i < fftSize(); i++)
 			_pwr[i] -= oldFft->operator [](i);
 		ffts.pop_front();
 	}
 
 	/* add the new fft */
-	for (int i = 0; i < fftSize(); i++) {
+	for (size_t i = 0; i < fftSize(); i++) {
 		_pwr[i] += fft->operator [](i);
 	}
 	ffts.push_back(fft);

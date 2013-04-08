@@ -100,7 +100,7 @@ public:
 	    gri_fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer);
 
 
-	uint64_t fftSize() const { return _fft_size; }
+	uint16_t fftSize() const { return _fft_size; }
 	uint64_t centralFrequency() const { return _central_frequency; }
 	uint64_t sampleRate() const { return _sample_rate; }
 	virtual uint64_t time_ns() const { return _time_ns; }
