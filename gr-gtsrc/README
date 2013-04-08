@@ -1,5 +1,7 @@
 = Compiling the gtsrc module =
 
+== Building ==
+
 mkdir build
 cd build
 
@@ -43,3 +45,9 @@ The output should look like this:
 -- Build files have been written to: /home/mupuf/gnuradio/extra_modules/gr-gtsrc/build
 
 WARNING: Make sure PythonLibs links on a python2 lib and not python3!
+
+== Documentation ==
+
+You can enable documentation by adding -DENABLE_DOXYGEN=ON to your cmake command line.
+
+The output will be available in build/doc/html/index.html
