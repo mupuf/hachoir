@@ -401,16 +401,19 @@ public:
 	 * \param[in] pos         The position at which the marker \a marker
 	 *                        should be added. If a marker already exists at
 	 *                        this position. It will be replaced by
-	 *                        the new marker \a marker.
+	 *                        the new marker \a marker. The marker should be
+	 *                        stored in added in the staging area otherwise,
+	 *                        the function will return false.
 	 *
 	 * \return   True if the position was valid and the marker has been
-	 *           added. False if the position was invalid.
+	 *           added. False if the position was invalid (position not in
+	 *           the staging area).
 	 *
 	 * \sa #getMarker, #findMarker
 	 */
 	bool addMarker(Marker marker, uint64_t pos)
 	{
-		if (!isPositionValid(pos))
+		if (!(pos >= _head.load() && pos < _newHead.load()))
 			return false;
 
 		_markersMutex.lock();
