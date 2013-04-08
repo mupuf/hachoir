@@ -30,11 +30,6 @@ Fft::Fft()
 
 }
 
-/*Fft::Fft(const Fft &other) : _fft_size(other._fft_size), _central_frequency(other._central_frequency),
-	_sample_rate(other._sample_rate), _time_ns(other._time_ns), _pwr(other._pwr)
-{
-}*/
-
 Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 	 gri_fft_complex *fft, FftWindow &win, const gr_complex *src, size_t length,
 	 uint64_t time_ns) : _fft_size(fftSize),
