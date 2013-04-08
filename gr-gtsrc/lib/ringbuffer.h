@@ -8,10 +8,10 @@
 #ifndef RINGBUFFER_H
 #define RINGBUFFER_H
 
-#include <boost/atomic.hpp>
 #include <boost/thread/mutex.hpp>
 
 #include <stddef.h>
+#include <atomic>
 #include <list>
 
 /**
@@ -96,9 +96,9 @@ protected:
 	size_t _ring_length; ///< The length of the ring buffer
 	std::auto_ptr<Sample> _ring; ///< The ring buffer
 
-	boost::atomic<uint64_t> _newHead; ///< The head of the staging area
-	boost::atomic<uint64_t> _head; ///< The head of the public area
-	boost::atomic<uint64_t> _tail; ///< The tail of the ring buffer
+	std::atomic<uint64_t> _newHead; ///< The head of the staging area
+	std::atomic<uint64_t> _head; ///< The head of the public area
+	std::atomic<uint64_t> _tail; ///< The tail of the ring buffer
 
 	/// Structure to associate markers to their positions
 	struct MarkerInternal
