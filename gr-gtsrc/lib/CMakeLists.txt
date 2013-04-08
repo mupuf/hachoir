@@ -25,12 +25,14 @@ include(GrPlatform) #define LIB_SUFFIX
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../common/)
+
 list(APPEND gnuradio_gtsrc_sources
   ${CMAKE_CURRENT_SOURCE_DIR}/fftwindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fft.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fftaverage.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/hachoir_c_impl.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/ringbuffer.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../common/ringbuffer.h
   ${CMAKE_CURRENT_SOURCE_DIR}/samplesringbuffer.h
 )
 
