@@ -1,5 +1,7 @@
 #include "fft.h"
 
+#include <iostream>
+
 void Fft::doFFt(uint16_t fftSize, FftWindow &win, gri_fft_complex *fft)
 {
 	int i;

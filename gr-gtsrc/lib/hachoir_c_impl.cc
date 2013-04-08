@@ -26,10 +26,10 @@
 #include <gri_fft.h>
 
 #include "hachoir_c_impl.h"
+#include "fftaverage.h"
 
 #include <stdio.h>
-
-#include "fftaverage.h"
+#include <iostream>
 
 void ringBufferTest();
 
