@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Free Software Foundation, Inc.
+ * Copyright 2012 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -19,15 +19,20 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef INCLUDED_LICORNE_API_H
-#define INCLUDED_LICORNE_API_H
+/*
+ * This class gathers together all the test cases for the gr-filter
+ * directory into a single test suite.  As you create new test cases,
+ * add them here.
+ */
 
-#include <gruel/attributes.h>
+#include "qa_gtsrc.h"
+#include "qa_hachoir_c.h"
 
-#ifdef gnuradio_licorne_EXPORTS
-#  define LICORNE_API __GR_ATTR_EXPORT
-#else
-#  define LICORNE_API __GR_ATTR_IMPORT
-#endif
+CppUnit::TestSuite *
+qa_gtsrc::suite()
+{
+  CppUnit::TestSuite *s = new CppUnit::TestSuite("gtsrc");
+  s->addTest(gr::gtsrc::qa_hachoir_c::suite());
 
-#endif /* INCLUDED_LICORNE_API_H */
+  return s;
+}

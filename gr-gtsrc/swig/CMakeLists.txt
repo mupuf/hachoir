@@ -39,23 +39,23 @@ foreach(incdir ${GRUEL_INCLUDE_DIRS})
     list(APPEND GR_SWIG_INCLUDE_DIRS ${incdir}/gruel/swig)
 endforeach(incdir)
 
-set(GR_SWIG_LIBRARIES gnuradio-licorne)
-set(GR_SWIG_DOC_FILE ${CMAKE_CURRENT_BINARY_DIR}/licorne_swig_doc.i)
+set(GR_SWIG_LIBRARIES gnuradio-gtsrc)
+set(GR_SWIG_DOC_FILE ${CMAKE_CURRENT_BINARY_DIR}/gtsrc_swig_doc.i)
 set(GR_SWIG_DOC_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
-GR_SWIG_MAKE(licorne_swig licorne_swig.i)
+GR_SWIG_MAKE(gtsrc_swig gtsrc_swig.i)
 
 ########################################################################
 # Install the build swig module
 ########################################################################
-GR_SWIG_INSTALL(TARGETS licorne_swig DESTINATION ${GR_PYTHON_DIR}/licorne)
+GR_SWIG_INSTALL(TARGETS gtsrc_swig DESTINATION ${GR_PYTHON_DIR}/gtsrc)
 
 ########################################################################
 # Install swig .i files for development
 ########################################################################
 install(
     FILES
-    licorne_swig.i
-    ${CMAKE_CURRENT_BINARY_DIR}/licorne_swig_doc.i
-    DESTINATION ${GR_INCLUDE_DIR}/licorne/swig
+    gtsrc_swig.i
+    ${CMAKE_CURRENT_BINARY_DIR}/gtsrc_swig_doc.i
+    DESTINATION ${GR_INCLUDE_DIR}/gtsrc/swig
 )

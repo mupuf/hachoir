@@ -1,4 +1,4 @@
-= Compiling the licorne module =
+= Compiling the gtsrc module =
 
 mkdir build
 cd build
@@ -25,21 +25,21 @@ The output should look like this:
 -- Found the following Boost libraries:
 --   filesystem
 --   system
--- Found PkgConfig: /usr/bin/pkg-config (found version "0.28") 
+-- Found PkgConfig: /usr/bin/pkg-config (found version "0.28")
 -- checking for module 'gruel'
 --   found gruel, version 3.6.4git
--- Found GRUEL: /lib64/libgruel.so  
+-- Found GRUEL: /lib64/libgruel.so
 -- checking for module 'gnuradio-core'
 --   found gnuradio-core, version 3.6.4git
--- Found GNURADIO_CORE: /lib64/libgnuradio-core.so  
+-- Found GNURADIO_CORE: /lib64/libgnuradio-core.so
 -- checking for module 'cppunit'
 --   found cppunit, version 1.13.1
--- Found CPPUNIT: /usr/lib64/libcppunit.so;dl  
--- Found SWIG: /usr/bin/swig (found version "2.0.9") 
--- Found PythonLibs: /usr/lib/libpython2.7.so (found version "2.7.3") 
--- Found Doxygen: /usr/bin/doxygen (found version "1.8.3.1") 
+-- Found CPPUNIT: /usr/lib64/libcppunit.so;dl
+-- Found SWIG: /usr/bin/swig (found version "2.0.9")
+-- Found PythonLibs: /usr/lib/libpython2.7.so (found version "2.7.3")
+-- Found Doxygen: /usr/bin/doxygen (found version "1.8.3.1")
 -- Configuring done
 -- Generating done
--- Build files have been written to: /home/mupuf/gnuradio/extra_modules/gr-licorne/build
+-- Build files have been written to: /home/mupuf/gnuradio/extra_modules/gr-gtsrc/build
 
 WARNING: Make sure PythonLibs links on a python2 lib and not python3!

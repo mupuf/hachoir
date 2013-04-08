@@ -10,6 +10,8 @@ FftAverage::FftAverage(uint16_t fftSize, uint64_t centralFrequency,
 	this->_central_frequency = centralFrequency;
 	this->_sample_rate = sampleRate;
 	this->_pwr.reserve(fftSize);
+
+	reset();
 }
 
 void FftAverage::addFft(boost::shared_ptr<Fft> fft)
@@ -33,8 +35,9 @@ void FftAverage::addFft(boost::shared_ptr<Fft> fft)
 	}
 
 	/* add the new fft */
-	for (int i = 0; i < fftSize(); i++)
+	for (int i = 0; i < fftSize(); i++) {
 		_pwr[i] += fft->operator [](i);
+	}
 	ffts.push_back(fft);
 }
 

@@ -25,7 +25,7 @@ include(GrPlatform) #define LIB_SUFFIX
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
-list(APPEND gnuradio_licorne_sources
+list(APPEND gnuradio_gtsrc_sources
   ${CMAKE_CURRENT_SOURCE_DIR}/fftwindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fft.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fftaverage.cpp
@@ -36,14 +36,14 @@ list(APPEND gnuradio_licorne_sources
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-add_library(gnuradio-licorne SHARED ${gnuradio_licorne_sources})
-target_link_libraries(gnuradio-licorne ${Boost_LIBRARIES} ${GRUEL_LIBRARIES} ${GNURADIO_CORE_LIBRARIES})
-set_target_properties(gnuradio-licorne PROPERTIES DEFINE_SYMBOL "gnuradio_licorne_EXPORTS")
+add_library(gnuradio-gtsrc SHARED ${gnuradio_gtsrc_sources})
+target_link_libraries(gnuradio-gtsrc ${Boost_LIBRARIES} ${GRUEL_LIBRARIES} ${GNURADIO_CORE_LIBRARIES})
+set_target_properties(gnuradio-gtsrc PROPERTIES DEFINE_SYMBOL "gnuradio_gtsrc_EXPORTS")
 
 ########################################################################
 # Install built library files
 ########################################################################
-install(TARGETS gnuradio-licorne
+install(TARGETS gnuradio-gtsrc
     LIBRARY DESTINATION lib${LIB_SUFFIX} # .so/.dylib file
     ARCHIVE DESTINATION lib${LIB_SUFFIX} # .lib file
     RUNTIME DESTINATION bin              # .dll file
@@ -56,20 +56,20 @@ include(GrTest)
 
 include_directories(${CPPUNIT_INCLUDE_DIRS})
 
-list(APPEND test_licorne_sources
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_licorne.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/qa_licorne.cc
+list(APPEND test_gtsrc_sources
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_gtsrc.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/qa_gtsrc.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/qa_hachoir_c.cc
 )
 
-add_executable(test-licorne ${test_licorne_sources})
+add_executable(test-gtsrc ${test_gtsrc_sources})
 
 target_link_libraries(
-  test-licorne
+  test-gtsrc
   ${GNURADIO_CORE_LIBRARIES}
   ${Boost_LIBRARIES}
   ${CPPUNIT_LIBRARIES}
-  gnuradio-licorne
+  gnuradio-gtsrc
 )
 
-GR_ADD_TEST(test_licorne test-licorne)
+GR_ADD_TEST(test_gtsrc test-gtsrc)

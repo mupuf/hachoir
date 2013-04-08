@@ -20,24 +20,19 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#include <cppunit/TextTestRunner.h>
-#include <cppunit/XmlOutputter.h>
+#ifndef _QA_GTSRC_H_
+#define _QA_GTSRC_H_
 
-#include <gr_unittests.h>
-#include "qa_licorne.h"
-#include <iostream>
+#include <gruel/attributes.h>
+#include <cppunit/TestSuite.h>
 
-int
-main (int argc, char **argv)
+//! collect all the tests for the gr-filter directory
+
+class __GR_ATTR_EXPORT qa_gtsrc
 {
-  CppUnit::TextTestRunner runner;
-  std::ofstream xmlfile(get_unittest_path("licorne.xml").c_str());
-  CppUnit::XmlOutputter *xmlout = new CppUnit::XmlOutputter(&runner.result(), xmlfile);
+ public:
+  //! return suite of tests for all of gr-filter directory
+  static CppUnit::TestSuite *suite();
+};
 
-  runner.addTest(qa_licorne::suite());
-  runner.setOutputter(xmlout);
-
-  bool was_successful = runner.run("", false);
-
-  return was_successful ? 0 : 1;
-}
+#endif /* _QA_GTSRC_H_ */

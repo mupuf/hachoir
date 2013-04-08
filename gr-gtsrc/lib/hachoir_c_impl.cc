@@ -34,7 +34,7 @@
 void ringBufferTest();
 
 namespace gr {
-namespace licorne {
+namespace gtsrc {
 
 	hachoir_c::sptr
 	hachoir_c::make(double freq, int samplerate, int fft_size, int window_type)
@@ -208,7 +208,7 @@ namespace licorne {
 				*ptr.u64++ = lastFFtTime /*avr.time_ns()*/;
 
 				for (int i = 0; i < avr.fftSize(); i++) {
-					*ptr.u08++ = (char) (avr[i] - noisefloor[i]);
+					*ptr.u08++ = (char) (avr[i]/* - noisefloor[i]*/);
 				}
 
 				socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
@@ -219,7 +219,7 @@ namespace licorne {
 		//return new_fft;
 	}
 
-} /* namespace licorne */
+} /* namespace gtsrc */
 } /* namespace gr */
 
 #if 0

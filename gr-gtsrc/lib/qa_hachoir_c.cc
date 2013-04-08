@@ -22,7 +22,7 @@
 #include "qa_hachoir_c.h"
 
 #include <cppunit/TestAssert.h>
-#include <licorne/hachoir_c.h>
+#include <gtsrc/hachoir_c.h>
 #include <gr_top_block.h>
 #include <gr_file_source.h>
 #include <gr_throttle.h>
@@ -31,7 +31,7 @@
 #include <string>
 
 namespace gr {
-namespace licorne {
+namespace gtsrc {
 
 	void
 	qa_hachoir_c::t1()
@@ -48,6 +48,6 @@ namespace licorne {
 		topblock->run();
 	}
 
-} /* namespace licorne */
+} /* namespace gtsrc */
 } /* namespace gr */
 

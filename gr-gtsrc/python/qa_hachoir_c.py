@@ -19,7 +19,7 @@
 # 
 
 from gnuradio import gr, gr_unittest,analog,uhd
-import licorne_swig as licorne
+import gtsrc_swig as gtsrc
 
 from gnuradio import eng_notation
 from gnuradio import gr
@@ -51,7 +51,7 @@ class qa_hachoir_c (gr_unittest.TestCase):
 		samp_rate = 8000000
 		freq=0.940e9
 		#freq=2.464e9
-		sqr = licorne.hachoir_c(freq=freq, samplerate=samp_rate, fft_size=256, window_type=1)
+		sqr = gtsrc.hachoir_c(freq=freq, samplerate=samp_rate, fft_size=256, window_type=1)
 		filepath=os.getenv("HOME") + "/gsm_940.samples"
 		self.gr_file_source_0 = gr.file_source(gr.sizeof_gr_complex*1, filepath, True)
 		self.tb.connect((self.gr_file_source_0, 0), (sqr, 0))
@@ -79,7 +79,7 @@ class qa_hachoir_c (gr_unittest.TestCase):
 		self.uhd_usrp_source_0.set_gain(gain, 0)
 		self.uhd_usrp_source_0.set_antenna(ant, 0)
 		self.uhd_usrp_source_0.set_bandwidth(samp_rate, 0)
-		sqr = licorne.hachoir_c(freq=freq, samplerate=samp_rate, fft_size=1024, window_type=1)
+		sqr = gtsrc.hachoir_c(freq=freq, samplerate=samp_rate, fft_size=1024, window_type=1)
 		self.tb.connect((self.uhd_usrp_source_0, 0), (sqr, 0))
 		self.tb.run ()
 		# check data

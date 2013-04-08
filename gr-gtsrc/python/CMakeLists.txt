@@ -1,4 +1,4 @@
-# Copyright 2011,2012 Free Software Foundation, Inc.
+# Copyright 2011 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -18,9 +18,27 @@
 # Boston, MA 02110-1301, USA.
 
 ########################################################################
-# Install public header files
+# Include python install macros
 ########################################################################
-install(FILES
-    api.h
-    hachoir_f.h DESTINATION include/licorne
+include(GrPython)
+if(NOT PYTHONINTERP_FOUND)
+    return()
+endif()
+
+########################################################################
+# Install python sources
+########################################################################
+GR_PYTHON_INSTALL(
+    FILES
+    __init__.py
+    DESTINATION ${GR_PYTHON_DIR}/gtsrc
 )
+
+########################################################################
+# Handle the unit tests
+########################################################################
+include(GrTest)
+
+set(GR_TEST_TARGET_DEPS gnuradio-gtsrc)
+set(GR_TEST_PYTHON_DIRS ${CMAKE_BINARY_DIR}/swig)
+GR_ADD_TEST(qa_hachoir_c ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_hachoir_c.py)

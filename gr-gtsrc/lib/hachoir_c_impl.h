@@ -18,10 +18,10 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef INCLUDED_LICORNE_HACHOIR_F_IMPL_H
-#define INCLUDED_LICORNE_HACHOIR_F_IMPL_H
+#ifndef INCLUDED_GTSRC_HACHOIR_F_IMPL_H
+#define INCLUDED_GTSRC_HACHOIR_F_IMPL_H
 
-#include <licorne/hachoir_c.h>
+#include <gtsrc/hachoir_c.h>
 #include <gr_firdes.h>
 
 #include <stdint.h>
@@ -36,7 +36,7 @@
 #include "fft.h"
 
 namespace gr {
-namespace licorne {
+namespace gtsrc {
 
 	class hachoir_c_impl : public hachoir_c
 	{
@@ -85,8 +85,8 @@ namespace licorne {
 		void set_window_type(int win_type) { update_fft_params(fft_size(), (gr_firdes::win_type) win_type); }
 	};
 
-} // namespace licorne
+} // namespace gtsrc
 } // namespace gr
 
-#endif /* INCLUDED_LICORNE_HACHOIR_F_IMPL_H */
+#endif /* INCLUDED_GTSRC_HACHOIR_F_IMPL_H */
 
