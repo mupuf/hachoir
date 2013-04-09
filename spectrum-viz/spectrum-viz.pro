@@ -11,11 +11,16 @@ QML_IMPORT_PATH =
 # CONFIG += mobility
 # MOBILITY +=
 
+QMAKE_CXXFLAGS += "-std=c++0x -Wall"
+
+LIBS += -lboost_system
+LIBS += -lboost_filesystem
+
 # The .cpp file which was generated for your project. Feel free to hack it.
 SOURCES += main.cpp \
     sensingnode.cpp \
-    spectrumsample.cpp \
-    sensingserver.cpp
+    sensingserver.cpp \
+    powerspectrum.cpp
 
 # Please do not modify the following two lines. Required for deployment.
 include(qtquick2applicationviewer/qtquick2applicationviewer.pri)
@@ -23,5 +28,7 @@ qtcAddDeployment()
 
 HEADERS += \
     sensingnode.h \
-    spectrumsample.h \
-    sensingserver.h
+    sensingserver.h \
+    ../common/ringserver.h \
+    powerspectrum.h \
+    absoluteringbuffer.h

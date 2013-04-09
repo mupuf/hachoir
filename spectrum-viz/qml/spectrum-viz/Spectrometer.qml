@@ -104,6 +104,13 @@ Canvas {
 	{
 		ctx.save();
 
+		var SensingNode = SensingServer.sensingNode(clientID)
+		SensingNode.fetchEntries(-1, 0);
+		var pos = SensingNode.getEntriesRange()["start"];
+		var spectrum = SensingNode.selectEntry(pos);
+
+		time = spectrum.timeNs();
+
 		var gc_cache = getCoordinatesPreCache(ctx)
 
 		var top_left = getCoordinates(ctx, gc_cache, freq_low, canvas.power_range_high)
@@ -171,18 +178,18 @@ Canvas {
 		ctx.fillStyle = gradientFill
 		ctx.lineWidth = 1.5
 		ctx.beginPath()
-		var SensingNode = SensingServer.sensingNode(clientID)
-		var size = SensingNode.startReading()
+		var size = spectrum.samplesCount();
 		for (var i = 0; i < size; i++)
 		{
-			var sample = SensingNode.getSample(i)
-			pos = getCoordinates(ctx, gc_cache, sample["freq"], sample["dbm"])
+			var freq = spectrum.sampleFrequency(i)
+			var pwr = spectrum.sampleDbm(i)
+			pos = getCoordinates(ctx, gc_cache, freq, pwr)
 
 			if (i == 0)
 				ctx.moveTo(pos.x, bottom_left.y)
 			ctx.lineTo(pos.x, pos.y)
 		}
-		SensingNode.stopReading()
+		SensingNode.freeEntries()
 		ctx.lineTo(pos.x, bottom_right.y)
 		ctx.closePath()
 		ctx.stroke()
@@ -215,6 +222,12 @@ Canvas {
 			canvas.destroy()
 		}
 	}
+
+	/* refresh at around 60 fps */
+	Timer {
+			interval: 16; running: true; repeat: true;
+			onTriggered: requestPaint();
+		}
 
 	onCanvasSizeChanged: requestPaint()
 	onCanvasWindowChanged: requestPaint()
