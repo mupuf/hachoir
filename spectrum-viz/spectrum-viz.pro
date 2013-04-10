@@ -29,6 +29,6 @@ qtcAddDeployment()
 HEADERS += \
     sensingnode.h \
     sensingserver.h \
-    ../common/ringserver.h \
+    ../common/ringbuffer.h \
     powerspectrum.h \
     absoluteringbuffer.h
