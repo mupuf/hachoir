@@ -1,16 +1,12 @@
 #include "fftaverage.h"
 
 #include <iostream>
+#include <algorithm>
 
 FftAverage::FftAverage(uint16_t fftSize, uint64_t centralFrequency,
 		       uint64_t sampleRate, size_t average) :
-	_average(average)
+	Fft(fftSize, centralFrequency, sampleRate), _average(average)
 {
-	this->_fft_size = fftSize;
-	this->_central_frequency = centralFrequency;
-	this->_sample_rate = sampleRate;
-	this->_pwr.reserve(fftSize);
-
 	reset();
 }
 
@@ -46,4 +42,9 @@ void FftAverage::reset()
 	ffts.clear();
 	for (int i = 0; i < fftSize(); i++)
 		_pwr[i] = 0.0;
+}
+
+float FftAverage::noiseFloor() const
+{
+	return Fft::noiseFloor() / currentAverageCount();
 }

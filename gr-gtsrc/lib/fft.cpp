@@ -10,23 +10,25 @@ void Fft::doFFt(uint16_t fftSize, FftWindow &win, gri_fft_complex *fft)
 
 	/* process the output */
 	gr_complex *out = fft->get_outbuf();
-	float logFftSize = log10(fftSize);
-	float logWindowPower = log10(win.windowPower()/fftSize);
+	float logFftSize = log10f(fftSize);
+	float logWindowPower = log10f(win.windowPower()/fftSize);
 	for (i = 0; i < fftSize; i++) {
 		int n = (i + fftSize/2 ) % fftSize;
 
 		float real = out[n].real();
 		float imag = out[n].imag();
-		float mag = sqrt(real*real + imag*imag);
+		float mag = sqrtf(real*real + imag*imag);
 
-		_pwr[i] = 20 * (float)log10(fabs(mag))
+		_pwr[i] = 20 * log10f(fabsf(mag))
 			- 20 * logFftSize
 			- 10 * logWindowPower
 			+ 3;
 	}
 }
 
-Fft::Fft()
+Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate) :
+	_fft_size(fftSize), _central_frequency(centralFrequency),
+	_sample_rate(sampleRate), _pwr(fftSize)
 {
 
 }
@@ -88,6 +90,23 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 		return;
 
 	doFFt(fftSize, win, fft);
+}
+
+float Fft::noiseFloor() const
+{
+	std::vector<float> sortedPwr(_pwr.size());
+	size_t keptPercentage = 10;
+
+	std::copy(_pwr.begin(), _pwr.end(), sortedPwr.begin());
+	std::sort(sortedPwr.begin(), sortedPwr.end());
+
+	size_t keptCount = fftSize() * keptPercentage / 100;
+	float keptSum = 0;
+	std::vector<float>::iterator rit;
+	for (rit = sortedPwr.begin(); rit != sortedPwr.begin() + keptCount; ++rit)
+		keptSum += *rit;
+
+	return keptSum / keptCount;
 }
 
 Fft & Fft::operator+=(const Fft &rhs)

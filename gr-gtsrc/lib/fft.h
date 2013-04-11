@@ -61,8 +61,7 @@ protected:
 	 */
 	void doFFt(uint16_t fftSize, FftWindow &win, gri_fft_complex *fft);
 
-	/// Disable the default constructor
-	Fft();
+	Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate);
 public:
 	/**
 	 * \brief    Create the FFT from a generic sample source.
@@ -130,6 +129,9 @@ public:
 		assert(i < _fft_size);
 		return _central_frequency - (_sample_rate / 2) + i * _sample_rate / _fft_size;
 	}
+
+	/// Returns the noise floor in dBM
+	virtual float noiseFloor() const;
 
 	/**
 	 * \brief    Get the power at bin \a i

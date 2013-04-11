@@ -138,8 +138,9 @@ namespace gtsrc {
 	hachoir_c_impl::calc_fft()
 	{
 		int id = 0;
-		FftAverage noisefloor(fft_size(), central_freq(), sample_rate(), 20000);
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 20);
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 18);
+		size_t comMinWidth = 8;
+		char comMinSNR = 8;
 		int period = 1;
 
 		gri_fft_complex fft(fft_size());
@@ -147,6 +148,7 @@ namespace gtsrc {
 		uint8_t buffer[5120];
 		union {
 			uint8_t  *u08;
+			char     *s08;
 			uint16_t *u16;
 			uint32_t *u32;
 			uint64_t *u64;
@@ -175,7 +177,6 @@ namespace gtsrc {
 				FFtTimeAverage += (new_fft->time_ns() - lastFFtTime);
 			lastFFtTime = new_fft->time_ns();
 
-			noisefloor.addFft(new_fft);
 			avr.addFft(new_fft);
 
 			uint64_t curTime = getTimeNs();
@@ -193,20 +194,38 @@ namespace gtsrc {
 
 #if 1
 			if ((id++ % period) == 0) {
-				/*Fft avr(avr);
-				avr -= noisefloor;*/
-
-				//std::cerr << averageFFTTime / period << std::endl;
+				float noiseFloor = avr.noiseFloor();
 
 				*ptr.u08++ = 1;
 				*ptr.u08++ = 0;
 				*ptr.u16++ = avr.fftSize(); //steps
 				*ptr.u64++ = avr.startFrequency(); // start freq
 				*ptr.u64++ = avr.endFrequency(); // end freq
-				*ptr.u64++ = lastFFtTime /*avr.time_ns()*/;
+				*ptr.u64++ = avr.time_ns();
 
+				char *pwrs = ptr.s08;
 				for (int i = 0; i < avr.fftSize(); i++) {
-					*ptr.u08++ = (char) (avr[i]/* - noisefloor[i]*/);
+					char pwr = (char) (avr[i] - noiseFloor);
+					if (pwr < comMinSNR)
+						pwr = 0;
+					*ptr.s08++ = pwr;
+
+				}
+
+				size_t comWidth = 0;
+				for (int i = 0; i < avr.fftSize(); i++) {
+					if (pwrs[i] > 0)
+						comWidth++;
+					else {
+						if (comWidth < comMinWidth) {
+							for (int e = i - comWidth; e < i; e++)
+								pwrs[e] = 0;
+						} else {
+							/* add the communication to the radio event table */
+						}
+
+						comWidth = 0;
+					}
 				}
 
 				socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));

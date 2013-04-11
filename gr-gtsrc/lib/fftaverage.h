@@ -62,6 +62,9 @@ public:
 	/// Returns the current number of FFT in the FFT window
 	size_t currentAverageCount() const { return ffts.size(); }
 
+	/// Returns the current noise floor
+	virtual float noiseFloor() const;
+
 	/// Returns the time of the oldest FFT in the FFT window
 	uint64_t time_ns() const { return ffts.at(0)->time_ns(); }
 
