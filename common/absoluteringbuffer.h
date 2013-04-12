@@ -79,6 +79,14 @@ public:
 			return std::shared_ptr<T>();
 	}
 
+	T * at_unsafe(uint64_t i)
+	{
+		if (isPositionValid(i))
+			return _ring.at(i % _ringSize).get();
+		else
+			return NULL;
+	}
+
 };
 
 #endif // ABSOLUTERINGBUFFER_H

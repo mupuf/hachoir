@@ -31,6 +31,7 @@
 #include <boost/array.hpp>
 #include <boost/thread.hpp>
 
+#include "radioeventtable.h"
 #include "samplesringbuffer.h"
 #include "fftwindow.h"
 #include "fft.h"
@@ -53,6 +54,9 @@ namespace gtsrc {
 
 		/* time-domain ring buffer */
 		SamplesRingBuffer _ringBuf;
+
+		/* Radio Event Table */
+		RadioEventTable _ret;
 
 		/* internals */
 		boost::thread fftThread;

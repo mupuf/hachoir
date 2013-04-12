@@ -31,6 +31,8 @@
 #include <stdio.h>
 #include <iostream>
 
+#include "radioeventtable.h"
+
 void ringBufferTest();
 
 namespace gr {
@@ -50,7 +52,7 @@ namespace gtsrc {
 			gr_make_io_signature(1, 1, sizeof (gr_complex)),
 			gr_make_io_signature(0, 0, sizeof (gr_complex))),
 			_freq(freq), _samplerate(samplerate),
-			socket(ios), _ringBuf(10000 * fft_size)
+			socket(ios), _ringBuf(10000 * fft_size), _ret(1000)
 	{
 		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 21334);
 		socket.connect(endpoint);
@@ -138,9 +140,9 @@ namespace gtsrc {
 	hachoir_c_impl::calc_fft()
 	{
 		int id = 0;
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 18);
-		size_t comMinWidth = 8;
-		char comMinSNR = 8;
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 40);
+		size_t comMinWidth = 5;
+		char comMinSNR = 6;
 		int period = 1;
 
 		gri_fft_complex fft(fft_size());
@@ -212,21 +214,33 @@ namespace gtsrc {
 
 				}
 
-				size_t comWidth = 0;
+#if 1
+				_ret.startAddingCommunications(avr.time_ns());
+				int16_t comWidth = 0;
+				int32_t sumPwr = 0;
 				for (int i = 0; i < avr.fftSize(); i++) {
-					if (pwrs[i] > 0)
+					if (pwrs[i] > 0) {
+						sumPwr += pwrs[i];
 						comWidth++;
-					else {
+					} else {
 						if (comWidth < comMinWidth) {
 							for (int e = i - comWidth; e < i; e++)
 								pwrs[e] = 0;
 						} else {
+							int8_t avgPwr = noiseFloor + (int8_t)(sumPwr / comWidth);
+
 							/* add the communication to the radio event table */
+							_ret.addCommunication(avr.freqAtBin(i - comWidth)/1000,
+									      avr.freqAtBin(i - 1)/1000,
+									      avgPwr);
 						}
 
+						sumPwr = 0;
 						comWidth = 0;
 					}
 				}
+				_ret.stopAddingCommunications();
+#endif
 
 				socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
 			}

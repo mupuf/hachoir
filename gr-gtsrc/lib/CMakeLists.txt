@@ -32,8 +32,13 @@ list(APPEND gnuradio_gtsrc_sources
   ${CMAKE_CURRENT_SOURCE_DIR}/fft.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fftaverage.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/hachoir_c_impl.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../common/ringbuffer.h
   ${CMAKE_CURRENT_SOURCE_DIR}/samplesringbuffer.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../common/ringbuffer.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../common/absoluteringbuffer.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../common/radioeventtable.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../common/radioeventtable.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../common/ret_entry.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../common/ret_entry.cpp
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall")

@@ -22,5 +22,5 @@
 ########################################################################
 install(FILES
     api.h
-    hachoir_f.h DESTINATION include/gtsrc
+    hachoir_c.h DESTINATION include/gtsrc
 )
