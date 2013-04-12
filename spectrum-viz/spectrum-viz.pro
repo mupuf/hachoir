@@ -11,7 +11,7 @@ QML_IMPORT_PATH =
 # CONFIG += mobility
 # MOBILITY +=
 
-QMAKE_CXXFLAGS += "-std=c++0x -Wall"
+QMAKE_CXXFLAGS += "-std=c++0x -Wall -I../common/"
 
 LIBS += -lboost_system
 LIBS += -lboost_filesystem
@@ -29,6 +29,6 @@ qtcAddDeployment()
 HEADERS += \
     sensingnode.h \
     sensingserver.h \
-    ../common/ringbuffer.h \
+    ../common/absoluteringbuffer.h \
     powerspectrum.h \
     absoluteringbuffer.h

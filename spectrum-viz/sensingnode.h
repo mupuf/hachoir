@@ -24,7 +24,7 @@ private:
 	AbsoluteRingBuffer< PowerSpectrum > _ringbuffer;
 
 	/* qml's view */
-	QVector< QSharedPointer<PowerSpectrum> > _entries;
+	std::vector< std::shared_ptr<PowerSpectrum> > _entries;
 	uint64_t _entries_start, _entries_end;
 
 	QAtomicInt updatesPaused;

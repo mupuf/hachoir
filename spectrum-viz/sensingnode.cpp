@@ -56,7 +56,7 @@ QMap<QString, QVariant> SensingNode::getEntriesRange()
 QObject * SensingNode::selectEntry(qreal pos)
 {
 	if (pos >= _entries_start && pos < _entries_end)
-		return _entries[pos - _entries_start].data();
+		return _entries[pos - _entries_start].get();
 	else
 		return NULL;
 }
