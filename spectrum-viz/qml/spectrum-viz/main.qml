@@ -9,7 +9,7 @@ Rectangle {
 		onNewClientArrived: {
 			var component = Qt.createComponent("Spectrometer.qml");
 			if (component.status === Component.Ready)
-				component.createObject(spectrometers, {"width": spectrometers.width, "height": 300, "clientID": clientID});
+				component.createObject(spectrometers, {"width": spectrometers.width, "height": 200, "clientID": clientID});
 		}
 	}
 

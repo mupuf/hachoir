@@ -3,7 +3,8 @@ import QtQuick 2.0
 Canvas {
 	id: canvas
 	antialiasing: true
-	renderStrategy: Canvas.Immediate
+	renderStrategy: Canvas.Cooperative /* keep rendering in the main thread ! */
+	anchors.fill: parent
 
 	property int clientID: -1
 
@@ -223,9 +224,9 @@ Canvas {
 		}
 	}
 
-	/* refresh at around 60 fps */
+	/* refresh at around 30 fps */
 	Timer {
-			interval: 16; running: true; repeat: true;
+			interval: 30; running: true; repeat: true;
 			onTriggered: requestPaint();
 		}
 
