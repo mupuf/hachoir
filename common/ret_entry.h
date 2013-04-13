@@ -31,8 +31,8 @@ public:
 
 	static size_t stringSize() { return 41; }
 
-	bool fromString(const char *buf, size_t length);
-	bool toString(char *buf, size_t &length);
+	bool fromString(const char *buf, size_t *length);
+	bool toString(char *buf, size_t *length);
 
 	uint64_t id() const { return _id;}
 	uint64_t timeStart() const { return _timeStart;}

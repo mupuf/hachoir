@@ -20,7 +20,9 @@ LIBS += -lboost_filesystem
 SOURCES += main.cpp \
     sensingnode.cpp \
     sensingserver.cpp \
-    powerspectrum.cpp
+    powerspectrum.cpp \
+    ../common/radioeventtable.cpp \
+    ../common/ret_entry.cpp
 
 # Please do not modify the following two lines. Required for deployment.
 include(qtquick2applicationviewer/qtquick2applicationviewer.pri)

@@ -32,6 +32,7 @@
 #include <iostream>
 
 #include "radioeventtable.h"
+#include "../common/message_utils.h"
 
 void ringBufferTest();
 
@@ -136,10 +137,56 @@ namespace gtsrc {
 		return (time.tv_sec * 1000000 + time.tv_usec) * 1000;
 	}
 
+	void hachoir_c_impl::sendFFT(const Fft *fft)
+	{
+		uint8_t packet[4200];
+
+		union {
+			uint8_t  *u08;
+			char     *s08;
+			uint16_t *u16;
+			uint32_t *u32;
+			uint64_t *u64;
+			float *f;
+		} ptr;
+
+		ptr.u08 = packet;
+		*ptr.u08++ = (char) MSG_FFT;
+		*ptr.u32++ = 26 +  fft->fftSize();
+		*ptr.u16++ = fft->fftSize(); //steps
+		*ptr.u64++ = fft->startFrequency(); // start freq
+		*ptr.u64++ = fft->endFrequency(); // end freq
+		*ptr.u64++ = fft->time_ns();
+
+		for (int i = 0; i < fft->fftSize(); i++)
+			*ptr.u08++ = (char) (fft->operator [](i));
+
+		socket.send(boost::asio::buffer(packet, ptr.u08 - packet));
+	}
+
+	void hachoir_c_impl::sendRetUpdate()
+	{
+		char msgHeader[5];
+		size_t offset = 0;
+
+		char * buf;
+		size_t len;
+		_ret.toString(&buf, &len);
+
+		/* generate the message Header */
+		write_and_update_offset(offset, msgHeader, (char) MSG_RET);
+		write_and_update_offset(offset, msgHeader, len);
+		socket.send(boost::asio::buffer(msgHeader, offset));
+
+		/* send the actual payload */
+		socket.send(boost::asio::buffer(buf, len));
+
+		//fprintf(stderr, "len = %u\n", len);
+	}
+
 	void
 	hachoir_c_impl::calc_fft()
 	{
-		uint8_t packet[4200];
 		char filteredFFT[4096];
 
 		/* for statistics */
@@ -230,27 +277,8 @@ namespace gtsrc {
 
 		/* send the Ffts to the clients! */
 			if ((id++ % 10) == 0) {
-				union {
-					uint8_t  *u08;
-					char     *s08;
-					uint16_t *u16;
-					uint32_t *u32;
-					uint64_t *u64;
-					float *f;
-				} ptr;
-
-				ptr.u08 = packet;
-				*ptr.u08++ = 1;
-				*ptr.u08++ = 0;
-				*ptr.u16++ = avr.fftSize(); //steps
-				*ptr.u64++ = avr.startFrequency(); // start freq
-				*ptr.u64++ = avr.endFrequency(); // end freq
-				*ptr.u64++ = avr.time_ns();
-
-				for (int i = 0; i < avr.fftSize(); i++)
-					*ptr.u08++ = (char) (avr[i]);
-
-				socket.send(boost::asio::buffer(packet, ptr.u08 - packet));
+				sendFFT(&avr);
+				sendRetUpdate();
 			}
 
 		}

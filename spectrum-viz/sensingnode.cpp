@@ -6,9 +6,11 @@
 #include <stdint.h>
 #include <sys/time.h>
 
+#include "../common/message_utils.h"
+
 SensingNode::SensingNode(QTcpSocket *socket, int clientID, QObject *parent) :
 	QObject(parent), clientSocket(socket), clientID(clientID),
-	_ringbuffer(100000), pwr_min(125), pwr_max(-125)
+	_ringbuffer(100000), _ret(10000), pwr_min(125), pwr_max(-125)
 {
 	connect(clientSocket, SIGNAL(disconnected()), this, SLOT(clientDisconnected()));
 	connect(clientSocket, SIGNAL(disconnected()), clientSocket, SLOT(deleteLater()));
@@ -27,7 +29,7 @@ bool SensingNode::areUpdatesPaused()
 
 bool SensingNode::fetchEntries(qreal start, qreal end)
 {
-	QMutexLocker locker(&_ringbufferMutex);
+	QMutexLocker locker(&_renderingMutex);
 
 	freeEntries();
 
@@ -83,53 +85,61 @@ QByteArray SensingNode::readExactlyNBytes(QTcpSocket *socket, qint64 n)
 	return socket->read(n);
 }
 
-#include "../common/message_utils.h"
-void SensingNode::readPowerSpectrumMessage()
+void SensingNode::readPowerSpectrumMessage(const QByteArray &psMsg)
 {
 	uint64_t start, end, time_ns;
 	uint16_t steps;
 
-	QByteArray header = readExactlyNBytes(clientSocket, 26);
-
 	size_t pos = 0;
-	read_and_update_offset(pos, header.data(), steps);
-	read_and_update_offset(pos, header.data(), start);
-	read_and_update_offset(pos, header.data(), end);
-	read_and_update_offset(pos, header.data(), time_ns);
+	read_and_update_offset(pos, psMsg.data(), steps);
+	read_and_update_offset(pos, psMsg.data(), start);
+	read_and_update_offset(pos, psMsg.data(), end);
+	read_and_update_offset(pos, psMsg.data(), time_ns);
 
-	QByteArray data = readExactlyNBytes(clientSocket, steps);
-
-	if (updatesPaused.load())
-		return;
-
-	PowerSpectrum * ps = new PowerSpectrum(start, end, time_ns, steps, data.data());
+	PowerSpectrum * ps = new PowerSpectrum(start, end, time_ns, steps, psMsg.data() + pos);
 
 	if (ps->powerMax() > pwr_max)
 		pwr_max = ps->powerMax();
 	if (ps->powerMin() < pwr_min)
 		pwr_min = ps->powerMin();
 
-	QMutexLocker locker(&_ringbufferMutex);
-	_ringbuffer.pushBack(ps);
+	QMutexLocker locker(&_renderingMutex);
+	_ringbuffer.push_back(ps);
 
 	emit powerRangeChanged((pwr_max + 20) / 10 * 10, (pwr_min - 20) / 10 * 10);
 	emit frequencyRangeChanged(start,  end);
 }
 
+void SensingNode::readRETMessage(const QByteArray &retMsg)
+{
+	QMutexLocker locker(&_renderingMutex);
+	_ret.updateFromString(retMsg.data(), retMsg.length());
+}
+
 void SensingNode::dataReady()
 {
-	while (clientSocket->bytesAvailable() > 2)
+	while (clientSocket->bytesAvailable() > 5)
 	{
-		QByteArray header = readExactlyNBytes(clientSocket, 2);
-		uint8_t msg_type, padding;
+		QByteArray header = readExactlyNBytes(clientSocket, 5);
+		uint8_t msg_type;
+		uint32_t msg_length;
 
 		size_t pos = 0;
 		read_and_update_offset(pos, header.data(), msg_type);
-		read_and_update_offset(pos, header.data(), padding);
+		read_and_update_offset(pos, header.data(), msg_length);
+
+		/* read the message */
+		QByteArray msg = readExactlyNBytes(clientSocket, msg_length);
+
+		if (updatesPaused.load())
+			return;
 
 		switch (msg_type) {
 		case 0x1:
-			readPowerSpectrumMessage();
+			readPowerSpectrumMessage(msg);
+			break;
+		case 0x2:
+			readRETMessage(msg);
 			break;
 		default:
 			qDebug() << "SensingNode: Invalid message type";

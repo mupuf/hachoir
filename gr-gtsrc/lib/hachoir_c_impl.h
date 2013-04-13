@@ -62,7 +62,10 @@ namespace gtsrc {
 		boost::thread fftThread;
 		FftWindow win;
 
+		void sendFFT(const Fft *fft);
+		void sendRetUpdate();
 		void calc_fft();
+
 		void update_fft_params(int fft_size, gr_firdes::win_type window_type);
 		uint64_t getTimeNs();
 

@@ -13,19 +13,21 @@ class RadioEventTable
 	AbsoluteRingBuffer< RetEntry > _finishedComs;
 	std::list<RetEntry*> _activeComs;
 
-	/* parameters */
+	/* detection-related */
 	uint32_t _endOfTransmissionDelay;
 	uint32_t _minimumTransmissionLength;
-
-	/* temp */
 	uint64_t _tmp_timeNs;
-	char *_toStringBuf;
-	size_t _toStringBufSize;
-
 	bool fuzzyCompare(uint32_t a, uint32_t b, int32_t maxError);
 	RetEntry *findMatch(uint32_t frequencyStart,
 					      uint32_t frequencyEnd,
 					      int8_t pwr);
+
+	/* Serialization-related */
+	enum RadioEventType { ACTIVE_COM = 0, FINISHED_COM = 1, PACKET_END = 2 };
+	char *_toStringBuf;
+	size_t _toStringBufSize;
+	bool toStringBufferReserve(size_t offset, size_t additional);
+	bool addCommunicationToString(size_t &offset, RetEntry *entry);
 public:
 	uint64_t trueDetection;
 	uint64_t totalDetections;
@@ -37,7 +39,7 @@ public:
 			      int8_t pwr);
 	void stopAddingCommunications();
 
-	void toString(const char **buf, size_t *len);
+	bool toString(char **buf, size_t *len);
 	bool updateFromString(const char *buf, size_t len);
 };
 

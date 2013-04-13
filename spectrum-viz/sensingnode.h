@@ -11,6 +11,7 @@
 
 #include "powerspectrum.h"
 #include "absoluteringbuffer.h"
+#include "../common/radioeventtable.h"
 
 class SensingNode : public QObject
 {
@@ -20,8 +21,9 @@ private:
 	QTcpSocket *clientSocket;
 	int clientID;
 
-	QMutex _ringbufferMutex;
+	QMutex _renderingMutex;
 	AbsoluteRingBuffer< PowerSpectrum > _ringbuffer;
+	RadioEventTable _ret;
 
 	/* qml's view */
 	std::vector< std::shared_ptr<PowerSpectrum> > _entries;
@@ -34,7 +36,8 @@ private:
 	char pwr_max;
 
 	QByteArray readExactlyNBytes(QTcpSocket *socket, qint64 n);
-	void readPowerSpectrumMessage();
+	void readPowerSpectrumMessage(const QByteArray &psMsg);
+	void readRETMessage(const QByteArray &retMsg);
 public:
 	explicit SensingNode(QTcpSocket *socket, int clientID, QObject *parent = 0);
 

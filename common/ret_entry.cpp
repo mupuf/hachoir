@@ -7,14 +7,14 @@ RetEntry::RetEntry(uint32_t id, uint64_t timeStart, uint64_t timeEnd,
 			 int8_t pwr, Psu psu, uint64_t address):
 	_id(id), _timeStart(timeStart), _timeEnd(timeEnd), _frequencyStart(frequencyStart), _frequencyEnd(frequencyEnd),
 	_pwr(pwr), _dirty(true)
-{	
+{
 	setAddress(address);
 	setPsu(psu);
 }
 
-bool RetEntry::fromString(const char *buf, size_t length)
+bool RetEntry::fromString(const char *buf, size_t *length)
 {
-	if (length < stringSize())
+	if (*length < stringSize())
 		return false;
 
 	size_t offset = 0;
@@ -26,12 +26,14 @@ bool RetEntry::fromString(const char *buf, size_t length)
 	read_and_update_offset(offset, buf, _pwr);
 	read_and_update_offset(offset, buf, _address);
 
+	*length = stringSize();
+
 	return true;
 }
 
-bool RetEntry::toString(char *buf, size_t &length)
+bool RetEntry::toString(char *buf, size_t *length)
 {
-	if (length < stringSize())
+	if (*length < stringSize())
 		return false;
 
 	size_t offset = 0;
@@ -42,6 +44,8 @@ bool RetEntry::toString(char *buf, size_t &length)
 	write_and_update_offset(offset, buf, _frequencyEnd);
 	write_and_update_offset(offset, buf, _pwr);
 	write_and_update_offset(offset, buf, _address);
+
+	*length = stringSize();
 
 	return true;
 }

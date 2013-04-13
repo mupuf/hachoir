@@ -34,7 +34,7 @@ public:
 		return i >= _tail && i < _head;
 	}
 
-	uint64_t pushBack(T *e)
+	uint64_t push_back(T *e)
 	{
 		/* reserve some space */
 		if (size() >= ringSize())

@@ -1,5 +1,7 @@
 #include "radioeventtable.h"
 
+#include "message_utils.h"
+
 bool RadioEventTable::fuzzyCompare(uint32_t a, uint32_t b, int32_t maxError)
 {
 	int32_t sub = a -b;
@@ -135,23 +137,87 @@ void RadioEventTable::stopAddingCommunications()
 	this->_tmp_timeNs = 0;
 }
 
-#include "message_utils.h"
-void RadioEventTable::toString(const char **buf, size_t *len)
+bool RadioEventTable::toStringBufferReserve(size_t offset, size_t additional)
+{
+	if (_toStringBufSize - offset < additional) {
+		_toStringBufSize *= 2; /* Yeah, I know, that may be over the top! */
+		char * tmp = (char *) realloc(_toStringBuf, _toStringBufSize);
+		if (tmp == NULL)
+			return false;
+		_toStringBuf = tmp;
+	}
+
+	return true;
+}
+
+bool RadioEventTable::addCommunicationToString(size_t &offset, RetEntry *entry)
+{
+	size_t len = _toStringBufSize - offset;
+	if (!entry->toString(_toStringBuf + offset, &len))
+		return false;
+	offset += len;
+	return true;
+}
+
+bool RadioEventTable::toString(char **buf, size_t *len)
 {
 	size_t offset = 0;
 	char *_b = _toStringBuf;
 
-	write_and_update_offset(offset, _b, (char) MSG_RET);
+	*buf = NULL;
+	*len = 0;
 
+	/* add the on-going communications */
+	if (!toStringBufferReserve(offset, (1 + RetEntry::stringSize()) * _activeComs.size()))
+		return false;
 
 	std::list<RetEntry *>::iterator it;
 	for (it = _activeComs.begin(); it != _activeComs.end(); ++it) {
-
+		write_and_update_offset(offset, _b, (char) ACTIVE_COM);
+		if (!addCommunicationToString(offset, (*it)))
+			return false;
 	}
 
+	/* add finished communications */
+	for (uint64_t i = _finishedComs.tail(); i < _finishedComs.head(); i++) {
+		RetEntry *entry = _finishedComs.at_unsafe(i);
+
+		if (entry->isDirty()) {
+			write_and_update_offset(offset, _b, (char) FINISHED_COM);
+			if (!addCommunicationToString(offset, (*it)))
+				return false;
+			entry->setDirty(false);
+		}
+	}
+
+	*buf = _toStringBuf;
+	*len = offset;
+
+	return true;
 }
 
 bool RadioEventTable::updateFromString(const char *buf, size_t len)
 {
+	char comType = ACTIVE_COM;
+	size_t offset = 0;
 
+	while (offset < len && comType != PACKET_END) {
+		read_and_update_offset(offset, buf, comType);
+		if (comType < PACKET_END) {
+			/* generate the entry */
+			RetEntry *entry = new RetEntry();
+			size_t entryLen = len - offset;
+			if (!entry->fromString(buf+offset, &entryLen))
+				return false;
+			offset += entryLen;
+
+			/* add it to the right table */
+			if (comType == ACTIVE_COM)
+				_activeComs.push_back(entry);
+			else if (comType == ACTIVE_COM)
+				_activeComs.push_back(entry);
+		}
+	}
+
+	return true;
 }
