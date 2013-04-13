@@ -34,6 +34,7 @@ list(APPEND gnuradio_gtsrc_sources
   ${CMAKE_CURRENT_SOURCE_DIR}/hachoir_c_impl.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/samplesringbuffer.h
   ${CMAKE_CURRENT_SOURCE_DIR}/../../common/ringbuffer.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../common/message_utils.h
   ${CMAKE_CURRENT_SOURCE_DIR}/../../common/absoluteringbuffer.h
   ${CMAKE_CURRENT_SOURCE_DIR}/../../common/radioeventtable.h
   ${CMAKE_CURRENT_SOURCE_DIR}/../../common/radioeventtable.cpp

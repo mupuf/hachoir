@@ -6,8 +6,6 @@
 #include<vector>
 #include"stdint.h"
 
-enum Psu { UNKNOWN = 0, PRIMARY = 1, SECONDARY = 2 };
-
 class RetEntry
 {
 	uint64_t _id;
@@ -22,10 +20,19 @@ class RetEntry
 	uint64_t _address;
 
 public:
+	enum Psu { UNKNOWN = 0, PRIMARY = 1, SECONDARY = 2 };
+
+	RetEntry() {}
+
 	/// address is up to 56 bits
 	RetEntry(uint32_t id, uint64_t timeStart, uint64_t timeEnd,
 	      uint32_t frequencyStart, uint32_t frequencyEnd,
 	      int8_t pwr, Psu psu, uint64_t address);
+
+	static size_t stringSize() { return 41; }
+
+	bool fromString(const char *buf, size_t length);
+	bool toString(char *buf, size_t &length);
 
 	uint64_t id() const { return _id;}
 	uint64_t timeStart() const { return _timeStart;}

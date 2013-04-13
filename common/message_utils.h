@@ -18,4 +18,6 @@ void write_and_update_offset (size_t & offset, char * buffer, const T & var)
 	offset += sizeof(T);
 }
 
+enum MessageType { MSG_FFT = 1, MSG_RET = 2 };
+
 #endif

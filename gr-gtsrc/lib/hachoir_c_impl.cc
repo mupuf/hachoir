@@ -139,35 +139,31 @@ namespace gtsrc {
 	void
 	hachoir_c_impl::calc_fft()
 	{
-		int id = 0;
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 40);
-		size_t comMinWidth = 5;
-		char comMinSNR = 6;
-		int period = 1;
+		uint8_t packet[4200];
+		char filteredFFT[4096];
 
-		gri_fft_complex fft(fft_size());
-
-		uint8_t buffer[5120];
-		union {
-			uint8_t  *u08;
-			char     *s08;
-			uint16_t *u16;
-			uint32_t *u32;
-			uint64_t *u64;
-			float *f;
-		} ptr;
-
-		while (_ringBuf.size() < fft_size())
-			fftThread.yield();
-
+		/* for statistics */
 		uint64_t lastUpdate = getTimeNs();
 		uint64_t lastFFtTime = 0, FFtTimeAverage = 0;
 		uint64_t fftCount = 0;
 
+		/* parameters for the detection */
+		int id = 0;
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 40);
+		size_t comMinWidth = 5;
+		char comMinSNR = 6;
+
+		/* the fft calculator */
+		gri_fft_complex fft(fft_size());
+
+		/* wait for a sufficient amount of data before starting */
+		while (_ringBuf.size() < fft_size())
+			fftThread.yield();
+
+
 		while (1)
 		{
-			ptr.u08 = buffer;
-
+		/* calculating the FFT */
 			boost::shared_ptr<Fft> new_fft(new Fft(fft_size(),
 							       central_freq(),
 							       sample_rate(),
@@ -175,29 +171,75 @@ namespace gtsrc {
 							       win, _ringBuf));
 
 
+		/* detecting transmissions */
+			avr.addFft(new_fft);
+			float noiseFloor = avr.noiseFloor();
+
+			for (int i = 0; i < avr.fftSize(); i++) {
+				char pwr = (char) (avr[i] - noiseFloor);
+				if (pwr < comMinSNR)
+					pwr = 0;
+				filteredFFT[i] = pwr;
+			}
+
+			_ret.startAddingCommunications(avr.time_ns());
+			int16_t comWidth = 0;
+			int32_t sumPwr = 0;
+			for (int i = 0; i < avr.fftSize(); i++) {
+				if (filteredFFT[i] > 0) {
+					sumPwr += filteredFFT[i];
+					comWidth++;
+				} else {
+					if (comWidth < comMinWidth) {
+						for (int e = i - comWidth; e < i; e++)
+							filteredFFT[e] = 0;
+					} else {
+						int8_t avgPwr = noiseFloor + (int8_t)(sumPwr / comWidth);
+
+						/* add the communication to the radio event table */
+						_ret.addCommunication(avr.freqAtBin(i - comWidth)/1000,
+								      avr.freqAtBin(i - 1)/1000,
+								      avgPwr);
+					}
+
+					sumPwr = 0;
+					comWidth = 0;
+				}
+			}
+			_ret.stopAddingCommunications();
+
+		/* some stats, sorry about this code */
 			if (lastFFtTime > 0)
 				FFtTimeAverage += (new_fft->time_ns() - lastFFtTime);
 			lastFFtTime = new_fft->time_ns();
-
-			avr.addFft(new_fft);
 
 			uint64_t curTime = getTimeNs();
 			uint64_t time_diff = curTime - lastUpdate;
 			if (time_diff > 1000000000) {
 				float fftRate = fftCount / ((float)time_diff / 1000000000);
 				float fftCoverage = fftRate * fft_size() / sample_rate();
-				fprintf(stderr, "fftCoverage = %f, averageFftTime = %f: FFT rate = %f (fftCount = %llu, time_diff = %llu)\n",
-					fftCoverage, ((float)FFtTimeAverage) / fftCount, fftRate, fftCount, time_diff);
+				fprintf(stderr, "fftCoverage = %f, averageFftTime = %f: FFT rate = %f (fftCount = %llu, time_diff = %llu), detections = %llu/%llu\n",
+					fftCoverage, ((float)FFtTimeAverage) / fftCount, fftRate, fftCount, time_diff, _ret.trueDetection, _ret.totalDetections);
 				lastUpdate = curTime;
 				fftCount = 0;
 				FFtTimeAverage = 0;
+				_ret.trueDetection = 0;
 			} else
 				fftCount++;
 
-#if 1
-			if ((id++ % period) == 0) {
-				float noiseFloor = avr.noiseFloor();
 
+		/* send the Ffts to the clients! */
+			if ((id++ % 10) == 0) {
+				union {
+					uint8_t  *u08;
+					char     *s08;
+					uint16_t *u16;
+					uint32_t *u32;
+					uint64_t *u64;
+					float *f;
+				} ptr;
+
+				ptr.u08 = packet;
 				*ptr.u08++ = 1;
 				*ptr.u08++ = 0;
 				*ptr.u16++ = avr.fftSize(); //steps
@@ -205,46 +247,11 @@ namespace gtsrc {
 				*ptr.u64++ = avr.endFrequency(); // end freq
 				*ptr.u64++ = avr.time_ns();
 
-				char *pwrs = ptr.s08;
-				for (int i = 0; i < avr.fftSize(); i++) {
-					char pwr = (char) (avr[i] - noiseFloor);
-					if (pwr < comMinSNR)
-						pwr = 0;
-					*ptr.s08++ = pwr;
+				for (int i = 0; i < avr.fftSize(); i++)
+					*ptr.u08++ = (char) (avr[i]);
 
-				}
-
-#if 1
-				_ret.startAddingCommunications(avr.time_ns());
-				int16_t comWidth = 0;
-				int32_t sumPwr = 0;
-				for (int i = 0; i < avr.fftSize(); i++) {
-					if (pwrs[i] > 0) {
-						sumPwr += pwrs[i];
-						comWidth++;
-					} else {
-						if (comWidth < comMinWidth) {
-							for (int e = i - comWidth; e < i; e++)
-								pwrs[e] = 0;
-						} else {
-							int8_t avgPwr = noiseFloor + (int8_t)(sumPwr / comWidth);
-
-							/* add the communication to the radio event table */
-							_ret.addCommunication(avr.freqAtBin(i - comWidth)/1000,
-									      avr.freqAtBin(i - 1)/1000,
-									      avgPwr);
-						}
-
-						sumPwr = 0;
-						comWidth = 0;
-					}
-				}
-				_ret.stopAddingCommunications();
-#endif
-
-				socket.send(boost::asio::buffer(buffer, ptr.u08 - buffer));
+				socket.send(boost::asio::buffer(packet, ptr.u08 - packet));
 			}
-#endif
 
 		}
 	}
