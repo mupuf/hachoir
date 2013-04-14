@@ -80,12 +80,23 @@ int SensingNode::fetchCommunications(qreal timeStart, qreal timeEnd)
 	return _coms.size();
 }
 
-QObject * SensingNode::selectCommunication(qreal pos)
+QMap<QString, QVariant> SensingNode::selectCommunication(qreal pos)
 {
-	/*if (pos >= 0 && pos < _coms.size())
-		return _coms[pos].get();
-	else
-		return NULL;*/
+	QMap<QString, QVariant> map;
+
+	if (pos >= 0 && pos < _coms.size()) {
+		RetEntry *entry = _coms[pos].get();
+		map["id"] = (float) entry->id();
+		map["timeStart"] = (double) entry->timeStart();
+		map["timeEnd"] = (double) entry->timeEnd();
+		map["frequencyStart"] = (double) entry->frequencyStart() * 1000;
+		map["frequencyEnd"] = (double) entry->frequencyEnd() * 1000;
+		map["pwr"] = (int) entry->pwr();
+		map["psu"] = entry->psuString();
+		map["address"] = (float) entry->address();
+	}
+
+	return map;
 }
 
 void SensingNode::freeCommunications()

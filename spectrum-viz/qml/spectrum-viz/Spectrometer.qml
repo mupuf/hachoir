@@ -3,7 +3,8 @@ import QtQuick 2.0
 Canvas {
 	id: canvas
 	antialiasing: true
-	renderStrategy: Canvas.Immediate /* keep rendering in the main thread ! */
+	renderStrategy: Canvas.Cooperative /* keep rendering in the main thread ! */
+	renderTarget: Canvas.FramebufferObject
 	anchors.fill: parent
 
 	property int clientID: -1
@@ -23,6 +24,7 @@ Canvas {
 	property int i:0
 
 	Component.onCompleted: {
+
 	}
 
 	function value_normalize(value, norm_value, toHigher)
@@ -86,16 +88,19 @@ Canvas {
 	function getCoordinatesPreCache(ctx)
 	{
 		var font_height = 10
-		var y_space_coms_graph = 20;
+		var y_space_coms_graph = 10;
 		var dB_bar_text_size = biggestSize(ctx, canvas.power_range_low, canvas.power_range_high, timeToText(time_scale))
 		var dB_bar_x_offset = canvas.margin_left + dB_bar_text_size.width + 5
 		var freq_bar_top_y_offset_fft = font_height
 		var freq_bar_bottom_y_offset_fft = font_height + 10	// 5 for the mark and 3 for the spacing
 		var graph_width = canvas.width - dB_bar_x_offset - canvas.margin_right
-		var coms_height = canvas.fft_top - y_space_coms_graph
+		var coms_height = canvas.fft_top - y_space_coms_graph - canvas.margin_top
 		var graph_height = canvas.height - canvas.fft_top - freq_bar_top_y_offset_fft - freq_bar_bottom_y_offset_fft - canvas.margin_bottom
 		var freq_range = canvas.freq_high - canvas.freq_low
 		var power_range = canvas.power_range_low - canvas.power_range_high
+		var time_start = canvas.time - canvas.time_scale
+		var time_end = canvas.time
+		var time_range = canvas.time_scale
 
 		var cache = {
 			font_height: font_height,
@@ -106,11 +111,16 @@ Canvas {
 			graph_height: graph_height,
 			freq_range: freq_range,
 			power_range: power_range,
+			time_start: time_start,
+			time_end: time_end,
+			time_range: time_range,
 			x_offset: dB_bar_x_offset,
 			y_offset_coms: canvas.margin_top,
+			y_offset_coms_bottom: canvas.margin_top + coms_height,
 			y_offset_fft: canvas.fft_top + font_height,
 			x_factor: graph_width / freq_range,
-			y_factor: graph_height / power_range
+			fft_y_factor: graph_height / power_range,
+			coms_y_factor: coms_height / time_range
 		}
 
 		return cache;
@@ -118,9 +128,15 @@ Canvas {
 
 	function getComsCoordinates(ctx, cache, freq, time)
 	{
+		if (time < cache.time_start)
+			time = cache.time_start
+		else if (time > cache.time_end)
+			time = cache.time_end
+
+		var timeOffset = time - cache.time_end
 		var pos = {
 			x: cache.x_offset + cache.x_factor * (freq - canvas.freq_low),
-			y: cache.y_offset_coms + cache.y_factor * (power - canvas.power_range_high),
+			y: cache.y_offset_coms_bottom + cache.coms_y_factor * timeOffset,
 			toString: function () {
 				return "[" + this.x + "," + this.y + "]"
 			}
@@ -133,7 +149,7 @@ Canvas {
 	{
 		var pos = {
 			x: cache.x_offset + cache.x_factor * (freq - canvas.freq_low),
-			y: cache.y_offset_fft + cache.y_factor * (power - canvas.power_range_high),
+			y: cache.y_offset_fft + cache.fft_y_factor * (power - canvas.power_range_high),
 			toString: function () {
 				return "[" + this.x + "," + this.y + "]"
 			}
@@ -159,6 +175,8 @@ Canvas {
 		var g_bottom_left = getFftCoordinates(ctx, gc_cache, freq_low, canvas.power_range_low)
 		var g_bottom_right = getFftCoordinates(ctx, gc_cache, freq_high, canvas.power_range_low)
 
+		var c_bottom_right = getComsCoordinates(ctx, gc_cache, freq_high, time)
+
 		// draw the dB lines
 		ctx.beginPath()
 		ctx.strokeStyle = "grey"
@@ -180,14 +198,14 @@ Canvas {
 		}
 		ctx.closePath()
 
-		// draw the axis
+	// draw the axis
 		ctx.strokeStyle = "black"
 		ctx.lineWidth = 2
 		ctx.beginPath();
 
 		ctx.moveTo(g_top_left.x, gc_cache.y_offset_coms);
-		ctx.lineTo(g_top_left.x, gc_cache.y_offset_coms + gc_cache.coms_height)
-		ctx.lineTo(g_bottom_right.x, gc_cache.y_offset_coms + gc_cache.coms_height)
+		ctx.lineTo(g_top_left.x, c_bottom_right.y)
+		ctx.lineTo(c_bottom_right.x, c_bottom_right.y)
 		ctx.stroke()
 
 		ctx.moveTo(g_top_left.x, g_top_left.y);
@@ -196,11 +214,44 @@ Canvas {
 		ctx.stroke()
 		ctx.closePath()
 
+	// Coms
+		var timeStart = canvas.time
+		var timeEnd = timeStart - canvas.time_scale
+		var comCount = SensingNode.fetchCommunications(timeStart, timeEnd)
+		console.log("the are " + comCount + " communications from timeStart = " + gc_cache.time_start)
+		ctx.lineWidth = 1
+		for (var i = 0; i < comCount; i++)
+		{
+			var com = SensingNode.selectCommunication(i)
+			var comTimeStart = com["timeStart"]
+			var comTimeEnd = com["timeEnd"]
+			var comFreqStart = com["frequencyStart"]
+			var comFreqEnd = com["frequencyEnd"]
+			var comPwr = com["pwr"]
+
+			console.log("	[" + comTimeStart + ", " + comTimeEnd + "]")
+
+			var posTopLeft = getComsCoordinates(ctx, gc_cache, comFreqStart, comTimeEnd)
+			var posBottomRight = getComsCoordinates(ctx, gc_cache, comFreqEnd, comTimeStart)
+			var width = posBottomRight.x - posTopLeft.x
+			var height = posBottomRight.y - posTopLeft.y
+
+			ctx.beginPath()
+			ctx.rect(posTopLeft.x, posTopLeft.y, width, height);
+			/*ctx.fillStyle = 'yellow';
+			ctx.fill();*/
+			ctx.stroke()
+			ctx.closePath();
+		}
+		SensingNode.freeCommunications()
+
+	// FFT
 		// draw the frequencies
 		ctx.beginPath()
 		ctx.textAlign = "center"
 		ctx.textBaseline = "top"
 		ctx.strokeStyle = "grey"
+		ctx.fillStyle = "black"
 		ctx.lineWidth = 0.25
 		var freq_range = canvas.freq_high - canvas.freq_low
 		for (var i = 0; i < 10; i++)

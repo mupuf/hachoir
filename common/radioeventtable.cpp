@@ -172,9 +172,12 @@ bool RadioEventTable::toString(char **buf, size_t *len)
 
 	std::list< std::shared_ptr<RetEntry> >::iterator it;
 	for (it = _activeComs.begin(); it != _activeComs.end(); ++it) {
-		write_and_update_offset(offset, _b, (char) ACTIVE_COM);
-		if (!addCommunicationToString(offset, (*it).get()))
-			return false;
+		RetEntry * entry = (*it).get();
+		if (entry->timeEnd() != entry->timeStart()) {
+			write_and_update_offset(offset, _b, (char) ACTIVE_COM);
+			if (!addCommunicationToString(offset, entry))
+				return false;
+		}
 	}
 
 	/* add finished communications */

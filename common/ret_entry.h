@@ -42,6 +42,8 @@ public:
 	int8_t pwr() const { return _id;}
 	Psu psu() const;
 
+	const char * psuString() const;
+
 	bool isDirty() const { return _dirty; }
 
 	/// address is up to 56 bits

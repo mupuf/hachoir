@@ -51,7 +51,7 @@ public:
 	Q_INVOKABLE void freeFftEntries(); /* unreference the FFT entries */
 
 	Q_INVOKABLE int fetchCommunications(qreal timeStart, qreal timeEnd);
-	Q_INVOKABLE QObject * selectCommunication(qreal pos);
+	Q_INVOKABLE QMap<QString, QVariant> selectCommunication(qreal pos);
 	Q_INVOKABLE void freeCommunications(); /* unreference the communication */
 
 signals:

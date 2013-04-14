@@ -31,6 +31,7 @@ qtcAddDeployment()
 HEADERS += \
     sensingnode.h \
     sensingserver.h \
-    ../common/absoluteringbuffer.h \
     powerspectrum.h \
-    absoluteringbuffer.h
+    ../common/absoluteringbuffer.h \
+    ../common/radioeventtable.h \
+    ../common/ret_entry.h

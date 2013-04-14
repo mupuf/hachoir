@@ -25,6 +25,7 @@ bool RetEntry::fromString(const char *buf, size_t *length)
 	read_and_update_offset(offset, buf, _frequencyEnd);
 	read_and_update_offset(offset, buf, _pwr);
 	read_and_update_offset(offset, buf, _address);
+	_dirty = true;
 
 	*length = stringSize();
 
@@ -56,6 +57,20 @@ RetEntry::Psu RetEntry::psu() const {
 
 uint64_t RetEntry::address() const{
 	return _address & 0xFFFFFFFFFFFFFF;
+}
+
+const char * RetEntry::psuString() const
+{
+	Psu psu = this->psu();
+	switch (psu) {
+	case Psu::PRIMARY:
+		return "primary";
+	case Psu::SECONDARY:
+		return "secondary";
+	case Psu::UNKNOWN:
+		return "unknown";
+	}
+	return "invalid";
 }
 
 void RetEntry::setId(uint64_t id){
