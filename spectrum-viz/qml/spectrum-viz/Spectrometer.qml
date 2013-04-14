@@ -215,8 +215,8 @@ Canvas {
 		ctx.closePath()
 
 	// Coms
-		var timeStart = canvas.time
-		var timeEnd = timeStart - canvas.time_scale
+		var timeStart = canvas.time - canvas.time_scale
+		var timeEnd = canvas.time
 		var comCount = SensingNode.fetchCommunications(timeStart, timeEnd)
 		console.log("the are " + comCount + " communications from timeStart = " + gc_cache.time_start)
 		ctx.lineWidth = 1

@@ -120,6 +120,7 @@ void RadioEventTable::stopAddingCommunications()
 #endif
 			} else {
 				trueDetection++;
+				_finishedComs.push_back((*it));
 #if 0
 				fprintf(stderr, "Transmission terminated: ");
 				entryToStderr(entry);
@@ -186,7 +187,7 @@ bool RadioEventTable::toString(char **buf, size_t *len)
 
 		if (entry->isDirty()) {
 			write_and_update_offset(offset, _b, (char) FINISHED_COM);
-			if (!addCommunicationToString(offset, (*it).get()))
+			if (!addCommunicationToString(offset, entry))
 				return false;
 			entry->setDirty(false);
 		}

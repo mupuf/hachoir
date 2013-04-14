@@ -46,6 +46,18 @@ public:
 		return _head++;
 	}
 
+	uint64_t push_back(std::shared_ptr<T> e)
+	{
+		/* reserve some space */
+		if (size() >= ringSize())
+			_tail++;
+
+		/* replace the element */
+		_ring[_head % _ringSize] = e;
+
+		return _head++;
+	}
+
 	std::vector< std::shared_ptr<T> > getRange(uint64_t &start, uint64_t &end)
 	{
 		std::vector< std::shared_ptr<T> > v;
