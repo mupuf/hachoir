@@ -11,7 +11,7 @@ class RadioEventTable
 	uint64_t _currentComID;
 
 	AbsoluteRingBuffer< RetEntry > _finishedComs;
-	std::list<RetEntry*> _activeComs;
+	std::list< std::shared_ptr<RetEntry> > _activeComs;
 
 	/* detection-related */
 	uint32_t _endOfTransmissionDelay;
@@ -41,6 +41,8 @@ public:
 
 	bool toString(char **buf, size_t *len);
 	bool updateFromString(const char *buf, size_t len);
+
+	std::vector< std::shared_ptr<RetEntry> > fetchEntries(uint64_t timeStart, uint64_t timeEnd);
 };
 
 #endif // RADIOEVENTTABLE_H

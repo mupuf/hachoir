@@ -3,7 +3,7 @@ import QtQuick 2.0
 Canvas {
 	id: canvas
 	antialiasing: true
-	renderStrategy: Canvas.Cooperative /* keep rendering in the main thread ! */
+	renderStrategy: Canvas.Immediate /* keep rendering in the main thread ! */
 	anchors.fill: parent
 
 	property int clientID: -1
@@ -12,9 +12,11 @@ Canvas {
 	property int power_range_low: -10
 	property real freq_low:  0
 	property real freq_high: 32000
+	property real time_scale: 1000000000 /* 1 s */
 	property real time: 0
 
 	property int margin_top: 10
+	property int fft_top: canvas.height*8.5/10
 	property int margin_bottom: 10
 	property int margin_left: 10
 	property int margin_right: 10
@@ -35,15 +37,22 @@ Canvas {
 		return value
 	}
 
-	function biggestSize(ctx, str1, str2)
+	function biggestSize(ctx, str1, str2, str3)
 	{
 		var str1_size = ctx.measureText(str1)
 		var str2_size = ctx.measureText(str2)
+		var str3_size = ctx.measureText(str3)
 
 		if (str1_size.width > str2_size.width)
-			return str1_size
+			if (str1_size.width > str3_size.width)
+				return str1_size
+			else
+				return str3_size
 		else
-			return str2_size;
+			if (str2_size.width > str3_size.width)
+				return str2_size
+			else
+				return str3_size
 	}
 
 	function freqToText(freq)
@@ -60,27 +69,46 @@ Canvas {
 		return freq.toFixed(2) + " " + units[unit]
 	}
 
+	function timeToText(time)
+	{
+		var units = ["ns", "µs", "ms", "s"]
+		var unit = 0
+
+		while (time >= 1000 && unit < 4)
+		{
+			time /= 1000;
+			unit++;
+		}
+
+		return time.toFixed(2) + " " + units[unit]
+	}
+
 	function getCoordinatesPreCache(ctx)
 	{
 		var font_height = 10
-		var dB_bar_text_size = biggestSize(ctx, canvas.power_range_low, canvas.power_range_high)
+		var y_space_coms_graph = 20;
+		var dB_bar_text_size = biggestSize(ctx, canvas.power_range_low, canvas.power_range_high, timeToText(time_scale))
 		var dB_bar_x_offset = canvas.margin_left + dB_bar_text_size.width + 5
-		var freq_bar_top_y_offset = font_height
-		var freq_bar_bottom_y_offset = font_height + 10	// 5 for the mark and 3 for the spacing
+		var freq_bar_top_y_offset_fft = font_height
+		var freq_bar_bottom_y_offset_fft = font_height + 10	// 5 for the mark and 3 for the spacing
 		var graph_width = canvas.width - dB_bar_x_offset - canvas.margin_right
-		var graph_height = canvas.height - canvas.margin_top - freq_bar_top_y_offset - freq_bar_bottom_y_offset - canvas.margin_bottom
+		var coms_height = canvas.fft_top - y_space_coms_graph
+		var graph_height = canvas.height - canvas.fft_top - freq_bar_top_y_offset_fft - freq_bar_bottom_y_offset_fft - canvas.margin_bottom
 		var freq_range = canvas.freq_high - canvas.freq_low
 		var power_range = canvas.power_range_low - canvas.power_range_high
 
 		var cache = {
 			font_height: font_height,
 			dB_bar_x_offset: dB_bar_x_offset,
+			coms_width: graph_width,
+			coms_height: coms_height,
 			graph_width: graph_width,
 			graph_height: graph_height,
 			freq_range: freq_range,
 			power_range: power_range,
 			x_offset: dB_bar_x_offset,
-			y_offset: canvas.margin_top + font_height,
+			y_offset_coms: canvas.margin_top,
+			y_offset_fft: canvas.fft_top + font_height,
 			x_factor: graph_width / freq_range,
 			y_factor: graph_height / power_range
 		}
@@ -88,11 +116,11 @@ Canvas {
 		return cache;
 	}
 
-	function getCoordinates(ctx, cache, freq, power)
+	function getComsCoordinates(ctx, cache, freq, time)
 	{
 		var pos = {
 			x: cache.x_offset + cache.x_factor * (freq - canvas.freq_low),
-			y: cache.y_offset + cache.y_factor * (power - canvas.power_range_high),
+			y: cache.y_offset_coms + cache.y_factor * (power - canvas.power_range_high),
 			toString: function () {
 				return "[" + this.x + "," + this.y + "]"
 			}
@@ -101,22 +129,35 @@ Canvas {
 		return pos
 	}
 
-	function drawGrid(ctx)
+	function getFftCoordinates(ctx, cache, freq, power)
+	{
+		var pos = {
+			x: cache.x_offset + cache.x_factor * (freq - canvas.freq_low),
+			y: cache.y_offset_fft + cache.y_factor * (power - canvas.power_range_high),
+			toString: function () {
+				return "[" + this.x + "," + this.y + "]"
+			}
+		}
+
+		return pos
+	}
+
+	function draw(ctx)
 	{
 		ctx.save();
 
 		var SensingNode = SensingServer.sensingNode(clientID)
-		SensingNode.fetchEntries(-1, 0);
-		var pos = SensingNode.getEntriesRange()["start"];
-		var spectrum = SensingNode.selectEntry(pos);
+		SensingNode.fetchFftEntries(-1, 0);
+		var pos = SensingNode.getFftEntriesRange()["start"];
+		var spectrum = SensingNode.selectFftEntry(pos);
 
 		time = spectrum.timeNs();
 
 		var gc_cache = getCoordinatesPreCache(ctx)
 
-		var top_left = getCoordinates(ctx, gc_cache, freq_low, canvas.power_range_high)
-		var bottom_left = getCoordinates(ctx, gc_cache, freq_low, canvas.power_range_low)
-		var bottom_right = getCoordinates(ctx, gc_cache, freq_high, canvas.power_range_low)
+		var g_top_left = getFftCoordinates(ctx, gc_cache, freq_low, canvas.power_range_high)
+		var g_bottom_left = getFftCoordinates(ctx, gc_cache, freq_low, canvas.power_range_low)
+		var g_bottom_right = getFftCoordinates(ctx, gc_cache, freq_high, canvas.power_range_low)
 
 		// draw the dB lines
 		ctx.beginPath()
@@ -127,8 +168,8 @@ Canvas {
 		ctx.textBaseline = "middle"
 		for (var power = canvas.power_range_high; power >= canvas.power_range_low; power-=10)
 		{
-			var pos_start = getCoordinates(ctx, gc_cache, freq_low, power)
-			var pos_end = getCoordinates(ctx, gc_cache, freq_high, power)
+			var pos_start = getFftCoordinates(ctx, gc_cache, freq_low, power)
+			var pos_end = getFftCoordinates(ctx, gc_cache, freq_high, power)
 
 			ctx.fillText(power, pos_start.x - 5, pos_start.y)
 			ctx.fill()
@@ -143,35 +184,43 @@ Canvas {
 		ctx.strokeStyle = "black"
 		ctx.lineWidth = 2
 		ctx.beginPath();
-		ctx.moveTo(top_left.x, top_left.y);
-		ctx.lineTo(top_left.x, bottom_right.y)
-		ctx.lineTo(bottom_right.x, bottom_right.y)
+
+		ctx.moveTo(g_top_left.x, gc_cache.y_offset_coms);
+		ctx.lineTo(g_top_left.x, gc_cache.y_offset_coms + gc_cache.coms_height)
+		ctx.lineTo(g_bottom_right.x, gc_cache.y_offset_coms + gc_cache.coms_height)
+		ctx.stroke()
+
+		ctx.moveTo(g_top_left.x, g_top_left.y);
+		ctx.lineTo(g_top_left.x, g_bottom_right.y)
+		ctx.lineTo(g_bottom_right.x, g_bottom_right.y)
 		ctx.stroke()
 		ctx.closePath()
 
 		// draw the frequencies
 		ctx.beginPath()
-		ctx.lineWidth = 2
 		ctx.textAlign = "center"
 		ctx.textBaseline = "top"
+		ctx.strokeStyle = "grey"
+		ctx.lineWidth = 0.25
 		var freq_range = canvas.freq_high - canvas.freq_low
 		for (var i = 0; i < 10; i++)
 		{
 			var freq = freq_low + i * Math.floor(freq_range / 9)
-			var pos = getCoordinates(ctx, gc_cache, freq, canvas.power_range_low)
+			var pos = getFftCoordinates(ctx, gc_cache, freq, canvas.power_range_low)
 
 			//console.log(freqToText(freq_low + i * (canvas.bandwidth / 10)))
 			ctx.fillText(freqToText(freq), pos.x, pos.y + 8)
 			ctx.fill()
 
-			ctx.moveTo(pos.x, pos.y - 5);
-			ctx.lineTo(pos.x, pos.y + 5)
+			ctx.moveTo(pos.x, pos.y);
+			ctx.lineTo(pos.x, canvas.margin_top)
 			ctx.stroke()
+
 		}
 		ctx.closePath()
 
 		// draw the actual power state
-		var gradientFill = ctx.createLinearGradient(top_left.x, top_left.y, bottom_left.x, bottom_left.y)
+		var gradientFill = ctx.createLinearGradient(g_top_left.x, g_top_left.y, g_bottom_left.x, g_bottom_left.y)
 		gradientFill.addColorStop(0, Qt.rgba(1, 0, 0, 0.3));
 		gradientFill.addColorStop(0.5, Qt.rgba(0, 0.8, 0, 0.3));
 		gradientFill.addColorStop(1, Qt.rgba(0, 0, 0.8, 0.3));
@@ -184,21 +233,17 @@ Canvas {
 		{
 			var freq = spectrum.sampleFrequency(i)
 			var pwr = spectrum.sampleDbm(i)
-			pos = getCoordinates(ctx, gc_cache, freq, pwr)
+			pos = getFftCoordinates(ctx, gc_cache, freq, pwr)
 
 			if (i == 0)
-				ctx.moveTo(pos.x, bottom_left.y)
+				ctx.moveTo(pos.x, g_bottom_left.y)
 			ctx.lineTo(pos.x, pos.y)
 		}
-		SensingNode.freeEntries()
-		ctx.lineTo(pos.x, bottom_right.y)
+		SensingNode.freeFftEntries()
+		ctx.lineTo(pos.x, g_bottom_right.y)
 		ctx.closePath()
 		ctx.stroke()
 		ctx.fill()
-
-		// set the current time
-		ctx.fillStyle = "black"
-		ctx.fillText(time + "ns", parent.width - 100, 3)
 
 		ctx.restore()
 	}
@@ -224,9 +269,9 @@ Canvas {
 		}
 	}
 
-	/* refresh at around 30 fps */
+	/* try to refresh at around 60 fps */
 	Timer {
-			interval: 30; running: true; repeat: true;
+			interval: 60; running: true; repeat: true;
 			onTriggered: requestPaint();
 		}
 
@@ -241,7 +286,11 @@ Canvas {
 		ctx.fillStyle = "white";
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-		drawGrid(ctx)
+		// set the current time
+		ctx.fillStyle = "black"
+		ctx.fillText("t0 = " + time + "ns", canvas.width - 230, margin_top + 3)
+
+		draw(ctx);
 		ctx.restore();
 
 		/*if (i < 1024) {

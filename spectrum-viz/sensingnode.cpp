@@ -27,11 +27,11 @@ bool SensingNode::areUpdatesPaused()
 	return updatesPaused.load();
 }
 
-bool SensingNode::fetchEntries(qreal start, qreal end)
+bool SensingNode::fetchFftEntries(qreal start, qreal end)
 {
 	QMutexLocker locker(&_renderingMutex);
 
-	freeEntries();
+	freeFftEntries();
 
 	if (start >= 0)
 	{
@@ -47,7 +47,7 @@ bool SensingNode::fetchEntries(qreal start, qreal end)
 	return _entries.size() > 0;
 }
 
-QMap<QString, QVariant> SensingNode::getEntriesRange()
+QMap<QString, QVariant> SensingNode::getFftEntriesRange()
 {
 	QMap<QString, QVariant> map;
 	map["start"] = (qreal)_entries_start;
@@ -55,7 +55,7 @@ QMap<QString, QVariant> SensingNode::getEntriesRange()
 	return map;
 }
 
-QObject * SensingNode::selectEntry(qreal pos)
+QObject * SensingNode::selectFftEntry(qreal pos)
 {
 	if (pos >= _entries_start && pos < _entries_end)
 		return _entries[pos - _entries_start].get();
@@ -63,11 +63,34 @@ QObject * SensingNode::selectEntry(qreal pos)
 		return NULL;
 }
 
-void SensingNode::freeEntries()
+void SensingNode::freeFftEntries()
 {
 	_entries_start = 0;
 	_entries_end = 0;
 	_entries.clear();
+}
+
+int SensingNode::fetchCommunications(qreal timeStart, qreal timeEnd)
+{
+	QMutexLocker locker(&_renderingMutex);
+	freeCommunications();
+
+	_coms = _ret.fetchEntries(timeStart, timeEnd);
+
+	return _coms.size();
+}
+
+QObject * SensingNode::selectCommunication(qreal pos)
+{
+	/*if (pos >= 0 && pos < _coms.size())
+		return _coms[pos].get();
+	else
+		return NULL;*/
+}
+
+void SensingNode::freeCommunications()
+{
+	_coms.clear();
 }
 
 void SensingNode::clientDisconnected()

@@ -28,6 +28,7 @@ private:
 	/* qml's view */
 	std::vector< std::shared_ptr<PowerSpectrum> > _entries;
 	uint64_t _entries_start, _entries_end;
+	std::vector< std::shared_ptr<RetEntry> > _coms;
 
 	QAtomicInt updatesPaused;
 
@@ -44,12 +45,14 @@ public:
 	Q_INVOKABLE void pauseUpdates(bool pause);
 	Q_INVOKABLE bool areUpdatesPaused();
 
-	Q_INVOKABLE bool fetchEntries(qreal start, qreal end);
-	Q_INVOKABLE QMap<QString, QVariant> getEntriesRange();
+	Q_INVOKABLE bool fetchFftEntries(qreal start, qreal end);
+	Q_INVOKABLE QMap<QString, QVariant> getFftEntriesRange();
+	Q_INVOKABLE QObject * selectFftEntry(qreal pos);
+	Q_INVOKABLE void freeFftEntries(); /* unreference the FFT entries */
 
-	Q_INVOKABLE QObject * selectEntry(qreal pos);
-
-	Q_INVOKABLE void freeEntries(); /* unreference the entries */
+	Q_INVOKABLE int fetchCommunications(qreal timeStart, qreal timeEnd);
+	Q_INVOKABLE QObject * selectCommunication(qreal pos);
+	Q_INVOKABLE void freeCommunications(); /* unreference the communication */
 
 signals:
 	void dataChanged();

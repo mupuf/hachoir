@@ -17,9 +17,9 @@ RetEntry * RadioEventTable::findMatch(uint32_t frequencyStart,
 	uint32_t comWidth = frequencyEnd - frequencyStart;
 	uint32_t comCentralFreq = frequencyStart + comWidth / 2;
 
-	std::list<RetEntry *>::iterator it;
+	std::list< std::shared_ptr<RetEntry> >::iterator it;
 	for (it = _activeComs.begin(); it != _activeComs.end(); ++it) {
-		entry = *it;
+		entry = (*it).get();
 
 		uint32_t width = entry->frequencyEnd() - entry->frequencyStart();
 		uint32_t centralFreq = entry->frequencyStart() + width / 2;
@@ -78,7 +78,7 @@ void RadioEventTable::addCommunication(uint32_t frequencyStart,
 		/* no corresponding entry found, let's create one! */
 		entry = new RetEntry(_currentComID++, _tmp_timeNs, _tmp_timeNs, frequencyStart,
 					    frequencyEnd, pwr, RetEntry::UNKNOWN, 0);
-		_activeComs.push_back(entry);
+		_activeComs.push_back(std::shared_ptr<RetEntry>(entry));
 #if DEBUG_ADD_COMMUNICATION
 		fprintf(stderr, "add new entry: ");
 		entryToStderr(entry);
@@ -106,9 +106,9 @@ void RadioEventTable::stopAddingCommunications()
 	RetEntry * entry;
 
 	/* transfer non-ongoing communications to _finishedComs */
-	std::list<RetEntry *>::iterator it;
+	std::list< std::shared_ptr<RetEntry> >::iterator it;
 	for (it = _activeComs.begin(); it != _activeComs.end(); ++it) {
-		entry = *it;
+		entry = (*it).get();
 
 		if (_tmp_timeNs - entry->timeEnd() > _endOfTransmissionDelay) {
 
@@ -128,7 +128,6 @@ void RadioEventTable::stopAddingCommunications()
 			}
 			totalDetections++;
 			it = _activeComs.erase(it);
-			delete entry;
 		}
 	}
 
@@ -171,10 +170,10 @@ bool RadioEventTable::toString(char **buf, size_t *len)
 	if (!toStringBufferReserve(offset, (1 + RetEntry::stringSize()) * _activeComs.size()))
 		return false;
 
-	std::list<RetEntry *>::iterator it;
+	std::list< std::shared_ptr<RetEntry> >::iterator it;
 	for (it = _activeComs.begin(); it != _activeComs.end(); ++it) {
 		write_and_update_offset(offset, _b, (char) ACTIVE_COM);
-		if (!addCommunicationToString(offset, (*it)))
+		if (!addCommunicationToString(offset, (*it).get()))
 			return false;
 	}
 
@@ -184,7 +183,7 @@ bool RadioEventTable::toString(char **buf, size_t *len)
 
 		if (entry->isDirty()) {
 			write_and_update_offset(offset, _b, (char) FINISHED_COM);
-			if (!addCommunicationToString(offset, (*it)))
+			if (!addCommunicationToString(offset, (*it).get()))
 				return false;
 			entry->setDirty(false);
 		}
@@ -201,6 +200,9 @@ bool RadioEventTable::updateFromString(const char *buf, size_t len)
 	char comType = ACTIVE_COM;
 	size_t offset = 0;
 
+	/* empty the active coms list */
+	_activeComs.clear();
+
 	while (offset < len && comType != PACKET_END) {
 		read_and_update_offset(offset, buf, comType);
 		if (comType < PACKET_END) {
@@ -213,11 +215,32 @@ bool RadioEventTable::updateFromString(const char *buf, size_t len)
 
 			/* add it to the right table */
 			if (comType == ACTIVE_COM)
-				_activeComs.push_back(entry);
-			else if (comType == ACTIVE_COM)
-				_activeComs.push_back(entry);
+				_activeComs.push_back(std::shared_ptr<RetEntry>(entry));
+			else if (comType == FINISHED_COM)
+				_finishedComs.push_back(entry); /* this works right now because we never update old entries */
 		}
 	}
 
 	return true;
+}
+
+std::vector< std::shared_ptr<RetEntry> >
+RadioEventTable::fetchEntries(uint64_t timeStart, uint64_t timeEnd)
+{
+	std::vector< std::shared_ptr<RetEntry> > ret;
+
+	/* copy all the active communications */
+	std::copy(_activeComs.begin(), _activeComs.end(),
+		  std::back_insert_iterator< std::vector< std::shared_ptr<RetEntry> > >(ret));
+
+	/* now look at the finished communications */
+	for (uint64_t i = _finishedComs.tail(); i < _finishedComs.head(); i++) {
+		RetEntry *entry = _finishedComs.at_unsafe(i);
+
+		if (entry->timeEnd() > timeStart &&
+		    entry->timeStart() < timeEnd)
+		    ret.push_back(_finishedComs.at(i));
+	}
+
+	return ret;
 }
