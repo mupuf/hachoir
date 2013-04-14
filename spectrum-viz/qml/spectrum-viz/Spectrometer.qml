@@ -13,7 +13,7 @@ Canvas {
 	property int power_range_low: -10
 	property real freq_low:  0
 	property real freq_high: 32000
-	property real time_scale: 1000000000 /* 1 s */
+	property real time_scale: 1000000000 /* 1000 ms */
 	property real time: 0
 
 	property int margin_top: 10
@@ -218,7 +218,7 @@ Canvas {
 		var timeStart = canvas.time - canvas.time_scale
 		var timeEnd = canvas.time
 		var comCount = SensingNode.fetchCommunications(timeStart, timeEnd)
-		console.log("the are " + comCount + " communications from timeStart = " + gc_cache.time_start)
+		//console.log("the are " + comCount + " communications from timeStart = " + gc_cache.time_start)
 		ctx.lineWidth = 1
 		for (var i = 0; i < comCount; i++)
 		{
@@ -229,7 +229,7 @@ Canvas {
 			var comFreqEnd = com["frequencyEnd"]
 			var comPwr = com["pwr"]
 
-			console.log("	[" + comTimeStart + ", " + comTimeEnd + "]")
+			//console.log("	[" + comTimeStart + ", " + comTimeEnd + "]")
 
 			var posTopLeft = getComsCoordinates(ctx, gc_cache, comFreqStart, comTimeEnd)
 			var posBottomRight = getComsCoordinates(ctx, gc_cache, comFreqEnd, comTimeStart)

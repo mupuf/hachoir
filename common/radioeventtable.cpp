@@ -4,8 +4,13 @@
 
 bool RadioEventTable::fuzzyCompare(uint32_t a, uint32_t b, int32_t maxError)
 {
-	int32_t sub = a -b;
-	return sub > -maxError && sub < maxError;
+	int32_t sub = a - b;
+
+	bool ret = ((-sub) < maxError) && (sub < maxError);
+	/*fprintf(stderr,
+		"fuzzyCompare: a = %i, b = %i, sub = %i, maxError = %u, res = %s\n",
+		a, b, sub, maxError, ret?"true":"false");*/
+	return ret;
 }
 
 RetEntry * RadioEventTable::findMatch(uint32_t frequencyStart,
@@ -16,6 +21,7 @@ RetEntry * RadioEventTable::findMatch(uint32_t frequencyStart,
 
 	uint32_t comWidth = frequencyEnd - frequencyStart;
 	uint32_t comCentralFreq = frequencyStart + comWidth / 2;
+	int32_t maxError = comWidth * 25 / 100;
 
 	std::list< std::shared_ptr<RetEntry> >::iterator it;
 	for (it = _activeComs.begin(); it != _activeComs.end(); ++it) {
@@ -24,17 +30,22 @@ RetEntry * RadioEventTable::findMatch(uint32_t frequencyStart,
 		uint32_t width = entry->frequencyEnd() - entry->frequencyStart();
 		uint32_t centralFreq = entry->frequencyStart() + width / 2;
 
-		if (fuzzyCompare(comWidth, width, width / 10) &&
-		    fuzzyCompare(comCentralFreq, centralFreq, width / 10))
+		if (/*fuzzyCompare(comWidth, width, maxError) &&*/
+		    fuzzyCompare(comCentralFreq, centralFreq, maxError)) {
 			return entry;
+		}
 	}
+
+	/*if (frequencyStart == 936000)
+		fprintf(stderr, "Couldn't match com [%u, %u], centralFreq = %u, width = %u\n",
+		frequencyStart, frequencyEnd, comCentralFreq, comWidth);*/
 
 	return NULL;
 }
 
 RadioEventTable::RadioEventTable(size_t ringSize) : _currentComID(0),
-	_finishedComs(ringSize), _endOfTransmissionDelay(10000) /* 10µs */,
-	_minimumTransmissionLength(50000) /* 50 µs */
+	_finishedComs(ringSize), _endOfTransmissionDelay(1000000) /* 1 ms */,
+	_minimumTransmissionLength(100000) /* 100 µs */
 {
 	trueDetection = totalDetections = 0;
 	_toStringBufSize = 1000000; /* 1 MB */

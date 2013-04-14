@@ -196,7 +196,7 @@ namespace gtsrc {
 
 		/* parameters for the detection */
 		int id = 0;
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 40);
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 100);
 		size_t comMinWidth = 5;
 		char comMinSNR = 6;
 
@@ -230,7 +230,7 @@ namespace gtsrc {
 			}
 
 			_ret.startAddingCommunications(avr.time_ns());
-			int16_t comWidth = 0;
+			uint16_t comWidth = 0;
 			int32_t sumPwr = 0;
 			for (int i = 0; i < avr.fftSize(); i++) {
 				if (filteredFFT[i] > 0) {
