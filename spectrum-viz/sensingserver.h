@@ -18,6 +18,8 @@ public:
 	/// returns a QObject because it is used in the qml
 	Q_INVOKABLE QObject * sensingNode(int clientID);
 
+	void addNewClient(QTcpSocket *client);
+
 signals:
 	void newClientArrived(int clientID);
 

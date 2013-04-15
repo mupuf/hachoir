@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <QQmlContext>
+#include <QTcpSocket>
 #include <sensingserver.h>
 
 int main(int argc, char *argv[])
@@ -15,6 +16,15 @@ int main(int argc, char *argv[])
 		std::cerr << "Listening failed: " << server.errorString().toStdString() << std::endl;
 		return -1;
 	}
+
+	/* HACK */
+	QTcpSocket socket;
+	socket.connectToHost("127.0.0.1", 21333);
+	if (!socket.waitForConnected(1000)) {
+		qDebug("Couldn't connect to the sensing Server!");
+		return 1;
+	}
+	server.addNewClient(&socket);
 
 	QtQuick2ApplicationViewer viewer;
 	viewer.rootContext()->setContextProperty("SensingServer", &server);

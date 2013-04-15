@@ -16,13 +16,9 @@ QObject * SensingServer::sensingNode(int clientID)
 	return nodes[clientID].data();
 }
 
-void SensingServer::newClient()
+void SensingServer::addNewClient(QTcpSocket *client)
 {
 	SensingNode *node;
-
-	QTcpSocket *client = nextPendingConnection();
-	if (client == 0)
-		return;
 
 	/* add the node to the list */
 	int i = 0, clientID = -1;
@@ -48,6 +44,15 @@ void SensingServer::newClient()
 
 	/* send a signal that a new node arrived */
 	emit newClientArrived(clientID);
+}
+
+void SensingServer::newClient()
+{
+	QTcpSocket *client = nextPendingConnection();
+	if (client == 0)
+		return;
+
+	addNewClient(client);
 }
 
 void SensingServer::destroyClient(int clientID)

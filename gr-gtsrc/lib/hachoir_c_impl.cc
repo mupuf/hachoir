@@ -58,7 +58,7 @@ namespace gtsrc {
 			gr_make_io_signature(1, 1, sizeof (gr_complex)),
 			gr_make_io_signature(0, 0, sizeof (gr_complex))),
 			_freq(freq), _samplerate(samplerate),
-			_server(21334), _ringBuf(10000 * fft_size), _ret(1000)
+			_server(21333), _ringBuf(10000 * fft_size), _ret(1000)
 	{
 		this->set_max_noutput_items(fft_size/4);
 
