@@ -76,7 +76,7 @@ Canvas {
 		var units = ["ns", "µs", "ms", "s"]
 		var unit = 0
 
-		while (time >= 1000 && unit < 4)
+		while (Math.abs(time) >= 1000 && unit < 4)
 		{
 			time /= 1000;
 			unit++;
@@ -90,11 +90,11 @@ Canvas {
 		var font_height = 10
 		var y_space_coms_graph = 10;
 		var dB_bar_text_size = biggestSize(ctx, canvas.power_range_low, canvas.power_range_high, timeToText(time_scale))
-		var dB_bar_x_offset = canvas.margin_left + dB_bar_text_size.width + 5
+		var dB_bar_x_offset = canvas.margin_left + font_height + dB_bar_text_size.width
 		var freq_bar_top_y_offset_fft = font_height
-		var freq_bar_bottom_y_offset_fft = font_height + 10	// 5 for the mark and 3 for the spacing
+		var freq_bar_bottom_y_offset_fft = 2 * (font_height + 10)	// 5 for the mark and 3 for the spacing
 		var graph_width = canvas.width - dB_bar_x_offset - canvas.margin_right
-		var coms_height = canvas.fft_top - y_space_coms_graph - canvas.margin_top
+		var coms_height = canvas.fft_top - y_space_coms_graph - canvas.margin_top - 5
 		var graph_height = canvas.height - canvas.fft_top - freq_bar_top_y_offset_fft - freq_bar_bottom_y_offset_fft - canvas.margin_bottom
 		var freq_range = canvas.freq_high - canvas.freq_low
 		var power_range = canvas.power_range_low - canvas.power_range_high
@@ -177,7 +177,55 @@ Canvas {
 
 		var c_bottom_right = getComsCoordinates(ctx, gc_cache, freq_high, time)
 
-		// draw the dB lines
+	// draw the axis
+		ctx.strokeStyle = "black"
+		ctx.lineWidth = 2
+		ctx.beginPath();
+
+		ctx.moveTo(g_top_left.x, gc_cache.y_offset_coms);
+		ctx.lineTo(g_top_left.x, c_bottom_right.y)
+		ctx.lineTo(c_bottom_right.x, c_bottom_right.y)
+		ctx.stroke()
+
+		ctx.moveTo(g_top_left.x, g_top_left.y);
+		ctx.lineTo(g_top_left.x, g_bottom_right.y)
+		ctx.lineTo(g_bottom_right.x, g_bottom_right.y)
+		ctx.stroke()
+		ctx.closePath()
+
+	// draw the inverted labels for the axis
+		ctx.save();
+		ctx.fillStyle = "black"
+		ctx.rotate(-Math.PI/4);
+		ctx.textAlign = "center";
+
+		var timeText = timeToText(time_scale);
+		var timeLabel_y = gc_cache.y_offset_coms + gc_cache.coms_height / 2;
+		ctx.fillText("Time (range = " + timeText + ")", -timeLabel_y, 20);
+		ctx.fillText("t0 = " + time + "ns", -timeLabel_y, 20 + 2 * gc_cache.font_height)
+
+		var powerLabel_y = gc_cache.y_offset_fft + gc_cache.graph_height / 2;
+		ctx.fillText("Power (dBm)", -powerLabel_y, 20);
+
+		ctx.restore();
+
+	// draw the coms time labels
+		ctx.beginPath()
+		ctx.fillStyle = "black"
+		ctx.textAlign = "right"
+		ctx.lineWidth = 1.5
+
+		var x = g_top_left.x
+		var y = gc_cache.y_offset_coms
+		ctx.moveTo(x - 5, y); ctx.lineTo(x, y); ctx.stroke();
+		ctx.fillText(timeToText(-time_scale), x - 5, y + gc_cache.font_height / 2);
+
+		y = gc_cache.y_offset_coms + gc_cache.coms_height
+		ctx.moveTo(x - 5, y); ctx.lineTo(x, y); ctx.stroke();
+		ctx.fillText("t0", g_top_left.x - 8, y + gc_cache.font_height / 2);
+		ctx.closePath()
+
+	// draw the dB lines
 		ctx.beginPath()
 		ctx.strokeStyle = "grey"
 		ctx.lineWidth = 0.25
@@ -196,22 +244,6 @@ Canvas {
 			ctx.lineTo(pos_end.x, pos_end.y)
 			ctx.stroke()
 		}
-		ctx.closePath()
-
-	// draw the axis
-		ctx.strokeStyle = "black"
-		ctx.lineWidth = 2
-		ctx.beginPath();
-
-		ctx.moveTo(g_top_left.x, gc_cache.y_offset_coms);
-		ctx.lineTo(g_top_left.x, c_bottom_right.y)
-		ctx.lineTo(c_bottom_right.x, c_bottom_right.y)
-		ctx.stroke()
-
-		ctx.moveTo(g_top_left.x, g_top_left.y);
-		ctx.lineTo(g_top_left.x, g_bottom_right.y)
-		ctx.lineTo(g_bottom_right.x, g_bottom_right.y)
-		ctx.stroke()
 		ctx.closePath()
 
 	// Coms
@@ -266,8 +298,9 @@ Canvas {
 			ctx.moveTo(pos.x, pos.y);
 			ctx.lineTo(pos.x, canvas.margin_top)
 			ctx.stroke()
-
 		}
+		ctx.fillText("Frequency of the signal", canvas.width / 2, pos.y + 27)
+		ctx.fill()
 		ctx.closePath()
 
 		// draw the actual power state
@@ -336,10 +369,6 @@ Canvas {
 		// erase everything
 		ctx.fillStyle = "white";
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-		// set the current time
-		ctx.fillStyle = "black"
-		ctx.fillText("t0 = " + time + "ns", canvas.width - 230, margin_top + 3)
 
 		draw(ctx);
 		ctx.restore();
