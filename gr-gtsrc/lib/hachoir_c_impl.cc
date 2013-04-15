@@ -178,7 +178,7 @@ namespace gtsrc {
 		/* generate the message Header */
 		write_and_update_offset(offset, msgHeader, (char) MSG_RET);
 		write_and_update_offset(offset, msgHeader, len);
-		_server.sendToAll(msgHeader, offset);
+		_server.sendToAll(msgHeader, 5);
 
 		/* send the actual payload */
 		_server.sendToAll(buf, len);

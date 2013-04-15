@@ -1,6 +1,7 @@
 #include "sensingclient.h"
 
 #include <stdio.h>
+#include <iostream>
 
 SensingClient::SensingClient(boost::asio::io_service &ios) : _socket(ios)
 {

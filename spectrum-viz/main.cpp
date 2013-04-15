@@ -17,6 +17,11 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	QtQuick2ApplicationViewer viewer;
+	viewer.rootContext()->setContextProperty("SensingServer", &server);
+	viewer.setMainQmlFile(QStringLiteral("qml/spectrum-viz/main.qml"));
+	viewer.showExpanded();
+
 	/* HACK */
 	QTcpSocket socket;
 	socket.connectToHost("127.0.0.1", 21333);
@@ -25,11 +30,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	server.addNewClient(&socket);
-
-	QtQuick2ApplicationViewer viewer;
-	viewer.rootContext()->setContextProperty("SensingServer", &server);
-	viewer.setMainQmlFile(QStringLiteral("qml/spectrum-viz/main.qml"));
-	viewer.showExpanded();
 
 	return app.exec();
 }
