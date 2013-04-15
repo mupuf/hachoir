@@ -27,6 +27,18 @@ Canvas {
 
 	}
 
+	Button {
+		property bool paused: false
+
+		anchors { right: parent.right; top: parent.top}
+		text: { return paused?"Unpause":"Pause"; }
+		onClicked: {
+			paused = !paused;
+
+			console.log("This doesn't do anything yet...")
+		}
+	}
+
 	function value_normalize(value, norm_value, toHigher)
 	{
 		if (value % norm_value != 0)
