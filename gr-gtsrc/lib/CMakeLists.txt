@@ -31,6 +31,8 @@ list(APPEND gnuradio_gtsrc_sources
   ${CMAKE_CURRENT_SOURCE_DIR}/fftwindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fft.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fftaverage.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/sensingserver.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/sensingclient.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/hachoir_c_impl.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/samplesringbuffer.h
   ${CMAKE_CURRENT_SOURCE_DIR}/../../common/ringbuffer.h

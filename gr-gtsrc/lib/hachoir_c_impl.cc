@@ -42,9 +42,14 @@ namespace gtsrc {
 	hachoir_c::sptr
 	hachoir_c::make(double freq, int samplerate, int fft_size, int window_type)
 	{
-		return gnuradio::get_initial_sptr (new hachoir_c_impl(freq, samplerate, fft_size, window_type));
+		try {
+			return gnuradio::get_initial_sptr (new hachoir_c_impl(freq, samplerate, fft_size, window_type));
+		}
+		catch (std::exception& e)
+		{
+			std::cerr << e.what() << std::endl;
+		}
 	}
-
 	/*
 	* The private constructor
 	*/
@@ -53,11 +58,8 @@ namespace gtsrc {
 			gr_make_io_signature(1, 1, sizeof (gr_complex)),
 			gr_make_io_signature(0, 0, sizeof (gr_complex))),
 			_freq(freq), _samplerate(samplerate),
-			socket(ios), _ringBuf(10000 * fft_size), _ret(1000)
+			_server(21334), _ringBuf(10000 * fft_size), _ret(1000)
 	{
-		boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 21334);
-		socket.connect(endpoint);
-
 		this->set_max_noutput_items(fft_size/4);
 
 		update_fft_params(fft_size, (gr_firdes::win_type) window_type);
@@ -161,7 +163,7 @@ namespace gtsrc {
 		for (int i = 0; i < fft->fftSize(); i++)
 			*ptr.u08++ = (char) (fft->operator [](i));
 
-		socket.send(boost::asio::buffer(packet, ptr.u08 - packet));
+		_server.sendToAll((char*)packet, ptr.u08 - packet);
 	}
 
 	void hachoir_c_impl::sendRetUpdate()
@@ -176,10 +178,10 @@ namespace gtsrc {
 		/* generate the message Header */
 		write_and_update_offset(offset, msgHeader, (char) MSG_RET);
 		write_and_update_offset(offset, msgHeader, len);
-		socket.send(boost::asio::buffer(msgHeader, offset));
+		_server.sendToAll(msgHeader, offset);
 
 		/* send the actual payload */
-		socket.send(boost::asio::buffer(buf, len));
+		_server.sendToAll(buf, len);
 
 		//fprintf(stderr, "len = %u\n", len);
 	}

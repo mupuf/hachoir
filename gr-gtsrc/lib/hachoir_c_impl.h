@@ -27,12 +27,12 @@
 #include <stdint.h>
 #include <memory>
 
-#include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <boost/thread.hpp>
 
 #include "radioeventtable.h"
 #include "samplesringbuffer.h"
+#include "sensingserver.h"
 #include "fftwindow.h"
 #include "fft.h"
 
@@ -48,9 +48,8 @@ namespace gtsrc {
 		uint16_t _fft_size;
 		gr_firdes::win_type _window_type;
 
-		/* sockets */
-		boost::asio::io_service ios;
-		boost::asio::ip::tcp::socket socket;
+		/* server */
+		SensingServer _server;
 
 		/* time-domain ring buffer */
 		SamplesRingBuffer _ringBuf;

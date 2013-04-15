@@ -60,8 +60,8 @@ class qa_hachoir_c (gr_unittest.TestCase):
 
 	def test_001_t(self):
 		samp_rate = 8000000
-		freq=0.940e9
-		#freq=2.464e9
+		freq=0.902e9
+		freq=2.464e9
 		gain=60
 		ant = "TX/RX"
 		self.uhd_usrp_source_0 = uhd.usrp_source(
@@ -73,7 +73,7 @@ class qa_hachoir_c (gr_unittest.TestCase):
 				)
 		self.uhd_usrp_source_0.set_time_source("external", 0)
 		self.uhd_usrp_source_0.set_subdev_spec("A:0", 0)
-		#self.uhd_usrp_source_0.set_subdev_spec("B:0", 0)
+		self.uhd_usrp_source_0.set_subdev_spec("B:0", 0)
 		self.uhd_usrp_source_0.set_samp_rate(samp_rate)
 		self.uhd_usrp_source_0.set_center_freq(freq, 0)
 		self.uhd_usrp_source_0.set_gain(gain, 0)
