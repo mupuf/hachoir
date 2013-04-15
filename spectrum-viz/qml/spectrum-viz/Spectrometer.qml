@@ -27,6 +27,19 @@ Canvas {
 
 	}
 
+	MouseArea {
+		anchors.fill: parent
+		//hoverEnabled: true
+
+		onPositionChanged: {
+			console.log("mouse moved, x = " + mouse.x + ", y = " + mouse.y)
+		}
+
+		onClicked: {
+			console.log("clicked at x = " + mouse.x + ", y = " + mouse.y)
+		}
+	}
+
 	Button {
 		property bool paused: false
 

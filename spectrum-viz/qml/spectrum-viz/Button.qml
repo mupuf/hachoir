@@ -69,13 +69,16 @@ import QtQuick 2.0
      MouseArea {
          id: mouseArea
          anchors.fill: parent
+         hoverEnabled: true
          onClicked: container.clicked();
+         onEntered: container.border.color = "grey"
+         onExited: container.border.color = "black"
      }
 
      Text {
          id: buttonLabel
          anchors.centerIn: container
-         color: activePalette.buttonText
+         color: "black"
          text: container.text
      }
  }
