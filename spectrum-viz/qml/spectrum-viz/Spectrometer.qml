@@ -48,7 +48,8 @@ Canvas {
 		onClicked: {
 			paused = !paused;
 
-			console.log("This doesn't do anything yet...")
+			var SensingNode = SensingServer.sensingNode(clientID)
+			SensingNode.pauseUpdates(paused);
 		}
 	}
 
