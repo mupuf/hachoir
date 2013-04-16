@@ -8,6 +8,8 @@
 #include <memory>
 
 #include "sensingclient.h"
+#include "ret_entry.h"
+#include "radioeventtable.h"
 
 enum MessageType { MSG_FFT = 1, MSG_RET = 2 };
 
@@ -27,6 +29,8 @@ private:
 	void io_service();
 	void incomingConnection(SensingClient *client,
 				const boost::system::error_code &error);
+
+	void sendDetection(std::list<SensingClient *>::iterator &client, const SensingClient::freqInterest &f);
 public:
 	SensingServer(uint16_t port);
 
@@ -34,6 +38,7 @@ public:
 	void stopListening();
 
 	void sendToAll(const char *buf, size_t len);
+	void matchActiveCommunications(RadioEventTable &ret);
 };
 
 #endif // SENSINGSERVER_H

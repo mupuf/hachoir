@@ -1,4 +1,5 @@
 #include "sensingserver.h"
+#include "message_utils.h"
 
 void SensingServer::io_service()
 {
@@ -55,4 +56,47 @@ void SensingServer::sendToAll(const char *buf, size_t len)
 	}
 
 	_clientsMutex.unlock();
+}
+
+void SensingServer::sendDetection(std::list<SensingClient *>::iterator &client, const SensingClient::freqInterest &f)
+{
+	char buffer[20];
+	size_t offset = 0;
+
+	write_and_update_offset(offset, buffer, (char)2);
+	write_and_update_offset(offset, buffer, f.centralFreq);
+	write_and_update_offset(offset, buffer, f.bandwidth);
+	write_and_update_offset(offset, buffer, f.error);
+
+	if (!(*client)->send(buffer, offset)) {
+		/*delete (*client);
+		client = _clients.erase(client);*/
+	}
+}
+
+void SensingServer::matchActiveCommunications(RadioEventTable &ret)
+{
+
+	/* for all clients */
+	std::list<SensingClient *>::iterator itClient;
+	for (itClient = _clients.begin(); itClient != _clients.end(); ++itClient) {
+		if ((*itClient)->wantsFullSensing())
+			continue;
+
+		/* for all wanted communications */
+		std::list< SensingClient::freqInterest >::iterator itWanted;
+		for (itWanted = (*itClient)->frequencies().begin(); itWanted != (*itClient)->frequencies().end(); ++itWanted) {
+			SensingClient::freqInterest f = (*itWanted);
+
+			uint32_t fStart = f.centralFreq - f.bandwidth / 2;
+			uint32_t fEnd = f.centralFreq + f.bandwidth / 2;
+			RetEntry *entry = ret.findMatch(fStart, fEnd, 0);
+
+			if (entry) {
+				fprintf(stderr, "Found a matching communication: fc = %llu kHz\n",
+					f.centralFreq);
+				sendDetection(itClient, f);
+			}
+		}
+	}
 }

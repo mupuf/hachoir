@@ -10,17 +10,14 @@ class RadioEventTable
 {
 	uint64_t _currentComID;
 
-	AbsoluteRingBuffer< RetEntry > _finishedComs;
 	std::list< std::shared_ptr<RetEntry> > _activeComs;
+	AbsoluteRingBuffer< RetEntry > _finishedComs;
 
 	/* detection-related */
 	uint32_t _endOfTransmissionDelay;
 	uint32_t _minimumTransmissionLength;
 	uint64_t _tmp_timeNs;
 	bool fuzzyCompare(uint32_t a, uint32_t b, int32_t maxError);
-	RetEntry *findMatch(uint32_t frequencyStart,
-					      uint32_t frequencyEnd,
-					      int8_t pwr);
 
 	/* Serialization-related */
 	enum RadioEventType { ACTIVE_COM = 0, FINISHED_COM = 1, PACKET_END = 2 };
@@ -29,8 +26,12 @@ class RadioEventTable
 	bool toStringBufferReserve(size_t offset, size_t additional);
 	bool addCommunicationToString(size_t &offset, RetEntry *entry);
 public:
+	/* temp, to be moved back to private after the demo */
 	uint64_t trueDetection;
 	uint64_t totalDetections;
+	RetEntry *findMatch(uint32_t frequencyStart,
+					      uint32_t frequencyEnd,
+					      int8_t pwr);
 
 	RadioEventTable(size_t ringSize);
 

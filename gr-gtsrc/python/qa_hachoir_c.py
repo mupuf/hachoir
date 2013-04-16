@@ -64,6 +64,7 @@ class qa_hachoir_c (gr_unittest.TestCase):
 		#freq=2.464e9
 		gain=60
 		ant = "TX/RX"
+		ant = "RX2"
 		self.uhd_usrp_source_0 = uhd.usrp_source(
 					device_addr="",
 					stream_args=uhd.stream_args(

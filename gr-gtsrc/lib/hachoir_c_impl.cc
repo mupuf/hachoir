@@ -140,7 +140,7 @@ namespace gtsrc {
 		return (time.tv_sec * 1000000 + time.tv_usec) * 1000;
 	}
 
-	void hachoir_c_impl::sendFFT(const Fft *fft)
+	void hachoir_c_impl::sendFFT(const Fft *fft, const char *filteredFft)
 	{
 		uint8_t packet[4200];
 
@@ -162,7 +162,7 @@ namespace gtsrc {
 		*ptr.u64++ = fft->time_ns();
 
 		for (int i = 0; i < fft->fftSize(); i++)
-			*ptr.u08++ = (char) (fft->operator [](i));
+			*ptr.u08++ = (char) filteredFft[i]; //(fft->operator [](i));
 
 		_server.sendToAll((char*)packet, ptr.u08 - packet);
 	}
@@ -199,9 +199,9 @@ namespace gtsrc {
 
 		/* parameters for the detection */
 		int id = 0;
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 1000);
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 500);
 		size_t comMinWidth = 20;
-		char comMinSNR = 6;
+		char comMinSNR = 20;
 
 		/* the fft calculator */
 		gri_fft_complex fft(fft_size());
@@ -209,7 +209,6 @@ namespace gtsrc {
 		/* wait for a sufficient amount of data before starting */
 		while (_ringBuf.size() < fft_size())
 			fftThread.yield();
-
 
 		while (1)
 		{
@@ -280,8 +279,9 @@ namespace gtsrc {
 
 		/* send the Ffts to the clients! */
 			if ((id++ % 10) == 0) {
-				sendFFT(&avr);
+				sendFFT(&avr, filteredFFT);
 				sendRetUpdate();
+				_server.matchActiveCommunications(_ret);
 			}
 
 		}

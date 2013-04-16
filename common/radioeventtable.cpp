@@ -21,7 +21,7 @@ RetEntry * RadioEventTable::findMatch(uint32_t frequencyStart,
 
 	uint32_t comWidth = frequencyEnd - frequencyStart;
 	uint32_t comCentralFreq = frequencyStart + comWidth / 2;
-	int32_t maxError = comWidth * 25 / 100;
+	int32_t maxError = comWidth * 10 / 100;
 
 	std::list< std::shared_ptr<RetEntry> >::iterator it;
 	for (it = _activeComs.begin(); it != _activeComs.end(); ++it) {
@@ -101,7 +101,7 @@ void RadioEventTable::addCommunication(uint32_t frequencyStart,
 		if (entry->frequencyStart() > frequencyStart)
 			entry->setFrequencyStart(frequencyStart);
 		if (entry->frequencyEnd() < frequencyEnd)
-			entry->setFrequencyStart(frequencyStart);
+			entry->setFrequencyEnd(frequencyEnd);
 		if (entry->pwr() < pwr)
 			entry->setPwr(pwr);
 		entry->setDirty(true);

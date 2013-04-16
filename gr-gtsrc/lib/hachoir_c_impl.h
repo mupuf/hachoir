@@ -61,7 +61,7 @@ namespace gtsrc {
 		boost::thread fftThread;
 		FftWindow win;
 
-		void sendFFT(const Fft *fft);
+		void sendFFT(const Fft *fft, const char *filteredFft);
 		void sendRetUpdate();
 		void calc_fft();
 
