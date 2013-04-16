@@ -48,6 +48,7 @@ namespace gtsrc {
 		catch (std::exception& e)
 		{
 			std::cerr << e.what() << std::endl;
+			return NULL;
 		}
 	}
 	/*
@@ -198,8 +199,8 @@ namespace gtsrc {
 
 		/* parameters for the detection */
 		int id = 0;
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 100);
-		size_t comMinWidth = 5;
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 1000);
+		size_t comMinWidth = 20;
 		char comMinSNR = 6;
 
 		/* the fft calculator */

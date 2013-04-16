@@ -15,6 +15,10 @@ SensingNode::SensingNode(QTcpSocket *socket, int clientID, QObject *parent) :
 	connect(clientSocket, SIGNAL(disconnected()), this, SLOT(clientDisconnected()));
 	connect(clientSocket, SIGNAL(disconnected()), clientSocket, SLOT(deleteLater()));
 	connect(clientSocket, SIGNAL(readyRead()), this, SLOT(dataReady()));
+
+	const char buffer[] = { 0x1, 0x0 };
+	clientSocket->write(buffer, sizeof(buffer));
+	clientSocket->flush();
 }
 
 void SensingNode::pauseUpdates(bool pause)

@@ -9,13 +9,15 @@ void SensingServer::io_service()
 void SensingServer::incomingConnection(SensingClient *client,
 				       const boost::system::error_code& error)
 {
+	startListening();
+
 	if (!error) {
+		client->socketIsConnected();
+
 		_clientsMutex.lock();
 		_clients.push_back(client);
 		_clientsMutex.unlock();
 	}
-
-	startListening();
 }
 
 SensingServer::SensingServer(uint16_t port) : _port(port),
@@ -44,9 +46,11 @@ void SensingServer::sendToAll(const char *buf, size_t len)
 
 	std::list<SensingClient *>::iterator it;
 	for (it = _clients.begin(); it != _clients.end(); ++it) {
-		if (!(*it)->send(buf, len)) {
-			delete (*it);
-			it = _clients.erase(it);
+		if ((*it)->wantsFullSensing()) {
+			if (!(*it)->send(buf, len)) {
+				delete (*it);
+				it = _clients.erase(it);
+			}
 		}
 	}
 
