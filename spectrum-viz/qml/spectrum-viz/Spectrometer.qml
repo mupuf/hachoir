@@ -13,7 +13,7 @@ Canvas {
 	property int power_range_low: -10
 	property real freq_low:  0
 	property real freq_high: 32000
-	property real time_scale: 1000000000 /* 1000 ms */
+	property real time_scale: 10000000000 /* 10 s */
 	property real time: 0
 
 	property int margin_top: 10

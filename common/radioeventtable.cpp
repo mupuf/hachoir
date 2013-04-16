@@ -44,8 +44,8 @@ RetEntry * RadioEventTable::findMatch(uint32_t frequencyStart,
 }
 
 RadioEventTable::RadioEventTable(size_t ringSize) : _currentComID(0),
-	_finishedComs(ringSize), _endOfTransmissionDelay(1000000) /* 1 ms */,
-	_minimumTransmissionLength(100000) /* 100 µs */
+	_finishedComs(ringSize), _endOfTransmissionDelay(10000000) /* 10 ms */,
+	_minimumTransmissionLength(1000000) /* 1000 µs */
 {
 	trueDetection = totalDetections = 0;
 	_toStringBufSize = 1000000; /* 1 MB */

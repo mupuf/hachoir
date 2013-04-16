@@ -162,7 +162,7 @@ namespace gtsrc {
 		*ptr.u64++ = fft->time_ns();
 
 		for (int i = 0; i < fft->fftSize(); i++)
-			*ptr.u08++ = (char) filteredFft[i]; //(fft->operator [](i));
+			*ptr.u08++ = (char) (fft->operator [](i)); // filteredFft[i];
 
 		_server.sendToAll((char*)packet, ptr.u08 - packet);
 	}
