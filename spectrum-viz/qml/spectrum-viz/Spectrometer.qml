@@ -184,6 +184,38 @@ Canvas {
 		return pos
 	}
 
+	function frequencyResolution(frequencyStart, frequencyEnd)
+	{
+		var minPixelsPerFrequency = 125
+		var units = [1, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000]
+		var id = 0
+
+		while (id < units.length)
+		{
+			var unit = units[id] * 1000
+			var freqStartRound = Math.ceil(frequencyStart / unit) * unit
+			var freqEndRound = Math.ceil(frequencyEnd / unit) * unit
+
+			var freqRoundRange = freqEndRound - freqStartRound
+			var freqCount = freqRoundRange / unit
+			if (canvas.width / freqCount > minPixelsPerFrequency)
+			{
+				var i = 0
+
+				var frequencies = new Array();
+				while (i < freqCount)
+				{
+					frequencies[i] = freqStartRound + i * unit
+					i++
+				}
+
+				return frequencies;
+			}
+
+			id++
+		}
+	}
+
 	function draw(ctx)
 	{
 		ctx.save();
@@ -257,14 +289,17 @@ Canvas {
 		ctx.lineWidth = 0.25
 		ctx.fillStyle = "black"
 		ctx.textAlign = "right"
-		ctx.textBaseline = "middle"
+		var lastDrawnTextY = 0
 		for (var power = canvas.power_range_high; power >= canvas.power_range_low; power-=10)
 		{
 			var pos_start = getFftCoordinates(ctx, gc_cache, freq_low, power)
 			var pos_end = getFftCoordinates(ctx, gc_cache, freq_high, power)
 
-			ctx.fillText(power, pos_start.x - 5, pos_start.y)
-			ctx.fill()
+			if (pos_start.y - lastDrawnTextY > gc_cache.font_height) {
+				lastDrawnTextY = pos_start.y + gc_cache.font_height / 2
+				ctx.fillText(power, pos_start.x - 5, lastDrawnTextY)
+				ctx.fill()
+			}
 
 			ctx.moveTo(pos_start.x, pos_start.y);
 			ctx.lineTo(pos_end.x, pos_end.y)
@@ -311,10 +346,10 @@ Canvas {
 		ctx.strokeStyle = "grey"
 		ctx.fillStyle = "black"
 		ctx.lineWidth = 0.25
-		var freq_range = canvas.freq_high - canvas.freq_low
-		for (var i = 0; i < 10; i++)
+		var frequencies = frequencyResolution(canvas.freq_low, canvas.freq_high)
+		for (var i = 0; i < frequencies.length; i++)
 		{
-			var freq = freq_low + i * Math.floor(freq_range / 9)
+			var freq = frequencies[i]
 			var pos = getFftCoordinates(ctx, gc_cache, freq, canvas.power_range_low)
 
 			//console.log(freqToText(freq_low + i * (canvas.bandwidth / 10)))
