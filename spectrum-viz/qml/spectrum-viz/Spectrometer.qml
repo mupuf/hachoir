@@ -28,16 +28,17 @@ Canvas {
 	}
 
 	MouseArea {
+		id: mouseArea
 		anchors.fill: parent
-		//hoverEnabled: true
+		hoverEnabled: true
 
-		onPositionChanged: {
+		/*onPositionChanged: {
 			console.log("mouse moved, x = " + mouse.x + ", y = " + mouse.y)
 		}
 
 		onClicked: {
 			console.log("clicked at x = " + mouse.x + ", y = " + mouse.y)
-		}
+		}*/
 	}
 
 	Button {
@@ -113,7 +114,7 @@ Canvas {
 
 	function getCoordinatesPreCache(ctx)
 	{
-		var font_height = 10
+		var font_height = 8
 		var y_space_coms_graph = 10;
 		var dB_bar_text_size = biggestSize(ctx, canvas.power_range_low, canvas.power_range_high, timeToText(time_scale))
 		var dB_bar_x_offset = canvas.margin_left + font_height + dB_bar_text_size.width
@@ -186,7 +187,7 @@ Canvas {
 
 	function frequencyResolution(frequencyStart, frequencyEnd)
 	{
-		var minPixelsPerFrequency = 125
+		var minPixelsPerFrequency = 100
 		var units = [1, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000]
 		var id = 0
 
@@ -216,6 +217,54 @@ Canvas {
 		}
 	}
 
+	function isPointInRectangle(x, y, rectTopLeft, rectBottomRight)
+	{
+		return x >= rectTopLeft.x && x <= rectBottomRight.x && y >= rectTopLeft.y && y <= rectBottomRight.y
+
+	}
+
+	function showTooltip(ctx, tooltipText, x, y)
+	{
+		if (tooltipText.length > 0) {
+			var posOffset = 4
+			var tooltipMargin = 4;
+			var lineHeight = 15
+			var tooltipHeight = tooltipText.length * lineHeight + 2 * tooltipMargin
+			var tooltipX = x + posOffset
+			var tooltipY = (y - posOffset) - tooltipHeight
+
+			var tooltipWidth = 0
+			for (var i = 0; i < tooltipText.length; i++) {
+				var lineWidth = ctx.measureText(tooltipText[i]).width + 2 * tooltipMargin
+				if (lineWidth > tooltipWidth)
+					tooltipWidth = lineWidth;
+			}
+
+			/* make sure we don't go out of the component */
+			if (tooltipX + tooltipWidth > canvas.width)
+				tooltipX = canvas.width - tooltipWidth
+			if (tooltipY < 0)
+				tooltipY = 0
+
+			ctx.fillStyle = Qt.rgba(0.37, 0.37, 0.82, 0.6)
+			ctx.beginPath()
+			ctx.rect(tooltipX, tooltipY, tooltipWidth, tooltipHeight)
+			ctx.fill()
+			ctx.closePath()
+
+			ctx.fillStyle = "black"
+			ctx.textAlign = "left"
+			ctx.textBaseline = "bottom"
+			ctx.beginPath()
+			for (var i = 0; i < tooltipText.length; i++) {
+				tooltipY += lineHeight
+				ctx.fillText(tooltipText[i], tooltipX + tooltipMargin, tooltipY + tooltipMargin)
+			}
+			ctx.fill()
+			ctx.closePath()
+		}
+	}
+
 	function draw(ctx)
 	{
 		ctx.save();
@@ -230,10 +279,12 @@ Canvas {
 		var gc_cache = getCoordinatesPreCache(ctx)
 
 		var g_top_left = getFftCoordinates(ctx, gc_cache, freq_low, canvas.power_range_high)
-		var g_bottom_left = getFftCoordinates(ctx, gc_cache, freq_low, canvas.power_range_low)
 		var g_bottom_right = getFftCoordinates(ctx, gc_cache, freq_high, canvas.power_range_low)
 
+		var c_top_left = getComsCoordinates(ctx, gc_cache, freq_low, time - canvas.time_scale)
 		var c_bottom_right = getComsCoordinates(ctx, gc_cache, freq_high, time)
+
+		ctx.font = "14px sans-serif"
 
 	// draw the axis
 		ctx.strokeStyle = "black"
@@ -365,7 +416,7 @@ Canvas {
 		ctx.closePath()
 
 		// draw the actual power state
-		var gradientFill = ctx.createLinearGradient(g_top_left.x, g_top_left.y, g_bottom_left.x, g_bottom_left.y)
+		var gradientFill = ctx.createLinearGradient(g_top_left.x, g_top_left.y, g_top_left.x, g_bottom_right.y)
 		gradientFill.addColorStop(0, Qt.rgba(1, 0, 0, 0.3));
 		gradientFill.addColorStop(0.5, Qt.rgba(0, 0.8, 0, 0.3));
 		gradientFill.addColorStop(1, Qt.rgba(0, 0, 0.8, 0.3));
@@ -381,7 +432,7 @@ Canvas {
 			pos = getFftCoordinates(ctx, gc_cache, freq, pwr)
 
 			if (i == 0)
-				ctx.moveTo(pos.x, g_bottom_left.y)
+				ctx.moveTo(pos.x, g_bottom_right.y)
 			ctx.lineTo(pos.x, pos.y)
 		}
 		SensingNode.freeFftEntries()
@@ -389,6 +440,48 @@ Canvas {
 		ctx.closePath()
 		ctx.stroke()
 		ctx.fill()
+
+		/* display the tooltip */
+		var mouseX = mouseArea.mouseX
+		var mouseY = mouseArea.mouseY
+
+		/* is mouse in the time area */
+		if (isPointInRectangle(mouseX, mouseY, c_top_left, c_bottom_right))
+		{
+			var tooltipText = new Array()
+
+			var offsetY = mouseY - c_top_left.y
+			var timeOffset = offsetY * canvas.time_scale / (c_bottom_right.y - c_top_left.y)
+			var mouseTime = time + timeOffset
+			tooltipText[0] = "Time: " + mouseTime + " ns"
+
+			var offsetX = mouseX - c_top_left.x
+			var freqOffset = offsetX * (freq_high - freq_low) / (c_bottom_right.x - c_top_left.x)
+			var mouseFreq = (freq_low + freqOffset) / 1000
+			mouseFreq = mouseFreq.toFixed(0)
+			tooltipText[1] = "Frequency: " + mouseFreq + " kHz"
+
+			showTooltip(ctx, tooltipText, mouseX, mouseY)
+		}
+
+		/* is mouse in the fft area */
+		else if (isPointInRectangle(mouseX, mouseY, g_top_left, g_bottom_right))
+		{
+			var tooltipText = new Array()
+
+			var offsetY = mouseY - g_top_left.y
+			var powerOffset = offsetY * (power_range_high - power_range_low) / (g_bottom_right.y - g_top_left.y)
+			var mousePower = power_range_high - powerOffset
+			tooltipText[0] = "Power: " + mousePower + " dBm"
+
+			var offsetX = mouseX - g_top_left.x
+			var freqOffset = offsetX * (freq_high - freq_low) / (g_bottom_right.x - g_top_left.x)
+			var mouseFreq = (freq_low + freqOffset) / 1000
+			mouseFreq = mouseFreq.toFixed(0)
+			tooltipText[1] = "Frequency: " + mouseFreq + " kHz"
+
+			showTooltip(ctx, tooltipText, mouseX, mouseY)
+		}
 
 		ctx.restore()
 	}
