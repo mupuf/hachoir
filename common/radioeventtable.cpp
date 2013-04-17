@@ -53,6 +53,11 @@ RadioEventTable::RadioEventTable(size_t ringSize) : _currentComID(0),
 
 }
 
+RadioEventTable::~RadioEventTable()
+{
+	free(_toStringBuf);
+}
+
 #define DEBUG_ADD_COMMUNICATION 0
 
 void RadioEventTable::startAddingCommunications(uint64_t timeNs)

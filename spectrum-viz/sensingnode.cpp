@@ -10,7 +10,7 @@
 
 SensingNode::SensingNode(QTcpSocket *socket, int clientID, QObject *parent) :
 	QObject(parent), clientSocket(socket), clientID(clientID),
-	_ringbuffer(100000), _ret(10000), pwr_min(125), pwr_max(-125)
+	_ringbuffer(1000), _ret(10000), pwr_min(125), pwr_max(-125)
 {
 	connect(clientSocket, SIGNAL(disconnected()), this, SLOT(clientDisconnected()));
 	connect(clientSocket, SIGNAL(disconnected()), clientSocket, SLOT(deleteLater()));

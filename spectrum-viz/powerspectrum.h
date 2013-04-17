@@ -15,10 +15,11 @@ class PowerSpectrum : public QObject
 	qreal _timeNs;
 
 	size_t _steps;
-	QSharedPointer<char> _pwr;
+	char *_pwr;
 public:
 	PowerSpectrum(qreal freqStart, qreal freqEnd, uint64_t timeNs,
 		      uint16_t steps, const char *data);
+	~PowerSpectrum();
 
 	void reset(qreal freqStart, qreal freqEnd, uint64_t timeNs,
 	      uint16_t steps, const char *data);
@@ -35,7 +36,7 @@ public:
 	{
 		return _freqStart + i * (_freqEnd-_freqStart) / _steps;
 	}
-	Q_INVOKABLE qreal sampleDbm(int i) const  { return _pwr.data()[i]; }
+	Q_INVOKABLE qreal sampleDbm(int i) const  { return _pwr[i]; }
 };
 
 #endif // POWERSPECTRUM_H

@@ -34,6 +34,7 @@ public:
 					      int8_t pwr);
 
 	RadioEventTable(size_t ringSize);
+	~RadioEventTable();
 
 	void startAddingCommunications(uint64_t timeNs);
 	void addCommunication(uint32_t frequencyStart, uint32_t frequencyEnd,

@@ -5,9 +5,9 @@ PowerSpectrum::PowerSpectrum(qreal freqStart, qreal freqEnd, uint64_t timeNs,
 	_freqStart(freqStart), _freqEnd(freqEnd),
 	_pwrMin(125), _pwrMax(-125), _timeNs(timeNs), _steps(steps)
 {
-	_pwr.reset(new char[steps]);
+	_pwr = new char[steps];
 
-	memcpy(_pwr.data(), data, steps);
+	memcpy(_pwr, data, steps);
 	for (uint16_t i = 0; i < steps; i++)
 	{
 		char pwr = data[i];
@@ -17,6 +17,11 @@ PowerSpectrum::PowerSpectrum(qreal freqStart, qreal freqEnd, uint64_t timeNs,
 		if (pwr > _pwrMax)
 			_pwrMax = pwr;
 	}
+}
+
+PowerSpectrum::~PowerSpectrum()
+{
+	delete[] _pwr;
 }
 
 void PowerSpectrum::reset(qreal freqStart, qreal freqEnd, uint64_t timeNs,
@@ -29,7 +34,7 @@ void PowerSpectrum::reset(qreal freqStart, qreal freqEnd, uint64_t timeNs,
 	_pwrMin = 125;
 	_pwrMax = -125;
 
-	memcpy(_pwr.data(), data, steps);
+	memcpy(_pwr, data, steps);
 	for (uint16_t i = 0; i < steps; i++)
 	{
 		char pwr = data[i];
