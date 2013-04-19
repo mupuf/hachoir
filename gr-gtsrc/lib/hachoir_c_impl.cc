@@ -48,7 +48,7 @@ namespace gtsrc {
 		catch (std::exception& e)
 		{
 			std::cerr << e.what() << std::endl;
-			return NULL;
+			return hachoir_c::sptr();
 		}
 	}
 	/*
@@ -218,7 +218,6 @@ namespace gtsrc {
 							       sample_rate(),
 							       &fft,
 							       win, _ringBuf));
-
 
 		/* detecting transmissions */
 			avr.addFft(new_fft);
