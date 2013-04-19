@@ -382,8 +382,8 @@ Canvas {
 
 			ctx.beginPath()
 			ctx.rect(posTopLeft.x, posTopLeft.y, width, height);
-			ctx.fillStyle = 'yellow';
-			ctx.fill();
+			/*ctx.fillStyle = 'yellow';
+			ctx.fill();*/
 			ctx.stroke()
 			ctx.closePath();
 		}

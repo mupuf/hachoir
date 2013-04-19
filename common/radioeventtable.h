@@ -29,9 +29,6 @@ public:
 	/* temp, to be moved back to private after the demo */
 	uint64_t trueDetection;
 	uint64_t totalDetections;
-	RetEntry *findMatch(uint32_t frequencyStart,
-					      uint32_t frequencyEnd,
-					      int8_t pwr);
 
 	RadioEventTable(size_t ringSize);
 	~RadioEventTable();
@@ -45,6 +42,9 @@ public:
 	bool updateFromString(const char *buf, size_t len);
 
 	std::vector< std::shared_ptr<RetEntry> > fetchEntries(uint64_t timeStart, uint64_t timeEnd);
+	RetEntry *findMatchInActiveCommunications(uint32_t frequencyStart,
+					      uint32_t frequencyEnd,
+					      int8_t pwr);
 };
 
 #endif // RADIOEVENTTABLE_H

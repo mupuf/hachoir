@@ -90,7 +90,7 @@ void SensingServer::matchActiveCommunications(RadioEventTable &ret)
 
 			uint32_t fStart = f.centralFreq - f.bandwidth / 2;
 			uint32_t fEnd = f.centralFreq + f.bandwidth / 2;
-			RetEntry *entry = ret.findMatch(fStart, fEnd, 0);
+			RetEntry *entry = ret.findMatchInActiveCommunications(fStart, fEnd, 0);
 
 			if (entry) {
 				fprintf(stderr, "Found a matching communication: fc = %llu kHz\n",

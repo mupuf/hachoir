@@ -59,8 +59,8 @@ class qa_hachoir_c (gr_unittest.TestCase):
 		# check data
 
 	def test_001_t(self):
-		samp_rate = 2000000
-		freq=0.7745e9
+		samp_rate = 8000000
+		freq=0.940e9
 		#freq=2.464e9
 		gain=60
 		ant = "TX/RX"

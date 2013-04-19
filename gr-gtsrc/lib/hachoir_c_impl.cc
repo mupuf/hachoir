@@ -162,7 +162,7 @@ namespace gtsrc {
 		*ptr.u64++ = fft->time_ns();
 
 		for (int i = 0; i < fft->fftSize(); i++)
-			*ptr.u08++ = (char) (fft->operator [](i)); // filteredFft[i];
+			*ptr.u08++ = (char) filteredFft[i]; // (fft->operator [](i));
 
 		_server.sendToAll((char*)packet, ptr.u08 - packet);
 	}
@@ -199,9 +199,9 @@ namespace gtsrc {
 
 		/* parameters for the detection */
 		int id = 0;
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 500);
-		size_t comMinWidth = 20;
-		char comMinSNR = 20;
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 20);
+		size_t comMinWidth = 8;
+		char comMinSNR = 4;
 
 		/* the fft calculator */
 		gri_fft_complex fft(fft_size());

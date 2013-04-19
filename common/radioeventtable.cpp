@@ -13,7 +13,7 @@ bool RadioEventTable::fuzzyCompare(uint32_t a, uint32_t b, int32_t maxError)
 	return ret;
 }
 
-RetEntry * RadioEventTable::findMatch(uint32_t frequencyStart,
+RetEntry * RadioEventTable::findMatchInActiveCommunications(uint32_t frequencyStart,
 				      uint32_t frequencyEnd,
 				      int8_t pwr)
 {
@@ -84,7 +84,7 @@ void RadioEventTable::addCommunication(uint32_t frequencyStart,
 				       uint32_t frequencyEnd,
 				       int8_t pwr)
 {
-	RetEntry * entry = findMatch(frequencyStart, frequencyEnd, pwr);
+	RetEntry * entry = findMatchInActiveCommunications(frequencyStart, frequencyEnd, pwr);
 #if DEBUG_ADD_COMMUNICATION
 	fprintf(stderr, "	%s a match for ", entry?"Found":"Didn't find");
 	entryToStderr(entry);
