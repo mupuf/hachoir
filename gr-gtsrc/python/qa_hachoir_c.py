@@ -62,7 +62,7 @@ class qa_hachoir_c (gr_unittest.TestCase):
 		samp_rate = 8000000
 		freq=0.940e9
 		#freq=2.464e9
-		gain=60
+		gain=0 #60
 		ant = "TX/RX"
 		ant = "RX2"
 		self.uhd_usrp_source_0 = uhd.usrp_source(
@@ -80,7 +80,7 @@ class qa_hachoir_c (gr_unittest.TestCase):
 		self.uhd_usrp_source_0.set_gain(gain, 0)
 		self.uhd_usrp_source_0.set_antenna(ant, 0)
 		self.uhd_usrp_source_0.set_bandwidth(samp_rate, 0)
-		sqr = gtsrc.hachoir_c(freq=freq, samplerate=samp_rate, fft_size=1024, window_type=1)
+		sqr = gtsrc.hachoir_c(freq=freq, samplerate=samp_rate, fft_size=256, window_type=1)
 		self.tb.connect((self.uhd_usrp_source_0, 0), (sqr, 0))
 		self.tb.run ()
 		# check data

@@ -117,6 +117,11 @@ namespace gtsrc {
 
 		consume_each (noutput_items);
 
+		if (_ringBuf.head() > 2 * _ringBuf.ringLength()) {
+			calcThermalNoise();
+			exit(0);
+		}
+
 		// Tell runtime system how many output items we produced.
 		return noutput_items;
 	}
@@ -284,6 +289,68 @@ namespace gtsrc {
 			}
 
 		}
+	}
+
+	void hachoir_c_impl::calcThermalNoise()
+	{
+		gri_fft_complex fft(fft_size());
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 100000);
+		size_t profile[200];
+		size_t profile_length = 200;
+
+		for (size_t i = 0; i < profile_length; i++)
+			profile[i] = 0;
+
+		uint64_t pos = _ringBuf.tail();
+		size_t length;
+		do {
+			gr_complex *samples;
+			length = fft_size();
+
+			_ringBuf.requestRead(pos, &length, &samples);
+			if (length == fft_size()) {
+				boost::shared_ptr<Fft> new_fft(new Fft(fft_size(),
+								       central_freq(),
+								       sample_rate(),
+								       &fft, win,
+								       samples, length, 0));
+				avr.addFft(new_fft);
+				pos += length;
+			}
+		} while (length == fft_size());
+
+
+		float bin_variance_average = 0;
+		float* variance = new float[fft_size()];
+		for (size_t i = 0; i < fft_size(); i++) {
+			float bin_avr;
+			variance[i] = avr.varianceAt(i, &bin_avr, profile, profile_length);
+
+			bin_variance_average += variance[i];
+
+			fprintf(stderr, "bin %i: [%f, %f, %f]\n",
+				i, bin_avr, variance[i], sqrtf(variance[i]));
+		}
+
+		fprintf(stderr, "Profile:\n");
+		for (size_t i = 0; i < profile_length; i++) {
+			int offset = i - (profile_length / 2);
+			fprintf(stdout, "%i, %u\n",
+				offset, profile[i]);
+		}
+
+		float bin_variance_variance = 0;
+		bin_variance_average /= fft_size();
+
+		for (size_t i = 0; i < fft_size(); i++) {
+			float diff = variance[i] - bin_variance_average;
+			bin_variance_variance += diff * diff;
+		}
+		bin_variance_variance /= fft_size();
+
+		fprintf(stderr, "Variance of the noise variance: [%f, %f, %f]\n",
+			bin_variance_average, bin_variance_variance,
+			sqrtf(bin_variance_variance));
 	}
 
 } /* namespace gtsrc */

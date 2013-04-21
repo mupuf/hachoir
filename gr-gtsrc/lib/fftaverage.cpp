@@ -48,3 +48,33 @@ float FftAverage::noiseFloor() const
 {
 	return Fft::noiseFloor() / currentAverageCount();
 }
+
+float FftAverage::varianceAt(size_t i, float *avr, size_t *profile,
+			     int profile_length)
+{
+	float average = operator [](i);
+	if (avr)
+		*avr = average;
+
+	float variance = 0;
+	for (size_t e = 0; e < ffts.size(); e++) {
+		float v = ffts.at(e)->operator[](i);
+		float diff = v - average;
+		float val = diff * diff;
+		variance += val;
+
+		if (profile) {
+			float pro_diff = v - average;
+			if (pro_diff > (profile_length / 2))
+				pro_diff = (profile_length / 2) - 1;
+			else if (pro_diff < -(profile_length / 2))
+				pro_diff = -(profile_length / 2);
+
+			pro_diff = pro_diff + (profile_length / 2);
+			int offset = (int) pro_diff;
+			profile[offset]++;
+		}
+	}
+
+	return variance / ffts.size();
+}

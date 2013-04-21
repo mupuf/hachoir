@@ -68,6 +68,9 @@ public:
 	/// Returns the time of the oldest FFT in the FFT window
 	uint64_t time_ns() const { return ffts.at(0)->time_ns(); }
 
+	/// Calculates the variance at bin i
+	float varianceAt(size_t i, float *avr = NULL, size_t *profile = NULL, int profile_length = 0);
+
 	/// Access the average FFT's bins. See Fft::operator[].
 	virtual float operator[](size_t i) const { return _pwr[i] / currentAverageCount(); }
 };

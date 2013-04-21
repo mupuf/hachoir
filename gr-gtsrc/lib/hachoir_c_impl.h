@@ -64,6 +64,7 @@ namespace gtsrc {
 		void sendFFT(const Fft *fft, const char *filteredFft);
 		void sendRetUpdate();
 		void calc_fft();
+		void calcThermalNoise();
 
 		void update_fft_params(int fft_size, gr_firdes::win_type window_type);
 		uint64_t getTimeNs();
