@@ -38,7 +38,7 @@ namespace gtsrc {
 	{
 		gr_top_block_sptr topblock = gr_make_top_block("test_hachoir");
 
-		std::string filepath = std::string(getenv("HOME")) + "/gsm_940.samples";
+		std::string filepath = std::string(getenv("HOME")) + "/gsm_noise.samples";
 
 		gr_file_source_sptr file = gr_make_file_source(sizeof(gr_complex), filepath.c_str(), true);
 		gr_throttle::sptr throttle = gr_make_throttle(sizeof(gr_complex), 8000000);

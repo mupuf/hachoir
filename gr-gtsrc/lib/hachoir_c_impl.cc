@@ -65,7 +65,7 @@ namespace gtsrc {
 
 		update_fft_params(fft_size, (gr_firdes::win_type) window_type);
 
-		fftThread = boost::thread(&hachoir_c_impl::calc_fft, this);
+		//fftThread = boost::thread(&hachoir_c_impl::calc_fft, this);
 	}
 
 	/*
@@ -291,16 +291,19 @@ namespace gtsrc {
 		}
 	}
 
-	void hachoir_c_impl::calcThermalNoise()
+	void hachoir_c_impl::calcThermalNoise(const char *outputFile)
 	{
 		gri_fft_complex fft(fft_size());
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 100000);
-		size_t profile[200];
-		size_t profile_length = 200;
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 500000);
+		size_t profile[2000];
+		size_t profile_length = 2000;
+		float profile_steps = 0.1;
 
+		/* init the profile */
 		for (size_t i = 0; i < profile_length; i++)
 			profile[i] = 0;
 
+		/* calculate the FFTs and add this into the average FFT */
 		uint64_t pos = _ringBuf.tail();
 		size_t length;
 		do {
@@ -315,16 +318,17 @@ namespace gtsrc {
 								       &fft, win,
 								       samples, length, 0));
 				avr.addFft(new_fft);
-				pos += length;
+				pos ++; //go for precision and not for computation time;
 			}
-		} while (length == fft_size());
 
+		} while (length == fft_size() && avr.currentAverageCount() < avr.averageCount());
 
+		/* calculate the variance at each bin and add data to the profile */
 		float bin_variance_average = 0;
 		float* variance = new float[fft_size()];
 		for (size_t i = 0; i < fft_size(); i++) {
 			float bin_avr;
-			variance[i] = avr.varianceAt(i, &bin_avr, profile, profile_length);
+			variance[i] = avr.varianceAt(i, &bin_avr, profile, profile_length, profile_steps);
 
 			bin_variance_average += variance[i];
 
@@ -332,11 +336,18 @@ namespace gtsrc {
 				i, bin_avr, variance[i], sqrtf(variance[i]));
 		}
 
+		/* sum the number of occurences found at each point of the profile */
+		uint64_t profileCountSum = 0;
+		for (size_t i = 0; i < profile_length; i++)
+			profileCountSum += profile[i];
+
+		/* get the probability distribution of the noise */
 		fprintf(stderr, "Profile:\n");
+		double probaSum;
 		for (size_t i = 0; i < profile_length; i++) {
-			int offset = i - (profile_length / 2);
-			fprintf(stdout, "%i, %u\n",
-				offset, profile[i]);
+			float offset = ((float)i - (profile_length / 2)) * profile_steps;
+			probaSum += ((double)profile[i]) / profileCountSum;
+			fprintf(stdout, "%.3f, %.20f\n", offset, probaSum);
 		}
 
 		float bin_variance_variance = 0;

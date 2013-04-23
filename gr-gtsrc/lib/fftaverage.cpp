@@ -50,7 +50,7 @@ float FftAverage::noiseFloor() const
 }
 
 float FftAverage::varianceAt(size_t i, float *avr, size_t *profile,
-			     int profile_length)
+			     int profile_length, float steps)
 {
 	float average = operator [](i);
 	if (avr)
@@ -65,6 +65,7 @@ float FftAverage::varianceAt(size_t i, float *avr, size_t *profile,
 
 		if (profile) {
 			float pro_diff = v - average;
+			pro_diff *= 1.0 / steps;
 			if (pro_diff > (profile_length / 2))
 				pro_diff = (profile_length / 2) - 1;
 			else if (pro_diff < -(profile_length / 2))
