@@ -56,9 +56,16 @@ float FftAverage::varianceAt(size_t i, float *avr, size_t *profile,
 	if (avr)
 		*avr = average;
 
+	FftAverage smallAvr(fftSize(), centralFrequency(), sampleRate(), 10);
+	for (size_t e = 0; e < ffts.size() && e < smallAvr.averageCount(); e++) {
+		smallAvr.addFft(ffts.at(e));
+	}
+
 	float variance = 0;
 	for (size_t e = 0; e < ffts.size(); e++) {
-		float v = ffts.at(e)->operator[](i);
+		smallAvr.addFft(ffts.at(e));
+
+		float v = smallAvr[i];
 		float diff = v - average;
 		float val = diff * diff;
 		variance += val;
@@ -78,4 +85,23 @@ float FftAverage::varianceAt(size_t i, float *avr, size_t *profile,
 	}
 
 	return variance / ffts.size();
+}
+
+float FftAverage::averageOverTime(int i, uint64_t timeNs) const
+{
+	uint64_t start = 0;
+	float sum = 0;
+	size_t count = 0;
+
+	for (auto rit = ffts.rbegin(); rit != ffts.rend(); ++rit) {
+		if (start == 0)
+			start = (*rit)->time_ns();
+		if ((*rit)->time_ns() - start < timeNs) {
+			sum += (*rit)->operator[](i);
+			count++;
+		} else
+			break;
+	}
+
+	return (float)sum / count;
 }

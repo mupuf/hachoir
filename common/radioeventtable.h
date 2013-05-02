@@ -30,10 +30,12 @@ public:
 	uint64_t trueDetection;
 	uint64_t totalDetections;
 
-	RadioEventTable(size_t ringSize);
+	RadioEventTable(size_t ringSize, uint32_t endOfTransmissionDelay = 0,
+			uint32_t minimumTransmissionLength = 0);
 	~RadioEventTable();
 
 	void startAddingCommunications(uint64_t timeNs);
+	const std::list< std::shared_ptr<RetEntry> > &activeCommunications() const { return _activeComs; }
 	void addCommunication(uint32_t frequencyStart, uint32_t frequencyEnd,
 			      int8_t pwr);
 	void stopAddingCommunications();

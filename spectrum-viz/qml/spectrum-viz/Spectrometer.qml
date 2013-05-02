@@ -17,7 +17,7 @@ Canvas {
 	property real time: 0
 
 	property int margin_top: 10
-	property int fft_top: canvas.height*8.5/10
+	property int fft_top: canvas.height*7.5/10
 	property int margin_bottom: 10
 	property int margin_left: 10
 	property int margin_right: 10

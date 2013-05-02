@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <iostream>
 
+#include "comsdetect.h"
 #include "radioeventtable.h"
 #include "../common/message_utils.h"
 
@@ -59,13 +60,14 @@ namespace gtsrc {
 			gr_make_io_signature(1, 1, sizeof (gr_complex)),
 			gr_make_io_signature(0, 0, sizeof (gr_complex))),
 			_freq(freq), _samplerate(samplerate),
-			_server(21333), _ringBuf(10000 * fft_size), _ret(1000)
+			_server(21333), _ringBuf(10000 * fft_size),
+			_ret(1000, comsDetect().comEndOfTransmissionDelay(), comsDetect().comMinDurationNs())
 	{
 		this->set_max_noutput_items(fft_size/4);
 
 		update_fft_params(fft_size, (gr_firdes::win_type) window_type);
 
-		//fftThread = boost::thread(&hachoir_c_impl::calc_fft, this);
+		fftThread = boost::thread(&hachoir_c_impl::calc_fft, this);
 	}
 
 	/*
@@ -116,11 +118,6 @@ namespace gtsrc {
 		_ringBuf.validateWrite();
 
 		consume_each (noutput_items);
-
-		if (_ringBuf.head() > 2 * _ringBuf.ringLength()) {
-			calcThermalNoise();
-			exit(0);
-		}
 
 		// Tell runtime system how many output items we produced.
 		return noutput_items;
@@ -204,9 +201,9 @@ namespace gtsrc {
 
 		/* parameters for the detection */
 		int id = 0;
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 20);
-		size_t comMinWidth = 8;
-		char comMinSNR = 4;
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 4);
+		size_t comMinWidth = 4;
+		char comMinSNR = 20;
 
 		/* the fft calculator */
 		gri_fft_complex fft(fft_size());
@@ -226,7 +223,7 @@ namespace gtsrc {
 
 		/* detecting transmissions */
 			avr.addFft(new_fft);
-			float noiseFloor = avr.noiseFloor();
+			float noiseFloor = comsDetect().noiseFloor();
 
 			for (int i = 0; i < avr.fftSize(); i++) {
 				char pwr = (char) (avr[i] - noiseFloor);
@@ -284,7 +281,7 @@ namespace gtsrc {
 		/* send the Ffts to the clients! */
 			if ((id++ % 10) == 0) {
 				sendFFT(&avr, filteredFFT);
-				sendRetUpdate();
+				//sendRetUpdate();
 				_server.matchActiveCommunications(_ret);
 			}
 
@@ -294,7 +291,7 @@ namespace gtsrc {
 	void hachoir_c_impl::calcThermalNoise(const char *outputFile)
 	{
 		gri_fft_complex fft(fft_size());
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 500000);
+		FftAverage avr(fft_size(), central_freq(), sample_rate(), 500000); //500000
 		size_t profile[2000];
 		size_t profile_length = 2000;
 		float profile_steps = 0.1;
@@ -318,7 +315,7 @@ namespace gtsrc {
 								       &fft, win,
 								       samples, length, 0));
 				avr.addFft(new_fft);
-				pos ++; //go for precision and not for computation time;
+				pos += length; //length; //go for precision and not for computation time;
 			}
 
 		} while (length == fft_size() && avr.currentAverageCount() < avr.averageCount());
@@ -332,8 +329,8 @@ namespace gtsrc {
 
 			bin_variance_average += variance[i];
 
-			fprintf(stderr, "bin %i: [%f, %f, %f]\n",
-				i, bin_avr, variance[i], sqrtf(variance[i]));
+			/*fprintf(stderr, "bin %i: [%f, %f, %f]\n",
+				i, bin_avr, variance[i], sqrtf(variance[i]));*/
 		}
 
 		/* sum the number of occurences found at each point of the profile */
@@ -347,7 +344,10 @@ namespace gtsrc {
 		for (size_t i = 0; i < profile_length; i++) {
 			float offset = ((float)i - (profile_length / 2)) * profile_steps;
 			probaSum += ((double)profile[i]) / profileCountSum;
-			fprintf(stdout, "%.3f, %.20f\n", offset, probaSum);
+
+			/*if (probaSum > 0 && probaSum < 1)
+				fprintf(stdout, "%.3f, %.20f\n", offset, probaSum);*/
+			fprintf(stdout, "%.1f, %u\n", offset, profile[i]);
 		}
 
 		float bin_variance_variance = 0;
@@ -362,6 +362,8 @@ namespace gtsrc {
 		fprintf(stderr, "Variance of the noise variance: [%f, %f, %f]\n",
 			bin_variance_average, bin_variance_variance,
 			sqrtf(bin_variance_variance));
+
+		fprintf(stderr, "Time span = %llu ns\n", avr.span_ns());
 	}
 
 } /* namespace gtsrc */
