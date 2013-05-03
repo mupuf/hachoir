@@ -37,12 +37,18 @@ namespace gtsrc {
 	qa_hachoir_c::t1()
 	{
 		gr_top_block_sptr topblock = gr_make_top_block("test_hachoir");
+		int samplerate;
 
 		std::string filepath = std::string(getenv("HOME")) + "/gsm_940.samples";
+		samplerate = 8000000;
+		hachoir_c::sptr hachoir = hachoir_c::make(940000000, samplerate, 1024, 1);
+
+		/*std::string filepath = std::string(getenv("HOME")) + "/gsm_938_1.samples";
+		samplerate = 1000000;
+		hachoir_c::sptr hachoir = hachoir_c::make(938000000, samplerate, 1024, 1);*/
 
 		gr_file_source_sptr file = gr_make_file_source(sizeof(gr_complex), filepath.c_str(), true);
-		gr_throttle::sptr throttle = gr_make_throttle(sizeof(gr_complex), 8000000);
-		hachoir_c::sptr hachoir = hachoir_c::make(940000000, 8000000, 512, 1);
+		gr_throttle::sptr throttle = gr_make_throttle(sizeof(gr_complex), samplerate);
 		topblock->connect(file, 0, throttle, 0);
 		topblock->connect(throttle, 0, hachoir, 0);
 		topblock->run();

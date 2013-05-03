@@ -64,6 +64,7 @@ namespace gtsrc {
 			_ret(1000, comsDetect().comEndOfTransmissionDelay(), comsDetect().comMinDurationNs())
 	{
 		this->set_max_noutput_items(fft_size/4);
+		comsDetect().setFftSize(fft_size);
 
 		update_fft_params(fft_size, (gr_firdes::win_type) window_type);
 
@@ -201,9 +202,7 @@ namespace gtsrc {
 
 		/* parameters for the detection */
 		int id = 0;
-		FftAverage avr(fft_size(), central_freq(), sample_rate(), 4);
 		size_t comMinWidth = 4;
-		char comMinSNR = 20;
 
 		/* the fft calculator */
 		gri_fft_complex fft(fft_size());
@@ -212,6 +211,7 @@ namespace gtsrc {
 		while (_ringBuf.size() < fft_size())
 			fftThread.yield();
 
+		uint64_t l = 0;
 		while (1)
 		{
 		/* calculating the FFT */
@@ -221,21 +221,22 @@ namespace gtsrc {
 							       &fft,
 							       win, _ringBuf));
 
-		/* detecting transmissions */
-			avr.addFft(new_fft);
-			float noiseFloor = comsDetect().noiseFloor();
+			/*printf("TimeDiff = %llu\n", new_fft->time_ns() - l);
+			l = new_fft->time_ns();*/
 
-			for (int i = 0; i < avr.fftSize(); i++) {
-				char pwr = (char) (avr[i] - noiseFloor);
-				if (pwr < comMinSNR)
-					pwr = 0;
+		/* detecting transmissions */
+			float noiseFloor = comsDetect().noiseFloor();
+			comsDetect().addFFT(new_fft);
+
+			for (int i = 0; i < fft_size(); i++) {
+				float pwr = comsDetect().avgPowerAtBin(i);
 				filteredFFT[i] = pwr;
 			}
 
-			_ret.startAddingCommunications(avr.time_ns());
+			_ret.startAddingCommunications(new_fft->time_ns());
 			uint16_t comWidth = 0;
 			int32_t sumPwr = 0;
-			for (int i = 0; i < avr.fftSize(); i++) {
+			for (int i = 0; i < fft_size(); i++) {
 				if (filteredFFT[i] > 0) {
 					sumPwr += filteredFFT[i];
 					comWidth++;
@@ -247,8 +248,8 @@ namespace gtsrc {
 						int8_t avgPwr = noiseFloor + (int8_t)(sumPwr / comWidth);
 
 						/* add the communication to the radio event table */
-						_ret.addCommunication(avr.freqAtBin(i - comWidth)/1000,
-								      avr.freqAtBin(i - 1)/1000,
+						_ret.addCommunication(new_fft->freqAtBin(i - comWidth)/1000,
+								      new_fft->freqAtBin(i - 1)/1000,
 								      avgPwr);
 					}
 
@@ -280,8 +281,8 @@ namespace gtsrc {
 
 		/* send the Ffts to the clients! */
 			if ((id++ % 10) == 0) {
-				sendFFT(&avr, filteredFFT);
-				//sendRetUpdate();
+				sendFFT(new_fft.get(), filteredFFT);
+				sendRetUpdate();
 				_server.matchActiveCommunications(_ret);
 			}
 
