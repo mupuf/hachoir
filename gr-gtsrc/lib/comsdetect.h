@@ -8,7 +8,6 @@
 class ComsDetect
 {
 	uint16_t _fftSize;
-	uint32_t _fftAverageCount;
 	uint32_t _comMinFreqWidth;
 	uint32_t _comMinSNR;
 	uint64_t _comMinDurationNs;
@@ -26,7 +25,7 @@ class ComsDetect
 
 	friend ComsDetect &comsDetect();
 
-	ComsDetect( uint32_t fftAverageCount, uint32_t comMinFreqWidth,
+    ComsDetect(uint32_t comMinFreqWidth,
 		uint32_t comMinSNR, uint64_t comMinDurationNs,
 		uint64_t comEndOfTransmissionDelay,
 		float _noiseFloor);
@@ -34,7 +33,6 @@ public:
 
 	void setFftSize(uint16_t fftSize);
 	uint16_t fftSize() const { return _fftSize; }
-	uint32_t fftAverageCount() const { return _fftAverageCount; }
 	uint32_t comMinFreqWidth() const { return _comMinFreqWidth; }
 	uint32_t comMinSNR() const { return _comMinSNR; }
 	uint64_t comMinDurationNs() const { return _comMinDurationNs; }
