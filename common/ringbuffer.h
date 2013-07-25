@@ -161,6 +161,15 @@ public:
 	}
 
 	/**
+	 * \brief    Checks if there are n entries available in the ring buffer starting from pos.
+	 * \return   True if there should be.
+	 */
+	bool hasNAvailableFrom(uint64_t pos, size_t n) const
+	{
+		return (pos + n) < _head.load();
+	}
+
+	/**
 	 * \brief    Returns head's position
 	 * \return   Returns the position of the head
 	 */
@@ -284,6 +293,10 @@ public:
 			*length = 0;
 			return false;
 		}
+
+		/* check that we aren't trying to read further than head() */
+		if (pos + *length > _head.load())
+			*length = _head.load() - pos;
 
 		requestRead_unsafe(pos, length, samples);
 		return true;

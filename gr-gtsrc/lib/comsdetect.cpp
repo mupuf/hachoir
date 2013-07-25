@@ -27,8 +27,8 @@ void ComsDetect::setFftSize(uint16_t fftSize)
 	_fftSize = fftSize;
 
 	_lastDetectedTransmission = new struct lastDetectedTransmission[_fftSize];
-    memset(_lastDetectedTransmission, 0,
-	       _fftSize * sizeof(struct lastDetectedTransmission));
+	memset(_lastDetectedTransmission, 0,
+		_fftSize * sizeof(struct lastDetectedTransmission));
 	assert(_lastDetectedTransmission != nullptr);
 }
 
@@ -54,7 +54,7 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 			lt->time = getTimeNs(); //fft->time_ns();
 			lt->inactiveCnt = 0;
 			lt->active = true;
-        }
+		}
 
 		if (lt->active) {
 			lt->avg += pwr;
@@ -67,8 +67,8 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 			if (pwr < comMinSNR()) {
 				lt->inactiveCnt++;
 				uint64_t timeDiff = (curTime - lt->time);
-                if (/*lt->inactiveCnt > 10 &&*/
-                    timeDiff > _comMinDurationNs) {
+				if (/*lt->inactiveCnt > 10 &&*/
+				    timeDiff > _comMinDurationNs) {
 					//printf("inactiveCnt = %u, timeDiff = %u\n", lt->inactiveCnt, timeDiff);
 					lt->avg = 0;
 					lt->avgCnt = 0;

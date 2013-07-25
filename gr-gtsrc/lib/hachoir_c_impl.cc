@@ -63,7 +63,6 @@ namespace gtsrc {
 			_server(21333), _ringBuf(10000 * fft_size),
 			_ret(1000, comsDetect().comEndOfTransmissionDelay(), comsDetect().comMinDurationNs())
 	{
-		this->set_max_noutput_items(fft_size/4);
 		comsDetect().setFftSize(fft_size);
 
 		update_fft_params(fft_size, (gr_firdes::win_type) window_type);
@@ -207,11 +206,7 @@ namespace gtsrc {
 		/* the fft calculator */
 		gri_fft_complex fft(fft_size());
 
-		/* wait for a sufficient amount of data before starting */
-		while (_ringBuf.size() < fft_size())
-			fftThread.yield();
-
-		uint64_t l = 0;
+		uint64_t start_pos = _ringBuf.tail();
 		while (1)
 		{
 		/* calculating the FFT */
@@ -219,7 +214,11 @@ namespace gtsrc {
 							       central_freq(),
 							       sample_rate(),
 							       &fft,
-							       win, _ringBuf));
+							       win, _ringBuf,
+							       start_pos));
+			start_pos = new_fft->ringBufferStartPos() + fft_size();
+
+
 
 			/*printf("TimeDiff = %llu\n", new_fft->time_ns() - l);
 			l = new_fft->time_ns();*/

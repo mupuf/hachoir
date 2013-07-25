@@ -26,9 +26,62 @@ void Fft::doFFt(uint16_t fftSize, FftWindow &win, gri_fft_complex *fft)
 	}
 }
 
+void Fft::FftFromRing(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
+    gri_fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer,
+    uint64_t &fromPos)
+{
+	gr_complex *dst = fft->get_inbuf();
+	gr_complex *samples;
+
+	/* wait until we have enough samples */
+	while (!ringBuffer.hasNAvailableFrom(fromPos, fftSize))
+		boost::this_thread::sleep_for(boost::chrono::microseconds(100));
+
+	uint64_t restartPos;
+	size_t length = fftSize;
+	if (fromPos != (uint64_t)-1) {
+		if (!ringBuffer.requestRead(fromPos, &length, &samples)) {
+			fprintf(stderr, "Fft::FftFromRing: We lost samples!\n");
+			length = ringBuffer.requestReadLastN(fftSize, &fromPos, &restartPos, &samples);
+		} else
+			restartPos += length;
+	} else
+		length = ringBuffer.requestReadLastN(fftSize, &fromPos, &restartPos, &samples);
+	_ringBufferStartPos = fromPos;
+
+	_time_ns = ringBuffer.timeAt(fromPos);
+
+	size_t currentPos = 0;
+	do {
+		size_t i;
+
+		/* apply the window and copy to the input buffer */
+		for (i = 0; i < length; i++) {
+			dst[i] = samples[i] * win[i];
+		}
+		currentPos += length;
+
+		if (length == 0)
+			boost::this_thread::yield();
+
+		if (currentPos < fftSize) {
+			size_t len = fftSize - currentPos;
+			ringBuffer.requestRead(restartPos, &len, &samples);
+		}
+	} while(currentPos < fftSize);
+
+	/* check that the data has not been overriden while we were reading it! */
+	if (!ringBuffer.isPositionValid(fromPos)) {
+		fprintf(stderr, "Fft::FftFromRing: Invalid FFT, we potentially lost samples!\n");
+		return;
+	}
+
+	doFFt(fftSize, win, fft);
+}
+
 Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate) :
 	_fft_size(fftSize), _central_frequency(centralFrequency),
-	_sample_rate(sampleRate), _pwr(fftSize)
+	_sample_rate(sampleRate), _ringBufferStartPos(0), _pwr(fftSize)
 {
 
 }
@@ -37,7 +90,7 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 	 gri_fft_complex *fft, FftWindow &win, const gr_complex *src, size_t length,
 	 uint64_t time_ns) : _fft_size(fftSize),
 	_central_frequency(centralFrequency), _sample_rate(sampleRate),
-	_time_ns(time_ns), _pwr(fftSize)
+	_time_ns(time_ns), _ringBufferStartPos(0), _pwr(fftSize)
 {
 	size_t i;
 
@@ -60,36 +113,17 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 	: _fft_size(fftSize), _central_frequency(centralFrequency),
 	  _sample_rate(sampleRate), _pwr(fftSize)
 {
-	gr_complex *dst = fft->get_inbuf();
-	gr_complex *samples;
+	uint64_t fromPos = (uint64_t)-1;
+	FftFromRing(fftSize, centralFrequency, sampleRate, fft, win, ringBuffer, fromPos);
+}
 
-	uint64_t startPos, restartPos;
-	size_t length = ringBuffer.requestReadLastN(fftSize, &startPos, &restartPos, &samples);
-
-	_time_ns = ringBuffer.timeAt(startPos);
-
-	size_t currentPos = 0;
-	do
-	{
-		size_t i;
-
-		/* apply the window and copy to the input buffer */
-		for (i = 0; i < length; i++) {
-			dst[i] = samples[i] * win[i];
-		}
-		currentPos += length;
-
-		if (currentPos < fftSize) {
-			size_t len = fftSize - currentPos;
-			ringBuffer.requestRead(restartPos, &len, &samples);
-		}
-	} while(currentPos < fftSize);
-
-	/* check that the data has not been overriden while we were reading it! */
-	if (!ringBuffer.isPositionValid(startPos))
-		return;
-
-	doFFt(fftSize, win, fft);
+Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
+    gri_fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer,
+    uint64_t &fromPos)
+	: _fft_size(fftSize), _central_frequency(centralFrequency),
+	  _sample_rate(sampleRate), _pwr(fftSize)
+{
+	FftFromRing(fftSize, centralFrequency, sampleRate, fft, win, ringBuffer, fromPos);
 }
 
 float Fft::noiseFloor() const
