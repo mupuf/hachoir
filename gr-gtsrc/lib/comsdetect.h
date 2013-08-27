@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 #include "fft.h"
+#include "calibrationpoint.h"
 
 class ComsDetect
 {
@@ -14,8 +15,12 @@ class ComsDetect
 	uint64_t _comEndOfTransmissionDelay;
 	float _noiseFloor;
 
+	CalibrationPoint *_calibs;
+
 	struct lastDetectedTransmission
 	{
+		CalibrationPoint *calib;
+
 		uint64_t time;
 		uint32_t inactiveCnt;
 		uint32_t avgCnt;
@@ -24,8 +29,7 @@ class ComsDetect
 	} * _lastDetectedTransmission;
 
 	friend ComsDetect &comsDetect();
-
-    ComsDetect(uint32_t comMinFreqWidth,
+	ComsDetect(uint32_t comMinFreqWidth,
 		uint32_t comMinSNR, uint64_t comMinDurationNs,
 		uint64_t comEndOfTransmissionDelay,
 		float _noiseFloor);

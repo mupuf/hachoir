@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <string.h>
 
+#define CALIBRATION_POINT_COUNT 32
+
 ComsDetect &comsDetect()
 {
     static ComsDetect detect(500000, 10, 100000000, 1000000, -65.0);
@@ -23,13 +25,26 @@ void ComsDetect::setFftSize(uint16_t fftSize)
 {
 	if (_lastDetectedTransmission != nullptr)
 		delete[] _lastDetectedTransmission;
+	if (_calibs != nullptr) {
+		delete[] _calibs;
+	}
 
 	_fftSize = fftSize;
 
 	_lastDetectedTransmission = new struct lastDetectedTransmission[_fftSize];
-	memset(_lastDetectedTransmission, 0,
-		_fftSize * sizeof(struct lastDetectedTransmission));
 	assert(_lastDetectedTransmission != nullptr);
+	memset(_lastDetectedTransmission, 0,
+	       _fftSize * sizeof(struct lastDetectedTransmission));
+
+	_calibs = new CalibrationPoint[CALIBRATION_POINT_COUNT];
+	assert(_calibs != nullptr);
+	memset(_calibs, 0, CALIBRATION_POINT_COUNT * sizeof(CalibrationPoint));
+
+	/* assign every calibrationValue */
+	for (uint16_t i = 0; i < fftSize; i++) {
+		_lastDetectedTransmission[i].calib =
+				&_calibs[i / fftSize / CALIBRATION_POINT_COUNT];
+	}
 }
 
 uint64_t getTimeNs()
