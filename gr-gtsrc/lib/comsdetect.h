@@ -15,6 +15,8 @@ class ComsDetect
 	uint64_t _comEndOfTransmissionDelay;
 	float _noiseFloor;
 
+	CalibrationPoint calib;
+
 	CalibrationPoint *_calibs;
 
 	struct lastDetectedTransmission

@@ -65,6 +65,10 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 		float pwr = (fft->operator [](i) - noiseFloor());
 		struct lastDetectedTransmission *lt = &_lastDetectedTransmission[i];
 
+		if (i == 512) {
+			calib.addData(fft->operator [](i));
+		}
+
 		if (pwr >= comMinSNR()) {
 			lt->time = getTimeNs(); //fft->time_ns();
 			lt->inactiveCnt = 0;
