@@ -60,7 +60,7 @@ namespace gtsrc {
 			gr_make_io_signature(1, 1, sizeof (gr_complex)),
 			gr_make_io_signature(0, 0, sizeof (gr_complex))),
 			_freq(freq), _samplerate(samplerate),
-			_server(21333), _ringBuf(10000 * fft_size),
+			_server(21333), _ringBuf(1000 * fft_size),
 			_ret(1000, comsDetect().comEndOfTransmissionDelay(), comsDetect().comMinDurationNs())
 	{
 		comsDetect().setFftSize(fft_size);
@@ -220,11 +220,8 @@ namespace gtsrc {
 
 
 
-			/*printf("TimeDiff = %llu\n", new_fft->time_ns() - l);
-			l = new_fft->time_ns();*/
 
 		/* detecting transmissions */
-			float noiseFloor = comsDetect().noiseFloor();
 			comsDetect().addFFT(new_fft);
 
 			for (int i = 0; i < fft_size(); i++) {
@@ -232,6 +229,7 @@ namespace gtsrc {
 				filteredFFT[i] = pwr;
 			}
 
+#if 0
 			_ret.startAddingCommunications(new_fft->time_ns());
 			uint16_t comWidth = 0;
 			int32_t sumPwr = 0;
@@ -244,7 +242,7 @@ namespace gtsrc {
 						for (int e = i - comWidth; e < i; e++)
 							filteredFFT[e] = 0;
 					} else {
-						int8_t avgPwr = noiseFloor + (int8_t)(sumPwr / comWidth);
+						int8_t avgPwr = comsDetect().noiseFloor(i) + (int8_t)(sumPwr / comWidth);
 
 						/* add the communication to the radio event table */
 						_ret.addCommunication(new_fft->freqAtBin(i - comWidth)/1000,
@@ -257,6 +255,7 @@ namespace gtsrc {
 				}
 			}
 			_ret.stopAddingCommunications();
+#endif
 
 		/* some stats, sorry about this code */
 			if (lastFFtTime > 0)
@@ -304,7 +303,7 @@ namespace gtsrc {
 		uint64_t pos = _ringBuf.tail();
 		size_t length;
 		do {
-			gr_complex *samples;
+			gr_complex *samples = nullptr;
 			length = fft_size();
 
 			_ringBuf.requestRead(pos, &length, &samples);

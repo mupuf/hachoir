@@ -103,10 +103,9 @@ void CalibrationPoint::addData(float power)
 		}
 		_samplesCount /= 2;
 	} else if (_samplesCount >= _lastUpdate * 10 &&
-		   _samplesCount > _minSampleCount) {
+		   _samplesCount >= _minSampleCount) {
 		calcStats();
 		_lastUpdate = _samplesCount;
-		printf("_lastUpdate = %u\n", _lastUpdate);
 	}
 }
 

@@ -21,7 +21,7 @@ class CalibrationPoint
 
 public:
 	CalibrationPoint();
-	CalibrationPoint(uint32_t maxSampleCount, uint32_t updatePeriod);
+	CalibrationPoint(uint32_t maxSampleCount, uint32_t minSampleCount);
 	void addData(float power);
 	void reset();
 
@@ -30,7 +30,7 @@ public:
 	float modelMean() const { return _modelMean; }
 	float modelMax() const { return _modelMax; }
 
-	bool isReady() const { return _samplesCount > _minSampleCount; }
+	bool isReady() const { return _samplesCount >= _minSampleCount; }
 	uint32_t samplesCount() { return _samplesCount; }
 
 	uint32_t maxSampleCount() const { return _maxSampleCount; }

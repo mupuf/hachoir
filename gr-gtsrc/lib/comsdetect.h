@@ -5,6 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include "fft.h"
 #include "calibrationpoint.h"
+#include <vector>
 
 class ComsDetect
 {
@@ -13,7 +14,6 @@ class ComsDetect
 	uint32_t _comMinSNR;
 	uint64_t _comMinDurationNs;
 	uint64_t _comEndOfTransmissionDelay;
-	float _noiseFloor;
 
 	CalibrationPoint calib;
 
@@ -23,7 +23,6 @@ class ComsDetect
 	{
 		CalibrationPoint *calib;
 
-		uint64_t time;
 		uint32_t inactiveCnt;
 		uint32_t avgCnt;
 		float avg;
@@ -33,8 +32,7 @@ class ComsDetect
 	friend ComsDetect &comsDetect();
 	ComsDetect(uint32_t comMinFreqWidth,
 		uint32_t comMinSNR, uint64_t comMinDurationNs,
-		uint64_t comEndOfTransmissionDelay,
-		float _noiseFloor);
+		uint64_t comEndOfTransmissionDelay);
 public:
 
 	void setFftSize(uint16_t fftSize);
@@ -44,7 +42,7 @@ public:
 	uint64_t comMinDurationNs() const { return _comMinDurationNs; }
 	uint64_t comEndOfTransmissionDelay() const { return _comEndOfTransmissionDelay; }
 
-	float noiseFloor() { return _noiseFloor; }
+	float noiseFloor(size_t i) const { return _lastDetectedTransmission[i].calib->modelMean(); }
 
 	void addFFT(boost::shared_ptr<Fft> fft);
 

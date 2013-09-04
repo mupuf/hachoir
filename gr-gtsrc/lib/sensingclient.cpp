@@ -27,7 +27,6 @@ void SensingClient::socketIsConnected()
 {
 	try {
 		uint8_t msgType = 0;
-		size_t offset = 0;
 		do {
 			size_t len = _socket.read_some(boost::asio::buffer(&msgType, 1));
 			if (len != 1)

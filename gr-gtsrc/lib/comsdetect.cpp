@@ -2,21 +2,21 @@
 #include <assert.h>
 #include <string.h>
 
-#define CALIBRATION_POINT_COUNT 32
+#define CALIBRATION_POINT_COUNT 4
 
 ComsDetect &comsDetect()
 {
-    static ComsDetect detect(500000, 10, 100000000, 1000000, -65.0);
+    static ComsDetect detect(500000, 10, 100000000, 1000000);
 	return detect;
 }
 
 ComsDetect::ComsDetect(uint32_t comMinFreqWidth,
     uint32_t comMinSNR, uint64_t comMinDurationNs,
-    uint64_t comEndOfTransmissionDelay, float noiseFloor) :
+    uint64_t comEndOfTransmissionDelay) :
 	_comMinFreqWidth(comMinFreqWidth), _comMinSNR(comMinSNR),
 	_comMinDurationNs(comMinDurationNs),
 	_comEndOfTransmissionDelay(comEndOfTransmissionDelay),
-	_noiseFloor(noiseFloor), _lastDetectedTransmission(nullptr)
+	_lastDetectedTransmission(nullptr)
 {
 
 }
@@ -38,12 +38,11 @@ void ComsDetect::setFftSize(uint16_t fftSize)
 
 	_calibs = new CalibrationPoint[CALIBRATION_POINT_COUNT];
 	assert(_calibs != nullptr);
-	memset(_calibs, 0, CALIBRATION_POINT_COUNT * sizeof(CalibrationPoint));
 
 	/* assign every calibrationValue */
 	for (uint16_t i = 0; i < fftSize; i++) {
 		_lastDetectedTransmission[i].calib =
-				&_calibs[i / fftSize / CALIBRATION_POINT_COUNT];
+				&_calibs[i * CALIBRATION_POINT_COUNT / fftSize];
 	}
 }
 
@@ -59,18 +58,16 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 	if (fft->fftSize() != fftSize())
 		return;
 
-	uint64_t curTime = getTimeNs();
 	/* TODO: Do some better optimisation based on the noise profile and probabilities */
 	for (int i = 0; i < fftSize(); i++) {
-		float pwr = (fft->operator [](i) - noiseFloor());
+		float pwr = (fft->operator [](i));
 		struct lastDetectedTransmission *lt = &_lastDetectedTransmission[i];
 
-		if (i == 512) {
-			calib.addData(fft->operator [](i));
-		}
+		lt->calib->addData(fft->operator [](i));
+		if (!lt->calib->isReady())
+			continue;
 
-		if (pwr >= comMinSNR()) {
-			lt->time = getTimeNs(); //fft->time_ns();
+		if (pwr > lt->calib->modelMax()) {
 			lt->inactiveCnt = 0;
 			lt->active = true;
 		}
@@ -78,16 +75,14 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 		if (lt->active) {
 			lt->avg += pwr;
 			lt->avgCnt++;
-			if (lt->avgCnt > 100) {
+			if (lt->avgCnt > 1000) {
 				lt->avgCnt /= 2;
 				lt->avg /= 2;
 			}
 
 			if (pwr < comMinSNR()) {
 				lt->inactiveCnt++;
-				uint64_t timeDiff = (curTime - lt->time);
-				if (/*lt->inactiveCnt > 10 &&*/
-				    timeDiff > _comMinDurationNs) {
+				if (lt->inactiveCnt > 10) {
 					//printf("inactiveCnt = %u, timeDiff = %u\n", lt->inactiveCnt, timeDiff);
 					lt->avg = 0;
 					lt->avgCnt = 0;
@@ -101,8 +96,10 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 float ComsDetect::avgPowerAtBin(size_t i) const
 {
 	struct lastDetectedTransmission *lt = &_lastDetectedTransmission[i];
-	if (lt->avgCnt > 0)
-		return lt->avg / lt->avgCnt;
-	else
-		return 0.0;
+	if (lt->avgCnt > 0) {
+		float nf = noiseFloor(i);
+		float avg = lt->avg / lt->avgCnt;
+		return avg < nf ? nf : avg;
+	} else
+		return noiseFloor(i);
 }
