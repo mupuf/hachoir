@@ -2,6 +2,7 @@
 #include <memory.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include <fstream>
 
 uint64_t get_time()
 {
@@ -51,26 +52,24 @@ void CalibrationPoint::calcStats()
 	_modelMean = indexToPwr(maxProb);
 	_modelMax = _modelMean + 10 / _samplesCount + 14;
 
-#if 0
-	std::ofstream myfile;
+	if (_dumpFile != std::string()) {
+		std::ofstream myfile;
 
-	myfile.open ("/tmp/density.csv");
+		myfile.open (_dumpFile);
 
-	myfile << "power, p" << std::endl;
+		myfile << "power, p" << std::endl;
 
-	for (int i = 0; i < 256; i++)
-		myfile << indexToPwr(i) << ", " << _distrib[i] << std::endl;
+		for (int i = 0; i < 256; i++)
+			myfile << indexToPwr(i) << ", " << _distrib[i] << std::endl;
 
-	myfile << ",,Real mean, " << realMean() << std::endl;
-	myfile << ",,Real max, " << realMax() << std::endl;
+		myfile << ",,Real mean, " << realMean() << std::endl;
+		myfile << ",,Real max, " << realMax() << std::endl;
 
-	myfile << ",,Model mean, " << modelMean() << std::endl;
-	myfile << ",,Model max, " << modelMax() << std::endl;
+		myfile << ",,Model (kind of) mean, " << modelMean() << std::endl;
+		myfile << ",,Model max, " << modelMax() << std::endl;
 
-	myfile.close();
-
-	exit(1);
-#endif
+		myfile.close();
+	}
 }
 
 CalibrationPoint::CalibrationPoint() :
@@ -114,6 +113,11 @@ void CalibrationPoint::reset()
 	_samplesCount = 0;
 	_lastUpdate = 0;
 	memset(_distrib, 0, sizeof(this->_distrib));
+}
+
+void CalibrationPoint::dumpToCsvFile(const std::string &filepath)
+{
+	_dumpFile = filepath;
 }
 
 void CalibrationPoint::setMaxSampleCount(uint32_t maxSampleCount)

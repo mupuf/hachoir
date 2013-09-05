@@ -29,6 +29,9 @@ class ComsDetect
 		bool active;
 	} * _lastDetectedTransmission;
 
+	float probaPwrUnder(float pwr);
+	uint32_t calcInactiveTimeout(float pwr, float confidence);
+
 	friend ComsDetect &comsDetect();
 	ComsDetect(uint32_t comMinFreqWidth,
 		uint32_t comMinSNR, uint64_t comMinDurationNs,

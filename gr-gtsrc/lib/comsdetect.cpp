@@ -1,12 +1,31 @@
 #include "comsdetect.h"
 #include <assert.h>
 #include <string.h>
+#include <math.h>
 
-#define CALIBRATION_POINT_COUNT 4
+#define CALIBRATION_POINT_COUNT 5
+
+float ComsDetect::probaPwrUnder(float pwr)
+{
+	float mu = 1.67;
+	float sigma = 4.5578;
+	return 1 - expf(-expf(-(-pwr + mu) / sigma));
+}
+
+uint32_t ComsDetect::calcInactiveTimeout(float pwr, float confidence)
+{
+	float p = probaPwrUnder(pwr);
+	float n = logf(1 - confidence) / logf(p);
+
+	if (n > 100.0)
+		return 100;
+	else
+		return ceil(n);
+}
 
 ComsDetect &comsDetect()
 {
-    static ComsDetect detect(500000, 10, 100000000, 1000000);
+	static ComsDetect detect(500000, 10, 100000000, 1000000);
 	return detect;
 }
 
@@ -18,7 +37,6 @@ ComsDetect::ComsDetect(uint32_t comMinFreqWidth,
 	_comEndOfTransmissionDelay(comEndOfTransmissionDelay),
 	_lastDetectedTransmission(nullptr)
 {
-
 }
 
 void ComsDetect::setFftSize(uint16_t fftSize)
@@ -41,8 +59,17 @@ void ComsDetect::setFftSize(uint16_t fftSize)
 
 	/* assign every calibrationValue */
 	for (uint16_t i = 0; i < fftSize; i++) {
+		int offset = i * CALIBRATION_POINT_COUNT / fftSize;
+
 		_lastDetectedTransmission[i].calib =
-				&_calibs[i * CALIBRATION_POINT_COUNT / fftSize];
+				&_calibs[offset];
+
+#if 0
+		// debug density
+		std::ostringstream filename;
+		filename << "/tmp/density_" << offset << ".csv";
+		_lastDetectedTransmission[i].calib->dumpToCsvFile(filename.str());
+#endif
 	}
 }
 
@@ -58,7 +85,6 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 	if (fft->fftSize() != fftSize())
 		return;
 
-	/* TODO: Do some better optimisation based on the noise profile and probabilities */
 	for (int i = 0; i < fftSize(); i++) {
 		float pwr = (fft->operator [](i));
 		struct lastDetectedTransmission *lt = &_lastDetectedTransmission[i];
@@ -82,7 +108,9 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 
 			if (pwr < comMinSNR()) {
 				lt->inactiveCnt++;
-				if (lt->inactiveCnt > 10) {
+				float avg = lt->avg / lt->avgCnt;
+				uint32_t timeout = calcInactiveTimeout(lt->calib->modelMax() - avg, 0.9999);
+				if (lt->inactiveCnt >= timeout) {
 					//printf("inactiveCnt = %u, timeDiff = %u\n", lt->inactiveCnt, timeDiff);
 					lt->avg = 0;
 					lt->avgCnt = 0;

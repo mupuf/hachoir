@@ -60,7 +60,7 @@ namespace gtsrc {
 			gr_make_io_signature(1, 1, sizeof (gr_complex)),
 			gr_make_io_signature(0, 0, sizeof (gr_complex))),
 			_freq(freq), _samplerate(samplerate),
-			_server(21333), _ringBuf(1000 * fft_size),
+			_server(21333), _ringBuf(samplerate / 10), /* store 100 ms worth of samples */
 			_ret(1000, comsDetect().comEndOfTransmissionDelay(), comsDetect().comMinDurationNs())
 	{
 		comsDetect().setFftSize(fft_size);
@@ -229,7 +229,6 @@ namespace gtsrc {
 				filteredFFT[i] = pwr;
 			}
 
-#if 0
 			_ret.startAddingCommunications(new_fft->time_ns());
 			uint16_t comWidth = 0;
 			int32_t sumPwr = 0;
@@ -255,7 +254,6 @@ namespace gtsrc {
 				}
 			}
 			_ret.stopAddingCommunications();
-#endif
 
 		/* some stats, sorry about this code */
 			if (lastFFtTime > 0)
