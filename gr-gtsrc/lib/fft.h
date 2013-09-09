@@ -156,6 +156,28 @@ public:
 		return _central_frequency - (_sample_rate / 2) + i * _sample_rate / _fft_size;
 	}
 
+	/**
+	 * \brief    Get the bin/index associated with frequency \a f.
+	 *
+	 * \param    f    The frequency
+	 * \return   The bin/index associated with frequency \a f.
+	 */
+	uint16_t binAtFreq(uint64_t f) const
+	{
+		int64_t offset = f - (_central_frequency - (_sample_rate / 2));
+		int32_t i = offset * _fft_size * 10 / _sample_rate;
+
+		/* get rid of the rounding error */
+		if (i % 10 > 5)
+			i = i / 10 + 1;
+		else
+			i /= 10;
+
+		assert(i >= 0);
+		assert (i < _fft_size);
+		return i;
+	}
+
 	/// Returns the noise floor in dBM
 	virtual float noiseFloor() const;
 

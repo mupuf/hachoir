@@ -14,19 +14,40 @@ float ComsDetect::probaPwrUnder(float pwr)
 
 uint32_t ComsDetect::calcInactiveTimeout(float pwr, float confidence)
 {
+	uint32_t res = 0;
+	/*static uint32_t cache[120] = { 0 };
+	int index;
+
+	if (pwr < -40.0)
+		pwr = -40;
+	else if (pwr > 20.0)
+		pwr = 20;
+	index = 40 + pwr * 2;
+
+	if (cache[index] != 0)
+		return cache[index];*/
+
 	float p = probaPwrUnder(pwr);
 	float n = logf(1 - confidence) / logf(p);
 
-	if (n > 100.0)
-		return 100;
+	if (n > 1000.0)
+		res = 1000;
 	else
-		return ceil(n);
+		res = ceil(n);
+
+	//cache[index] = res;
+	return res;
 }
 
 ComsDetect &comsDetect()
 {
-	static ComsDetect detect(500000, 10, 100000000, 1000000);
+	static ComsDetect detect(500000, 6, 100000000, 1000000);
 	return detect;
+}
+
+size_t ComsDetect::calibPointIndexAt(size_t i) const
+{
+	return i * CALIBRATION_POINT_COUNT / _fftSize;
 }
 
 ComsDetect::ComsDetect(uint32_t comMinFreqWidth,
@@ -59,7 +80,7 @@ void ComsDetect::setFftSize(uint16_t fftSize)
 
 	/* assign every calibrationValue */
 	for (uint16_t i = 0; i < fftSize; i++) {
-		int offset = i * CALIBRATION_POINT_COUNT / fftSize;
+		int offset = calibPointIndexAt(i);
 
 		_lastDetectedTransmission[i].calib =
 				&_calibs[offset];
@@ -98,20 +119,27 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 			lt->active = true;
 		}
 
+		/* TODO: Use the density system to find the most likely average
+		 * without needing to rely on averaging the signal.
+		 */
 		if (lt->active) {
 			lt->avg += pwr;
+			lt->avgSquared += pwr * pwr;
 			lt->avgCnt++;
-			if (lt->avgCnt > 1000) {
+			/*if (lt->avgCnt > 1000) {
 				lt->avgCnt /= 2;
 				lt->avg /= 2;
-			}
+			}*/
 
-			if (pwr < comMinSNR()) {
+			if (pwr < lt->calib->modelMax()) {
 				lt->inactiveCnt++;
 				float avg = lt->avg / lt->avgCnt;
-				uint32_t timeout = calcInactiveTimeout(lt->calib->modelMax() - avg, 0.9999);
-				if (lt->inactiveCnt >= timeout) {
-					//printf("inactiveCnt = %u, timeDiff = %u\n", lt->inactiveCnt, timeDiff);
+				uint32_t timeout = calcInactiveTimeout(lt->calib->modelMax() - avg, 0.999);
+				if (lt->inactiveCnt >= timeout /*||
+					avg < (lt->calib->modelMean() + comMinSNR())*/) {
+					fprintf(stderr,
+						"inactiveCnt = %u, avg = %f, avgCnt = %u\n",
+						lt->inactiveCnt, avg, lt->avgCnt);
 					lt->avg = 0;
 					lt->avgCnt = 0;
 					lt->active = false;
@@ -120,6 +148,27 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 		}
 	}
 }
+
+/*float ComsDetect::noiseFloor(size_t i) const
+{
+	int offset = calibPointIndexAt(i);
+	int offsetb = (offset - 1) % CALIBRATION_POINT_COUNT;
+	int offseta = (offset + 1) % CALIBRATION_POINT_COUNT;
+
+	if (offsetb < 0) offsetb = CALIBRATION_POINT_COUNT - 1;
+	float model[3] = {
+		_calibs[offsetb].modelMax(),
+		_calibs[offset].modelMax(),
+		_calibs[offseta].modelMax()
+	};
+
+	float avg = (model[0] + model[2]) / 2;
+
+	if (fabs(model[1] - avg) > 4)
+		return avg + 4;
+	else
+		return model[1];
+}*/
 
 float ComsDetect::avgPowerAtBin(size_t i) const
 {
@@ -130,4 +179,10 @@ float ComsDetect::avgPowerAtBin(size_t i) const
 		return avg < nf ? nf : avg;
 	} else
 		return noiseFloor(i);
+}
+
+float ComsDetect::varianceAtBin(size_t i) const
+{
+	struct lastDetectedTransmission *lt = &_lastDetectedTransmission[i];
+	return (lt->avgSquared - (lt->avg * lt->avg)) / lt->avgCnt;
 }

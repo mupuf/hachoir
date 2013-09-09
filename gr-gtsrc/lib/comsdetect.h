@@ -25,12 +25,15 @@ class ComsDetect
 
 		uint32_t inactiveCnt;
 		uint32_t avgCnt;
+
 		float avg;
+		float avgSquared;
 		bool active;
 	} * _lastDetectedTransmission;
 
 	float probaPwrUnder(float pwr);
 	uint32_t calcInactiveTimeout(float pwr, float confidence);
+	size_t calibPointIndexAt(size_t i) const;
 
 	friend ComsDetect &comsDetect();
 	ComsDetect(uint32_t comMinFreqWidth,
@@ -45,12 +48,12 @@ public:
 	uint64_t comMinDurationNs() const { return _comMinDurationNs; }
 	uint64_t comEndOfTransmissionDelay() const { return _comEndOfTransmissionDelay; }
 
-	float noiseFloor(size_t i) const { return _lastDetectedTransmission[i].calib->modelMean(); }
-
 	void addFFT(boost::shared_ptr<Fft> fft);
 
 	bool isBinActive(size_t i) const { return _lastDetectedTransmission[i].active; }
+	float noiseFloor(size_t i) const { return _lastDetectedTransmission[i].calib->modelMean(); }
 	float avgPowerAtBin(size_t i) const;
+	float varianceAtBin(size_t i) const;
 };
 
 ComsDetect &comsDetect();
