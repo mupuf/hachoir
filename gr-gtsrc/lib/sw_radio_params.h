@@ -1,0 +1,7 @@
+#ifndef SW_RADIO_PARAMS_H
+#define SW_RADIO_PARAMS_H
+
+#define NOISE_MU 1.67
+#define NOISE_SIGMA 4.5578
+
+#endif // SW_RADIO_PARAMS_H

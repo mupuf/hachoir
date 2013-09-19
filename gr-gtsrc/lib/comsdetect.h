@@ -14,6 +14,7 @@ class ComsDetect
 	uint32_t _comMinSNR;
 	uint64_t _comMinDurationNs;
 	uint64_t _comEndOfTransmissionDelay;
+	uint16_t _maxTimeout;
 
 	CalibrationPoint calib;
 
@@ -52,6 +53,7 @@ public:
 
 	bool isBinActive(size_t i) const { return _lastDetectedTransmission[i].active; }
 	float noiseFloor(size_t i) const { return _lastDetectedTransmission[i].calib->modelMean(); }
+	float noiseMax(size_t i) const { return _lastDetectedTransmission[i].calib->modelMax(); }
 	float avgPowerAtBin(size_t i) const;
 	float varianceAtBin(size_t i) const;
 };

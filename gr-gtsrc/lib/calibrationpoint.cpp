@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <fstream>
+#include "sw_radio_params.h"
 
 uint64_t get_time()
 {
@@ -49,7 +50,7 @@ void CalibrationPoint::calcStats()
 	_realMean = indexToPwr((float) weightedSum / (float) _samplesCount);
 	_realMax = indexToPwr(maxPwr);
 
-	_modelMean = indexToPwr(maxProb);
+	_modelMean = indexToPwr(maxProb) - NOISE_MU;
 	_modelMax = _modelMean + 10 / _samplesCount + 14;
 
 	if (_dumpFile != std::string()) {

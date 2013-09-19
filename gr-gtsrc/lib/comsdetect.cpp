@@ -2,13 +2,15 @@
 #include <assert.h>
 #include <string.h>
 #include <math.h>
+#include "sw_radio_params.h"
 
 #define CALIBRATION_POINT_COUNT 5
+#define WANTED_PRECISION 0.9999
 
 float ComsDetect::probaPwrUnder(float pwr)
 {
-	float mu = 1.67;
-	float sigma = 4.5578;
+	float mu = NOISE_MU;
+	float sigma = NOISE_SIGMA;
 	return 1 - expf(-expf(-(-pwr + mu) / sigma));
 }
 
@@ -41,7 +43,7 @@ uint32_t ComsDetect::calcInactiveTimeout(float pwr, float confidence)
 
 ComsDetect &comsDetect()
 {
-	static ComsDetect detect(500000, 6, 100000000, 1000000);
+	static ComsDetect detect(500000, 0, 100000000, 1000000);
 	return detect;
 }
 
@@ -58,6 +60,7 @@ ComsDetect::ComsDetect(uint32_t comMinFreqWidth,
 	_comEndOfTransmissionDelay(comEndOfTransmissionDelay),
 	_lastDetectedTransmission(nullptr)
 {
+	_maxTimeout = calcInactiveTimeout(0.0 - comMinSNR, WANTED_PRECISION);
 }
 
 void ComsDetect::setFftSize(uint16_t fftSize)
@@ -126,20 +129,20 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 			lt->avg += pwr;
 			lt->avgSquared += pwr * pwr;
 			lt->avgCnt++;
-			/*if (lt->avgCnt > 1000) {
+			if (lt->avgCnt > 1000) {
 				lt->avgCnt /= 2;
 				lt->avg /= 2;
-			}*/
+			}
 
 			if (pwr < lt->calib->modelMax()) {
 				lt->inactiveCnt++;
-				float avg = lt->avg / lt->avgCnt;
-				uint32_t timeout = calcInactiveTimeout(lt->calib->modelMax() - avg, 0.999);
+				//float avg = lt->avg / lt->avgCnt;
+				uint32_t timeout = _maxTimeout; //calcInactiveTimeout(lt->calib->modelMax() - avg, WANTED_PRECISION);
 				if (lt->inactiveCnt >= timeout /*||
-					avg < (lt->calib->modelMean() + comMinSNR())*/) {
-					fprintf(stderr,
+					avg < (lt->calib->modelMax() + comMinSNR())*/) {
+					/*fprintf(stderr,
 						"inactiveCnt = %u, avg = %f, avgCnt = %u\n",
-						lt->inactiveCnt, avg, lt->avgCnt);
+						lt->inactiveCnt, avg, lt->avgCnt);*/
 					lt->avg = 0;
 					lt->avgCnt = 0;
 					lt->active = false;
