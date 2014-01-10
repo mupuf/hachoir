@@ -81,8 +81,8 @@ void entryToStderr(const RetEntry *e)
 }
 
 
-void RadioEventTable::addCommunication(uint32_t frequencyStart,
-				       uint32_t frequencyEnd,
+void RadioEventTable::addCommunication(uint64_t frequencyStart,
+				       uint64_t frequencyEnd,
 				       int8_t pwr)
 {
 	RetEntry * entry = findMatchInActiveCommunications(frequencyStart, frequencyEnd, pwr);

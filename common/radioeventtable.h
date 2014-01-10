@@ -35,8 +35,15 @@ public:
 	~RadioEventTable();
 
 	void startAddingCommunications(uint64_t timeNs);
+
+	/* Access the current communications */
 	const std::list< std::shared_ptr<RetEntry> > &activeCommunications() const { return _activeComs; }
-	void addCommunication(uint32_t frequencyStart, uint32_t frequencyEnd,
+	void updateTransmission(RetEntry *entry, uint64_t frequencyStart,
+				uint64_t frequencyEnd,
+				int8_t pwr);
+
+	/* add a new communication */
+	void addCommunication(uint64_t frequencyStart, uint64_t frequencyEnd,
 			      int8_t pwr);
 	void stopAddingCommunications();
 

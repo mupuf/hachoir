@@ -206,6 +206,9 @@ namespace gtsrc {
 		/* the fft calculator */
 		gri_fft_complex fft(fft_size());
 
+		FILE *f = fopen("/tmp/bin_0.csv", "w");
+		fprintf(f, "pwr, floor, maxNoise\n");
+
 		uint64_t start_pos = _ringBuf.tail();
 		while (1)
 		{
@@ -218,8 +221,12 @@ namespace gtsrc {
 							       start_pos));
 			start_pos = new_fft->ringBufferStartPos() + fft_size();
 
-
-
+			float pwr = new_fft->operator [](500);
+			float floor = comsDetect().noiseFloor(500);
+			float maxNoise = comsDetect().noiseMax(500);
+			fprintf(f, "%f, %f, %f\n", pwr, floor, maxNoise);
+			fflush(f);
+			fsync(fileno(f));
 
 		/* detecting transmissions */
 			comsDetect().addFFT(new_fft);
@@ -229,19 +236,54 @@ namespace gtsrc {
 				filteredFFT[i] = pwr;
 			}
 
+#if 0
 			_ret.startAddingCommunications(new_fft->time_ns());
+
+			/* try to match the detected transmissions to the
+			 * currently-ongoing ones
+			 */
+			auto it = _ret.activeCommunications().begin();
+			for (; it != _ret.activeCommunications().end() ; it++) {
+				RetEntry *entry = (*it).get();
+				uint16_t start = new_fft->binAtFreq(entry->frequencyStart());
+				uint16_t end = new_fft->binAtFreq(entry->frequencyEnd());
+
+				if (start >= 2)
+					start -= 2;
+				if (end < fft_size() - 2)
+					end += 2;
+
+				int32_t realStart = -1, realEnd = -1;
+				for (int i = start; i < end; i++) {
+					bool active = comsDetect().isBinActive(i);
+					if (active)
+						realStart = i;
+					if (realStart > -1 && !active) {
+						/* we found a new sub-band */
+						realEnd = i;
+
+						if (abs(start - realStart) < 2 &&
+						    abs(end - realEnd) < 2) {
+							for (int e = realStart; e < realEnd; e++)
+								filteredFFT[i] = comsDetect().noiseFloor(e);
+						}
+					}
+				}
+			}
+
 			uint16_t comWidth = 0;
 			int32_t sumPwr = 0;
 			for (int i = 0; i < fft_size(); i++) {
-				if (filteredFFT[i] > 0) {
+				float noiseFloor = comsDetect().noiseFloor(i);
+				if (filteredFFT[i] > noiseFloor) {
 					sumPwr += filteredFFT[i];
 					comWidth++;
 				} else {
 					if (comWidth < comMinWidth) {
 						for (int e = i - comWidth; e < i; e++)
-							filteredFFT[e] = 0;
+							filteredFFT[e] = noiseFloor;
 					} else {
-						int8_t avgPwr = comsDetect().noiseFloor(i) + (int8_t)(sumPwr / comWidth);
+						int8_t avgPwr = (int8_t)(sumPwr / comWidth);
 
 						/* add the communication to the radio event table */
 						_ret.addCommunication(new_fft->freqAtBin(i - comWidth)/1000,
@@ -254,6 +296,7 @@ namespace gtsrc {
 				}
 			}
 			_ret.stopAddingCommunications();
+#endif
 
 		/* some stats, sorry about this code */
 			if (lastFFtTime > 0)
