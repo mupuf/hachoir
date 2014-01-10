@@ -22,7 +22,7 @@
 #define INCLUDED_GTSRC_HACHOIR_F_IMPL_H
 
 #include <gtsrc/hachoir_c.h>
-#include <gr_firdes.h>
+#include <gnuradio/filter/firdes.h>
 
 #include <stdint.h>
 #include <memory>
@@ -46,7 +46,7 @@ namespace gtsrc {
 		uint64_t _freq;
 		uint64_t _samplerate;
 		uint16_t _fft_size;
-		gr_firdes::win_type _window_type;
+		gr::filter::firdes::win_type _window_type;
 
 		/* server */
 		SensingServer _server;
@@ -66,7 +66,7 @@ namespace gtsrc {
 		void calc_fft();
 		void calcThermalNoise(const char *outputFile = NULL);
 
-		void update_fft_params(int fft_size, gr_firdes::win_type window_type);
+		void update_fft_params(int fft_size, gr::filter::firdes::win_type window_type);
 		uint64_t getTimeNs();
 
 	public:
@@ -84,12 +84,12 @@ namespace gtsrc {
 		uint64_t central_freq() const { return _freq;}
 		uint64_t sample_rate() const { return _samplerate;}
 		uint16_t  fft_size() const { return _fft_size;}
-		gr_firdes::win_type window_type() const { return _window_type;}
+		gr::filter::firdes::win_type window_type() const { return _window_type;}
 
 		void set_central_freq(double freq) { _freq = freq;}
 		void set_sample_rate(int samplerate) { _samplerate = samplerate;}
 		void set_FFT_size(int fft_size) { update_fft_params(fft_size, window_type()); }
-		void set_window_type(int win_type) { update_fft_params(fft_size(), (gr_firdes::win_type) win_type); }
+		void set_window_type(int win_type) { update_fft_params(fft_size(), (gr::filter::firdes::win_type) win_type); }
 	};
 
 } // namespace gtsrc

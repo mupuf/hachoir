@@ -23,9 +23,9 @@
 
 #include <cppunit/TestAssert.h>
 #include <gtsrc/hachoir_c.h>
-#include <gr_top_block.h>
-#include <gr_file_source.h>
-#include <gr_throttle.h>
+#include <gnuradio/top_block.h>
+#include <gnuradio/blocks/file_source.h>
+#include <gnuradio/blocks/throttle.h>
 
 #include <stdlib.h>
 #include <string>
@@ -36,7 +36,7 @@ namespace gtsrc {
 	void
 	qa_hachoir_c::t1()
 	{
-		gr_top_block_sptr topblock = gr_make_top_block("test_hachoir");
+		gr::top_block_sptr topblock = gr::make_top_block("test_hachoir");
 		int samplerate;
 
 		std::string filepath = std::string(getenv("HOME")) + "/gsm_940.samples";
@@ -47,8 +47,8 @@ namespace gtsrc {
 		samplerate = 1000000;
 		hachoir_c::sptr hachoir = hachoir_c::make(938000000, samplerate, 1024, 1);*/
 
-		gr_file_source_sptr file = gr_make_file_source(sizeof(gr_complex), filepath.c_str(), true);
-		gr_throttle::sptr throttle = gr_make_throttle(sizeof(gr_complex), samplerate);
+		gr::blocks::file_source::sptr file = gr::blocks::file_source::make(sizeof(gr_complex), filepath.c_str(), true);
+		gr::blocks::throttle::sptr throttle = gr::blocks::throttle::make(sizeof(gr_complex), samplerate);
 		topblock->connect(file, 0, throttle, 0);
 		topblock->connect(throttle, 0, hachoir, 0);
 		topblock->run();

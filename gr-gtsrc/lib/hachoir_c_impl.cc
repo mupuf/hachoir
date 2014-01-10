@@ -22,8 +22,8 @@
 #include "config.h"
 #endif
 
-#include <gr_io_signature.h>
-#include <gri_fft.h>
+#include <gnuradio/io_signature.h>
+#include <gnuradio/fft/fft.h>
 
 #include "hachoir_c_impl.h"
 #include "fftaverage.h"
@@ -56,16 +56,16 @@ namespace gtsrc {
 	* The private constructor
 	*/
 	hachoir_c_impl::hachoir_c_impl(double freq, int samplerate, int fft_size, int window_type)
-		: gr_block("hachoir_f",
-			gr_make_io_signature(1, 1, sizeof (gr_complex)),
-			gr_make_io_signature(0, 0, sizeof (gr_complex))),
+		: gr::block("hachoir_f",
+			gr::io_signature::make(1, 1, sizeof (gr_complex)),
+			gr::io_signature::make(0, 0, sizeof (gr_complex))),
 			_freq(freq), _samplerate(samplerate),
 			_server(21333), _ringBuf(samplerate / 10), /* store 100 ms worth of samples */
 			_ret(1000, comsDetect().comEndOfTransmissionDelay(), comsDetect().comMinDurationNs())
 	{
 		comsDetect().setFftSize(fft_size);
 
-		update_fft_params(fft_size, (gr_firdes::win_type) window_type);
+		update_fft_params(fft_size, (gr::filter::firdes::win_type) window_type);
 
 		fftThread = boost::thread(&hachoir_c_impl::calc_fft, this);
 	}
@@ -124,7 +124,7 @@ namespace gtsrc {
 	}
 
 	void
-	hachoir_c_impl::update_fft_params(int fft_size, gr_firdes::win_type window_type)
+	hachoir_c_impl::update_fft_params(int fft_size, gr::filter::firdes::win_type window_type)
 	{
 		/* reconstruct the window when the fft_size of the window type changes */
 		if (fft_size != _fft_size || window_type != _window_type)
@@ -204,7 +204,7 @@ namespace gtsrc {
 		size_t comMinWidth = 4;
 
 		/* the fft calculator */
-		gri_fft_complex fft(fft_size());
+		gr::fft::fft_complex fft(fft_size());
 
 		FILE *f = fopen("/tmp/bin_0.csv", "w");
 		fprintf(f, "pwr, floor, maxNoise\n");
@@ -330,7 +330,7 @@ namespace gtsrc {
 
 	void hachoir_c_impl::calcThermalNoise(const char *outputFile)
 	{
-		gri_fft_complex fft(fft_size());
+		gr::fft::fft_complex fft(fft_size());
 		FftAverage avr(fft_size(), central_freq(), sample_rate(), 500000); //500000
 		size_t profile[2000];
 		size_t profile_length = 2000;

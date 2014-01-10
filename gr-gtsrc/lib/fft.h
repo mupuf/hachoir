@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include <sys/time.h>
 
-#include <gri_fft.h>
+#include <gnuradio/fft/fft.h>
 
 #include "fftwindow.h"
 #include "samplesringbuffer.h"
@@ -60,10 +60,10 @@ protected:
 	 * \param    fft       A gri_fft_complex that will perform the FFT
 	 * \return   Nothing.
 	 */
-	void doFFt(uint16_t fftSize, FftWindow &win, gri_fft_complex *fft);
+	void doFFt(uint16_t fftSize, FftWindow &win, gr::fft::fft_complex *fft);
 
 	void FftFromRing(uint16_t fftSize, uint64_t centralFrequency,
-			 uint64_t sampleRate, gri_fft_complex *fft,
+			 uint64_t sampleRate, gr::fft::fft_complex *fft,
 			 FftWindow &win, SamplesRingBuffer &ringBuffer,
 			 uint64_t &fromPos);
 
@@ -85,7 +85,7 @@ public:
 	 * \return Nothing.
 	 */
 	Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
-	    gri_fft_complex *fft, FftWindow &win, const gr_complex *src, size_t length,
+	    gr::fft::fft_complex *fft, FftWindow &win, const gr_complex *src, size_t length,
 	    uint64_t time_ns);
 
 	/**
@@ -102,7 +102,7 @@ public:
 	 * \return Nothing.
 	 */
 	Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
-	    gri_fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer);
+	    gr::fft::fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer);
 
 	/**
 	 * \brief    Create the FFT from a SampleRingBuffer, reading either the last $fftSize samples
@@ -120,7 +120,7 @@ public:
 	 * \return Nothing.
 	 */
 	Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
-	    gri_fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer,
+	    gr::fft::fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer,
 	    uint64_t &fromPos);
 
 

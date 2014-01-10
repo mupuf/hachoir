@@ -49,7 +49,10 @@ list(APPEND gnuradio_gtsrc_sources
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wno-format")
 
 add_library(gnuradio-gtsrc SHARED ${gnuradio_gtsrc_sources})
-target_link_libraries(gnuradio-gtsrc ${Boost_LIBRARIES} ${GRUEL_LIBRARIES} ${GNURADIO_CORE_LIBRARIES})
+target_link_libraries(gnuradio-gtsrc ${Boost_LIBRARIES} ${GNURADIO_RUNTIME_LIBRARIES}
+                        ${GNURADIO_FFT_LIBRARIES}
+                        ${GNURADIO_FILTER_LIBRARIES}
+                        ${GNURADIO_BLOCKS_LIBRARIES})
 set_target_properties(gnuradio-gtsrc PROPERTIES DEFINE_SYMBOL "gnuradio_gtsrc_EXPORTS")
 
 ########################################################################
@@ -78,7 +81,7 @@ add_executable(test-gtsrc ${test_gtsrc_sources})
 
 target_link_libraries(
   test-gtsrc
-  ${GNURADIO_CORE_LIBRARIES}
+  ${GNURADIO_RUNTIME_LIBRARIES}
   ${Boost_LIBRARIES}
   ${CPPUNIT_LIBRARIES}
   gnuradio-gtsrc

@@ -23,7 +23,7 @@
 #define INCLUDED_LICORNE_HACHOIR_F_H
 
 #include <gtsrc/api.h>
-#include <gr_block.h>
+#include <gnuradio/block.h>
 
 namespace gr {
   namespace gtsrc {
@@ -33,7 +33,7 @@ namespace gr {
      * \ingroup gtsrc
      *
      */
-    class GTSRC_API hachoir_c : virtual public gr_block
+    class GTSRC_API hachoir_c : virtual public gr::block
     {
     public:
        typedef boost::shared_ptr<hachoir_c> sptr;

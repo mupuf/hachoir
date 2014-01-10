@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-void Fft::doFFt(uint16_t fftSize, FftWindow &win, gri_fft_complex *fft)
+void Fft::doFFt(uint16_t fftSize, FftWindow &win, gr::fft::fft_complex *fft)
 {
 	int i;
 
@@ -27,7 +27,7 @@ void Fft::doFFt(uint16_t fftSize, FftWindow &win, gri_fft_complex *fft)
 }
 
 void Fft::FftFromRing(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
-    gri_fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer,
+    gr::fft::fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer,
     uint64_t &fromPos)
 {
 	gr_complex *dst = fft->get_inbuf();
@@ -87,7 +87,7 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate) :
 }
 
 Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
-	 gri_fft_complex *fft, FftWindow &win, const gr_complex *src, size_t length,
+	 gr::fft::fft_complex *fft, FftWindow &win, const gr_complex *src, size_t length,
 	 uint64_t time_ns) : _fft_size(fftSize),
 	_central_frequency(centralFrequency), _sample_rate(sampleRate),
 	_time_ns(time_ns), _ringBufferStartPos(0), _pwr(fftSize)
@@ -109,7 +109,7 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 }
 
 Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
-    gri_fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer)
+    gr::fft::fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer)
 	: _fft_size(fftSize), _central_frequency(centralFrequency),
 	  _sample_rate(sampleRate), _pwr(fftSize)
 {
@@ -118,7 +118,7 @@ Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
 }
 
 Fft::Fft(uint16_t fftSize, uint64_t centralFrequency, uint64_t sampleRate,
-    gri_fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer,
+    gr::fft::fft_complex *fft, FftWindow &win, SamplesRingBuffer &ringBuffer,
     uint64_t &fromPos)
 	: _fft_size(fftSize), _central_frequency(centralFrequency),
 	  _sample_rate(sampleRate), _pwr(fftSize)

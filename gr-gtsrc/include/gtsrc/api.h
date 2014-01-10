@@ -22,7 +22,7 @@
 #ifndef INCLUDED_GTSRC_API_H
 #define INCLUDED_GTSRC_API_H
 
-#include <gruel/attributes.h>
+#include <gnuradio/attributes.h>
 
 #ifdef gnuradio_gtsrc_EXPORTS
 #  define GTSRC_API __GR_ATTR_EXPORT

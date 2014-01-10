@@ -8,7 +8,7 @@
 #ifndef FFTWINDOW_H
 #define FFTWINDOW_H
 
-#include <gr_firdes.h>
+#include <gnuradio/filter/firdes.h>
 #include <vector>
 #include <stdint.h>
 
@@ -24,7 +24,7 @@ class FftWindow
 {
 private:
 	uint16_t _fft_size; ///< The size of the FFT, no shit Sherlock!
-	gr_firdes::win_type _window_type; ///< The GNU Radio type for the window
+	gr::filter::firdes::win_type _window_type; ///< The GNU Radio type for the window
 	float _window_power; ///< The power associated with the window
 
 	std::vector<float> win; ///< The window
@@ -45,13 +45,13 @@ public:
 	 *
 	 * \return   Nothing.
 	 */
-	FftWindow(uint16_t fftSize, gr_firdes::win_type window_type);
+	FftWindow(uint16_t fftSize, gr::filter::firdes::win_type window_type);
 
 	/// reset the FFT Window (equivalent to a square window)
-	void reset(uint16_t fftSize, gr_firdes::win_type window_type);
+	void reset(uint16_t fftSize, gr::filter::firdes::win_type window_type);
 
 	uint16_t fftSize() const { return _fft_size; }
-	gr_firdes::win_type windowType() const { return _window_type; }
+	gr::filter::firdes::win_type windowType() const { return _window_type; }
 	float windowPower() const { return _window_power; }
 
 	/**

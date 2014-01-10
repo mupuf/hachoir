@@ -5,14 +5,14 @@ FftWindow::FftWindow()
 
 }
 
-FftWindow::FftWindow(uint16_t fftSize, gr_firdes::win_type window_type)
+FftWindow::FftWindow(uint16_t fftSize, gr::filter::firdes::win_type window_type)
 {
 	reset(fftSize, window_type);
 }
 
-void FftWindow::reset(uint16_t fftSize, gr_firdes::win_type window_type)
+void FftWindow::reset(uint16_t fftSize, gr::filter::firdes::win_type window_type)
 {
-	win = gr_firdes::window(window_type, fftSize, 6.76); // 6.76 is cargo-culted
+	win = gr::filter::firdes::window(window_type, fftSize, 6.76); // 6.76 is cargo-culted
 
 	_window_power = 0;
 	for (int i = 0; i < fftSize; i++)
