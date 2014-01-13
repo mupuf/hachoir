@@ -2,6 +2,8 @@
 
 #include "message_utils.h"
 
+#include <inttypes.h>
+
 bool RadioEventTable::fuzzyCompare(uint32_t a, uint32_t b, int32_t maxError)
 {
 	int32_t sub = a - b;
@@ -73,9 +75,12 @@ void entryToStderr(const RetEntry *e)
 {
 	if (e)
 	{
-		fprintf(stderr, "(id = %llu [%llu, %llu = %u]ns, [%u, %u = %u]kHz)",
+		fprintf(stderr,
+			"(id = %" PRIu64 " [%" PRIu64 ", %" PRIu64 " = %" PRIu64 "]ns,"
+			"[%u, %u = %u]kHz)",
 			e->id(), e->timeStart(), e->timeEnd(), e->timeEnd() - e->timeStart(),
-			e->frequencyStart(), e->frequencyEnd(), e->frequencyEnd() - e->frequencyStart());
+			e->frequencyStart(), e->frequencyEnd(),
+			e->frequencyEnd() - e->frequencyStart());
 	} else
 		fprintf(stderr, "(NULL)");
 }
