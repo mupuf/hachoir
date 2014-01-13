@@ -60,9 +60,10 @@ void CalibrationPoint::calcStats()
 
 		myfile << "power, p" << std::endl;
 
-		myfile << indexToPwr(i) << ", "
-		       << ((double)_distrib[i]) / _samplesCount
-		       << std::endl;
+		for (int i = 0; i < 256; i++)
+			myfile << indexToPwr(i) << ", "
+			       << ((double)_distrib[i]) / _samplesCount
+			       << std::endl;
 
 		myfile << ",,Real mean, " << realMean() << std::endl;
 		myfile << ",,Real max, " << realMax() << std::endl;
