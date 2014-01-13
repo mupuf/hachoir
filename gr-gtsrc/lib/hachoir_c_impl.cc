@@ -206,7 +206,7 @@ namespace gtsrc {
 		/* the fft calculator */
 		gr::fft::fft_complex fft(fft_size());
 
-		FILE *f = fopen("/tmp/bin_0.csv", "w");
+		FILE *f = fopen("/tmp/bin_pwr.csv", "w");
 		fprintf(f, "pwr, floor, maxNoise\n");
 
 		uint64_t start_pos = _ringBuf.tail();
