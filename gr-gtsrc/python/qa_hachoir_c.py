@@ -18,25 +18,13 @@
 # Boston, MA 02110-1301, USA.
 # 
 
-from gnuradio import gr, gr_unittest,analog,uhd
 import gtsrc_swig as gtsrc
-
-from gnuradio import eng_notation
-from gnuradio import gr
-from gnuradio import uhd
-from gnuradio import window
-from gnuradio.eng_option import eng_option
-from gnuradio.gr import firdes
-from gnuradio.wxgui import fftsink2
-from gnuradio.wxgui import forms
-from gnuradio.wxgui import scopesink2
-from gnuradio.wxgui import waterfallsink2
-from grc_gnuradio import wxgui as grc_wxgui
+from gnuradio import gr, gr_unittest, uhd
+from gnuradio import blocks
 from optparse import OptionParser
 import numpy
 import threading
 import time
-import wx
 import os
 
 class qa_hachoir_c (gr_unittest.TestCase):
