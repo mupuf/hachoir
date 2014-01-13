@@ -13,6 +13,7 @@ SensingServer::SensingServer(QObject *parent) :
 
 QObject * SensingServer::sensingNode(int clientID)
 {
+	QQmlEngine::setObjectOwnership(nodes[clientID].data(), QQmlEngine::CppOwnership);
 	return nodes[clientID].data();
 }
 

@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QVector>
+#include <QQmlEngine>
 
 #include <stdint.h>
 #include <sys/time.h>
@@ -61,8 +62,14 @@ QMap<QString, QVariant> SensingNode::getFftEntriesRange()
 
 QObject * SensingNode::selectFftEntry(qreal pos)
 {
-	if (pos >= _entries_start && pos < _entries_end)
-		return _entries[pos - _entries_start].get();
+	static std::shared_ptr< PowerSpectrum> cache;
+
+	if (pos >= _entries_start && pos < _entries_end) {
+		cache = _entries[pos - _entries_start];
+		QQmlEngine::setObjectOwnership(cache.get(),
+					       QQmlEngine::CppOwnership);
+		return cache.get();
+	}
 	else
 		return NULL;
 }
