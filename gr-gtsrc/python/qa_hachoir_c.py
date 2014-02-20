@@ -35,26 +35,26 @@ class qa_hachoir_c (gr_unittest.TestCase):
 	def tearDown (self):
 		self.tb = None
 
-	def test_002_t (self):
-		samp_rate = 8000000
-		freq=0.940e9
-		#freq=2.464e9
-		sqr = gtsrc.hachoir_c(freq=freq, samplerate=samp_rate, fft_size=256, window_type=1)
-		filepath=os.getenv("HOME") + "/gsm_940.samples"
-		self.gr_file_source_0 = gr.file_source(gr.sizeof_gr_complex*1, filepath, True)
-		self.tb.connect((self.gr_file_source_0, 0), (sqr, 0))
-		self.tb.run ()
-		# check data
+	#def test_002_t (self):
+	#	samp_rate = 8000000
+	#	freq=0.940e9
+	#	#freq=2.464e9
+	#	sqr = gtsrc.hachoir_c(freq=freq, samplerate=samp_rate, fft_size=256, window_type=1)
+	#	filepath=os.getenv("HOME") + "/gsm_940.samples"
+	#	self.gr_file_source_0 = gr.file_source(gr.sizeof_gr_complex*1, filepath, True)
+	#	self.tb.connect((self.gr_file_source_0, 0), (sqr, 0))
+	#	self.tb.run ()
+	#	# check data
 
 	def test_001_t(self):
 		samp_rate = 8000000
 		#samp_rate = 2800000
-		#freq=0.726e9
-		freq=0.941e9
+		freq=0.726e9
+		#freq=0.941e9
 		#freq=2.3955e9
-		gain=19
-		ant = "TX/RX"
-		#ant = "RX2"
+		gain=40
+		#ant = "TX/RX"
+		ant = "RX2"
 		self.uhd_usrp_source_0 = uhd.usrp_source(
 					device_addr="",
 					stream_args=uhd.stream_args(

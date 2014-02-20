@@ -1,6 +1,9 @@
 cmake_minimum_required (VERSION 2.6) 
 project (Hachoir_UHD)
 
-link_directories (${HELLO_BINARY_DIR}/Hello) 
-add_executable (hachoir_uhd hachoir_uhd.cpp) 
-target_link_libraries (hachoir_uhd "-luhd") 
+find_package(Boost COMPONENTS program_options system thread REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
+link_directories(${Boost_LIBRARY_DIRS})
+
+add_executable (hachoir_uhd hachoir_uhd.cpp com_detect.cpp)
+target_link_libraries (hachoir_uhd ${Boost_LIBRARIES} "-luhd" )

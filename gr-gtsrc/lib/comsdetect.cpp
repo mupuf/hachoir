@@ -122,9 +122,6 @@ void ComsDetect::addFFT(boost::shared_ptr<Fft> fft)
 			lt->active = true;
 		}
 
-		/* TODO: Use the density system to find the most likely average
-		 * without needing to rely on averaging the signal.
-		 */
 		if (lt->active) {
 			lt->avg += pwr;
 			lt->avgSquared += pwr * pwr;

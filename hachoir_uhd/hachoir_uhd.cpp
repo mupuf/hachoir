@@ -28,6 +28,8 @@
 #include <csignal>
 #include <complex>
 
+#include "com_detect.h"
+
 namespace po = boost::program_options;
 
 static bool stop_signal_called = false;
@@ -81,7 +83,7 @@ template<typename samp_type> void recv_to_file(
     while(not stop_signal_called and (num_requested_samples != num_total_samps or num_requested_samples == 0)){
 		boost::system_time now = boost::get_system_time();
 		
-        size_t num_rx_samps = rx_stream->recv(&buff.front(), buff.size(), md, 3.0, enable_size_map);
+	size_t num_rx_samps = rx_stream->recv(&buff.front(), buff.size(), md, 3.0, enable_size_map);
 
         if (md.error_code == uhd::rx_metadata_t::ERROR_CODE_TIMEOUT) {
             std::cout << boost::format("Timeout while streaming") << std::endl;
@@ -118,9 +120,11 @@ template<typename samp_type> void recv_to_file(
 			if (it == mapSizes.end())
 				mapSizes[num_rx_samps] = 0;
 			mapSizes[num_rx_samps] += 1;
-		}
+	}
 
         num_total_samps += num_rx_samps;
+
+		process_samples(md, cpu_format, buff.data(), num_rx_samps);
 
 		if (outfile.is_open())
 			outfile.write((const char*)&buff.front(), num_rx_samps*sizeof(samp_type));
@@ -223,7 +227,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     desc.add_options()
         ("help", "help message")
         ("args", po::value<std::string>(&args)->default_value(""), "multi uhd device address args")
-        ("file", po::value<std::string>(&file)->default_value("usrp_samples.dat"), "name of the file to write binary samples to")
+	("file", po::value<std::string>(&file)->default_value(""), "name of the file to write binary samples to")
         ("type", po::value<std::string>(&type)->default_value("short"), "sample type: double, float, or short")
         ("nsamps", po::value<size_t>(&total_num_samps)->default_value(0), "total number of samples to receive")
         ("time", po::value<double>(&total_time)->default_value(0), "total number of seconds to receive")
