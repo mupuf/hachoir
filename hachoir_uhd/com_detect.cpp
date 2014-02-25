@@ -81,7 +81,6 @@ process_samples_sc16(phy_parameters_t &phy, uhd::rx_metadata_t md,
 	static rx_state_t state = LISTEN;
 
 	/* communication */
-	static std::complex<short> samples_lst_blk[COMS_PREFIX_SAMPLE_COUNT];
 	static burst_sc16_t burst = burst_sc16_init();
 	static size_t com_sample = 0;
 	static float com_mag_sum = 0.0;
@@ -147,7 +146,7 @@ process_samples_sc16(phy_parameters_t &phy, uhd::rx_metadata_t md,
 						  << ")"
 						  << std::endl;
 
-					/* change the phy parameters if wanted */
+					/* change the phy parameters, if wanted */
 					/*phy.central_freq = 869.5e6;
 					phy.sample_rate = 1500000;
 					phy.IF_bw = 2000000;
