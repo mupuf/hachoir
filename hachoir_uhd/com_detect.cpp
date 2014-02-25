@@ -6,11 +6,11 @@
 
 #define BURST_MIN_ALLOC_SIZE 100000
 
-#define NOISE_AVR_SAMPLE_COUNT 500
-#define NOISE_THRESHOLD_FACTOR 6
+#define NOISE_AVR_SAMPLE_COUNT 1000
+#define NOISE_THRESHOLD_FACTOR 10
 
-#define COMS_DETECT_MIN_SAMPLES 50
-#define COMS_DETECT_SAMPLES_UNDER_THRS 10
+#define COMS_DETECT_MIN_SAMPLES 200
+#define COMS_DETECT_SAMPLES_UNDER_THRS 20
 #define COMS_PREFIX_SAMPLE_COUNT 50
 
 enum rx_state_t {
@@ -34,6 +34,7 @@ burst_sc16_start(burst_sc16_t *b, const phy_parameters_t &phy,
 	b->len = 0;
 	b->phy = phy;
 	b->noise_mag_avr = noise_mag_avr;
+	b->burst_id = -1;
 	b->start_time_us = blk_time.to_ticks(sec_ticks);
 	b->start_time_us += (blk_off * sec_ticks) / sec_ticks;
 }
@@ -61,6 +62,13 @@ burst_sc16_append(burst_sc16_t *b, std::complex<short> *src, size_t src_len)
 	/* add the new data at the end of the current transmission */
 	memcpy(b->samples + b->len, src, src_len * sizeof(std::complex<short>));
 	b->len += src_len;
+}
+
+inline void
+burst_sc16_done(burst_sc16_t *b)
+{
+	static uint64_t burst_id = 0;
+	b->burst_id = burst_id++;
 }
 
 
@@ -123,19 +131,21 @@ process_samples_sc16(phy_parameters_t &phy, uhd::rx_metadata_t md,
 					size_t com_blk_len = i - com_blk_start;
 					burst_sc16_append(&burst, samples + com_blk_start,
 							  com_blk_len);
+					burst_sc16_done(&burst);
 					process_burst_sc16(&burst);
 
-					static int detect_count = 0;
-					std::cout << "communication ended, len = "
+					std::cout << burst.burst_id
+						  << ": new communication, time = "
+						  << burst.start_time_us
+						  << " µs, len = "
 						  << com_sample
-						  << ", avg = "
+						  << " samples, avg_pwr = "
 						  << (com_mag_sum / com_sample) * 100 / com_thrs
 						  << "% above threshold ("
 						  << com_mag_sum / com_sample
 						  << " vs noise avr "
 						  << noise_avr
-						  << "), start_off = "
-						  << com_blk_start
+						  << ")"
 						  << std::endl;
 
 					/* change the phy parameters if wanted */
