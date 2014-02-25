@@ -26,14 +26,16 @@ burst_sc16_init()
 }
 
 inline void
-burst_sc16_start(burst_sc16_t *b, float central_freq, size_t bandwidth,
+burst_sc16_start(burst_sc16_t *b, const phy_parameters_t &phy,
 		 float noise_mag_avr, uhd::time_spec_t blk_time, size_t blk_off)
 {
+	size_t sec_ticks = 1000000;
+
 	b->len = 0;
-	b->central_freq = central_freq;
-	b->bandwidth = bandwidth;
+	b->phy = phy;
 	b->noise_mag_avr = noise_mag_avr;
-	b->start_time_us = blk_time.to_ticks(1000000); // TODO: Fix the time calculation
+	b->start_time_us = blk_time.to_ticks(sec_ticks);
+	b->start_time_us += (blk_off * sec_ticks) / sec_ticks;
 }
 
 inline void
@@ -62,7 +64,9 @@ burst_sc16_append(burst_sc16_t *b, std::complex<short> *src, size_t src_len)
 }
 
 
-void process_samples_sc16(uhd::rx_metadata_t md, std::complex<short> *samples, size_t count)
+process_return_val_t
+process_samples_sc16(phy_parameters_t &phy, uhd::rx_metadata_t md,
+				      std::complex<short> *samples, size_t count)
 {
 	/* detection + current state */
 	static float noise_avr = -1.0, com_thrs = 200.0, noise_mag_sum;
@@ -97,8 +101,7 @@ void process_samples_sc16(uhd::rx_metadata_t md, std::complex<short> *samples, s
 		if (mag >= com_thrs) {
 			if (state == LISTEN) {
 				state = RX;
-				burst_sc16_start(&burst, 0.0, 1000000, noise_avr,
-						 md.time_spec, i);
+				burst_sc16_start(&burst, phy, noise_avr, md.time_spec, i);
 				com_mag_sum = 0.0;
 				com_sample = 0;
 				com_blk_start = i;
@@ -122,6 +125,7 @@ void process_samples_sc16(uhd::rx_metadata_t md, std::complex<short> *samples, s
 							  com_blk_len);
 					process_burst_sc16(&burst);
 
+					static int detect_count = 0;
 					std::cout << "communication ended, len = "
 						  << com_sample
 						  << ", avg = "
@@ -133,6 +137,14 @@ void process_samples_sc16(uhd::rx_metadata_t md, std::complex<short> *samples, s
 						  << "), start_off = "
 						  << com_blk_start
 						  << std::endl;
+
+					/* change the phy parameters if wanted */
+					/*phy.central_freq = 869.5e6;
+					phy.sample_rate = 1500000;
+					phy.IF_bw = 2000000;
+					phy.gain = 45;
+					return RET_CH_PHY;
+					*/
 				}
 			}
 		}
@@ -145,16 +157,20 @@ void process_samples_sc16(uhd::rx_metadata_t md, std::complex<short> *samples, s
 		burst_sc16_append(&burst, samples + com_blk_start,
 				  count - com_blk_start - 1);
 	}
+
+	return RET_NOP;
 }
 
 
-void process_samples_fc32(uhd::rx_metadata_t md, std::complex<float> *samples, size_t count)
+process_return_val_t process_samples_fc32(phy_parameters_t &phy, uhd::rx_metadata_t md, std::complex<float> *samples, size_t count)
 {
 	std::cout << "fc32: received " << count << " samples!" << std::endl;
+	return RET_NOP;
 }
 
-void process_samples_fc64(uhd::rx_metadata_t md, std::complex<double> *samples, size_t count)
+process_return_val_t process_samples_fc64(phy_parameters_t &phy, uhd::rx_metadata_t md, std::complex<double> *samples, size_t count)
 {
 	std::cout << "fc64: received " << count << " samples!" << std::endl;
+	return RET_NOP;
 }
 

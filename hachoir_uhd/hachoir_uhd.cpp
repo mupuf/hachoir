@@ -35,8 +35,11 @@ namespace po = boost::program_options;
 static bool stop_signal_called = false;
 void sig_int_handler(int){stop_signal_called = true;}
 
-template<typename samp_type> void recv_to_file(
+
+
+template<typename samp_type> bool recv_to_file(
     uhd::usrp::multi_usrp::sptr usrp,
+    phy_parameters_t &phy,
     const std::string &cpu_format,
     const std::string &wire_format,
     const std::string &file,
@@ -120,6 +123,9 @@ template<typename samp_type> void recv_to_file(
 
 		num_total_samps += num_rx_samps;
 
+		if (outfile.is_open())
+			outfile.write((const char*)&buff.front(), num_rx_samps*sizeof(samp_type));
+
 		/*std::complex<short> c[4];
 		c[0] = std::complex<short>(32000, 32000);
 		c[1] = std::complex<short>(-32000, 32000);
@@ -128,15 +134,20 @@ template<typename samp_type> void recv_to_file(
 		for (int e = 0; e < 100; e++)
 			buff[e+num_total_samps-100] = c[e % 4];*/
 
-		process_samples(md, cpu_format, buff.data(), num_rx_samps);
+		if (process_samples(phy, md, cpu_format, buff.data(), num_rx_samps) == RET_CH_PHY) {
+			//tear-down streaming
+			uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
+			stream_cmd.stream_now = true;
+			stream_cmd.time_spec = uhd::time_spec_t();
+			rx_stream->issue_stream_cmd(stream_cmd);
+
+			return true;
+		}
 
 		/*for (int e = 0; e < 100; e++)
 			buff[e] = c[e % 4];
 
 		process_samples(md, cpu_format, buff.data(), 200);*/
-
-		if (outfile.is_open())
-			outfile.write((const char*)&buff.front(), num_rx_samps*sizeof(samp_type));
 
 		if (bw_summary){
 			last_update_samps += num_rx_samps;
@@ -179,178 +190,163 @@ template<typename samp_type> void recv_to_file(
 
 typedef boost::function<uhd::sensor_value_t (const std::string&)> get_sensor_fn_t;
 
-bool check_locked_sensor(std::vector<std::string> sensor_names, const char* sensor_name, get_sensor_fn_t get_sensor_fn, double setup_time){
-	if (std::find(sensor_names.begin(), sensor_names.end(), sensor_name) == sensor_names.end())
+bool usrp_set_phy(uhd::usrp::multi_usrp::sptr usrp, const phy_parameters_t &phy,
+		  const std::string &ref, bool int_n_tuning, bool check_lo,
+		  float lo_timeout)
+{
+	//set the center frequency
+	std::cout << boost::format("Setting RX Freq: %f MHz...") % (phy.central_freq/1e6) << std::endl;
+	uhd::tune_request_t tune_request(phy.central_freq);
+	if(int_n_tuning) tune_request.args = uhd::device_addr_t("mode_n=integer");
+	usrp->set_rx_freq(tune_request);
+	std::cout << boost::format("Actual RX Freq: %f MHz...") % (usrp->get_rx_freq()/1e6) << std::endl << std::endl;
+
+	//set the sample rate
+	if (phy.sample_rate <= 0.0){
+		std::cerr << "Please specify a valid sample rate" << std::endl;
 		return false;
-	
-	boost::system_time start = boost::get_system_time();
-	boost::system_time first_lock_time;
-	
-	std::cout << boost::format("Waiting for \"%s\": ") % sensor_name;
-	std::cout.flush();
-	
-	while (true){
-		if ((not first_lock_time.is_not_a_date_time()) and
-			(boost::get_system_time() > (first_lock_time + boost::posix_time::seconds(setup_time))))
-		{
-			std::cout << " locked." << std::endl;
-			break;
-		}
-		
-		if (get_sensor_fn(sensor_name).to_bool()){
-			if (first_lock_time.is_not_a_date_time())
-				first_lock_time = boost::get_system_time();
-			std::cout << "+";
-			std::cout.flush();
-		}
-		else{
-			first_lock_time = boost::system_time();	//reset to 'not a date time'
-			
-			if (boost::get_system_time() > (start + boost::posix_time::seconds(setup_time))){
-				std::cout << std::endl;
-				throw std::runtime_error(str(boost::format("timed out waiting for consecutive locks on sensor \"%s\"") % sensor_name));
-			}
-			
-			std::cout << "_";
-			std::cout.flush();
-		}
-		
-		boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 	}
-	
-	std::cout << std::endl;
-	
+	std::cout << boost::format("Setting RX Rate: %f Msps...") % (phy.sample_rate/1e6) << std::endl;
+	usrp->set_rx_rate(phy.sample_rate);
+	std::cout << boost::format("Actual RX Rate: %f Msps...") % (usrp->get_rx_rate()/1e6) << std::endl << std::endl;
+
+	//set the rf gain
+	if (phy.gain >= 0.0) {
+		std::cout << boost::format("Setting RX Gain: %f dB...") % phy.gain << std::endl;
+		usrp->set_rx_gain(phy.gain);
+		std::cout << boost::format("Actual RX Gain: %f dB...") % usrp->get_rx_gain() << std::endl << std::endl;
+	}
+
+	//set the IF filter bandwidth
+	if (phy.IF_bw >= 0.0) {
+		std::cout << boost::format("Setting RX Bandwidth: %f MHz...") % phy.IF_bw << std::endl;
+		usrp->set_rx_bandwidth(phy.IF_bw);
+		std::cout << boost::format("Actual RX Bandwidth: %f MHz...") % usrp->get_rx_bandwidth() << std::endl << std::endl;
+	}
+
+	// wait for lo_locked */
+	std::cout << "Waiting on the LO: ";
+	int i = 0;
+	while (not usrp->get_rx_sensor("lo_locked").to_bool()){
+		boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+		i++;
+		if (i % 100)
+			std::cout << "+ ";
+		if (i > 1000) {
+			std::cout << "failed!" << std::endl;
+			return false;
+		}
+	}
+	std::cout << "locked!" << std::endl << std::endl;
+
 	return true;
 }
 
 int UHD_SAFE_MAIN(int argc, char *argv[]){
-    uhd::set_thread_priority_safe();
+	uhd::set_thread_priority_safe();
 
-    //variables to be set by po
-    std::string args, file, type, ant, subdev, ref, wirefmt;
-    size_t total_num_samps, spb;
-    double rate, freq, gain, bw, total_time, setup_time;
+	phy_parameters_t phy;
+
+	//variables to be set by po
+	std::string args, file, type, ant, subdev, ref, wirefmt;
+	size_t total_num_samps, spb;
+	double total_time, setup_time;
 
     //setup the program options
-    po::options_description desc("Allowed options");
-    desc.add_options()
-        ("help", "help message")
-        ("args", po::value<std::string>(&args)->default_value(""), "multi uhd device address args")
-	("file", po::value<std::string>(&file)->default_value(""), "name of the file to write binary samples to")
-        ("type", po::value<std::string>(&type)->default_value("short"), "sample type: double, float, or short")
-        ("nsamps", po::value<size_t>(&total_num_samps)->default_value(0), "total number of samples to receive")
-        ("time", po::value<double>(&total_time)->default_value(0), "total number of seconds to receive")
-        ("spb", po::value<size_t>(&spb)->default_value(10000), "samples per buffer")
-        ("rate", po::value<double>(&rate)->default_value(1e6), "rate of incoming samples")
-        ("freq", po::value<double>(&freq)->default_value(0.0), "RF center frequency in Hz")
-        ("gain", po::value<double>(&gain), "gain for the RF chain")
-        ("ant", po::value<std::string>(&ant), "daughterboard antenna selection")
-        ("subdev", po::value<std::string>(&subdev), "daughterboard subdevice specification")
-        ("bw", po::value<double>(&bw), "daughterboard IF filter bandwidth in Hz")
-        ("ref", po::value<std::string>(&ref)->default_value("internal"), "waveform type (internal, external, mimo)")
-        ("wirefmt", po::value<std::string>(&wirefmt)->default_value("sc16"), "wire format (sc8 or sc16)")
-        ("setup", po::value<double>(&setup_time)->default_value(1.0), "seconds of setup time")
-        ("progress", "periodically display short-term bandwidth")
-        ("stats", "show average bandwidth on exit")
-        ("sizemap", "track packet size and display breakdown on exit")
-        ("null", "run without writing to file")
-        ("continue", "don't abort on a bad packet")
-        ("skip-lo", "skip checking LO lock status")
-        ("int-n", "tune USRP with integer-N tuning")
-    ;
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
+	po::options_description desc("Allowed options");
+	desc.add_options()
+		("help", "help message")
+		("args", po::value<std::string>(&args)->default_value(""), "multi uhd device address args")
+		("file", po::value<std::string>(&file)->default_value(""), "name of the file to write binary samples to")
+		("type", po::value<std::string>(&type)->default_value("short"), "sample type: double, float, or short")
+		("nsamps", po::value<size_t>(&total_num_samps)->default_value(0), "total number of samples to receive")
+		("time", po::value<double>(&total_time)->default_value(0), "total number of seconds to receive")
+		("spb", po::value<size_t>(&spb)->default_value(1000), "samples per buffer")
+		("rate", po::value<float>(&phy.sample_rate)->default_value(1e6), "rate of incoming samples")
+		("freq", po::value<float>(&phy.central_freq)->default_value(0.0), "RF center frequency in Hz")
+		("gain", po::value<float>(&phy.gain), "gain for the RF chain")
+		("ant", po::value<std::string>(&ant), "daughterboard antenna selection")
+		("subdev", po::value<std::string>(&subdev), "daughterboard subdevice specification")
+		("bw", po::value<float>(&phy.IF_bw), "daughterboard IF filter bandwidth in Hz")
+		("ref", po::value<std::string>(&ref)->default_value("internal"), "waveform type (internal, external, mimo)")
+		("wirefmt", po::value<std::string>(&wirefmt)->default_value("sc16"), "wire format (sc8 or sc16)")
+		("setup", po::value<double>(&setup_time)->default_value(5.0), "seconds of setup time")
+		("progress", "periodically display short-term bandwidth")
+		("stats", "show average bandwidth on exit")
+		("sizemap", "track packet size and display breakdown on exit")
+		("null", "run without writing to file")
+		("continue", "don't abort on a bad packet")
+		("skip-lo", "skip checking LO lock status")
+		("int-n", "tune USRP with integer-N tuning")
+	;
+	po::variables_map vm;
+	po::store(po::parse_command_line(argc, argv, desc), vm);
+	po::notify(vm);
 
-    //print the help message
-    if (vm.count("help")){
-        std::cout << boost::format("UHD RX samples to file %s") % desc << std::endl;
-        return ~0;
-    }
-    
-    bool bw_summary = vm.count("progress") > 0;
-    bool stats = vm.count("stats") > 0;
-    bool null = vm.count("null") > 0;
-    bool enable_size_map = vm.count("sizemap") > 0;
-    bool continue_on_bad_packet = vm.count("continue") > 0;
-    
-    if (enable_size_map)
+	//print the help message
+	if (vm.count("help")){
+	std::cout << boost::format("UHD RX samples to file %s") % desc << std::endl;
+	return ~0;
+	}
+
+	bool bw_summary = vm.count("progress") > 0;
+	bool stats = vm.count("stats") > 0;
+	bool null = vm.count("null") > 0;
+	bool enable_size_map = vm.count("sizemap") > 0;
+	bool continue_on_bad_packet = vm.count("continue") > 0;
+
+	if (not vm.count("bw"))
+		phy.IF_bw = -1.0;
+	if (not vm.count("gain"))
+		phy.gain = -1.0;
+
+	if (enable_size_map)
 		std::cout << "Packet size tracking enabled - will only recv one packet at a time!" << std::endl;
 
-    //create a usrp device
-    std::cout << std::endl;
-    std::cout << boost::format("Creating the usrp device with: %s...") % args << std::endl;
-    uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(args);
+	//create a usrp device
+	std::cout << std::endl;
+	std::cout << boost::format("Creating the usrp device with: %s...") % args << std::endl;
+	uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(args);
 
-    //Lock mboard clocks
-    usrp->set_clock_source(ref);
+	//Lock mboard clocks
+	usrp->set_clock_source(ref);
 
-    //always select the subdevice first, the channel mapping affects the other settings
-    if (vm.count("subdev")) usrp->set_rx_subdev_spec(subdev);
+	//always select the subdevice first, the channel mapping affects the other settings
+	if (vm.count("subdev")) usrp->set_rx_subdev_spec(subdev);
 
-    std::cout << boost::format("Using Device: %s") % usrp->get_pp_string() << std::endl;
+	std::cout << boost::format("Using Device: %s") % usrp->get_pp_string() << std::endl;
 
-    //set the sample rate
-    if (rate <= 0.0){
-        std::cerr << "Please specify a valid sample rate" << std::endl;
-        return ~0;
-    }
-    std::cout << boost::format("Setting RX Rate: %f Msps...") % (rate/1e6) << std::endl;
-    usrp->set_rx_rate(rate);
-    std::cout << boost::format("Actual RX Rate: %f Msps...") % (usrp->get_rx_rate()/1e6) << std::endl << std::endl;
+	//set the antenna
+	if (vm.count("ant")) usrp->set_rx_antenna(ant);
 
-    //set the center frequency
-    if (vm.count("freq")){	//with default of 0.0 this will always be true
-		std::cout << boost::format("Setting RX Freq: %f MHz...") % (freq/1e6) << std::endl;
-        uhd::tune_request_t tune_request(freq);
-        if(vm.count("int-n")) tune_request.args = uhd::device_addr_t("mode_n=integer");
-		usrp->set_rx_freq(tune_request);
-		std::cout << boost::format("Actual RX Freq: %f MHz...") % (usrp->get_rx_freq()/1e6) << std::endl << std::endl;
+	if (total_num_samps == 0){
+	std::signal(SIGINT, &sig_int_handler);
+	std::cout << "Press Ctrl + C to stop streaming..." << std::endl;
 	}
-
-    //set the rf gain
-    if (vm.count("gain")){
-        std::cout << boost::format("Setting RX Gain: %f dB...") % gain << std::endl;
-        usrp->set_rx_gain(gain);
-        std::cout << boost::format("Actual RX Gain: %f dB...") % usrp->get_rx_gain() << std::endl << std::endl;
-    }
-
-    //set the IF filter bandwidth
-    if (vm.count("bw")){
-        std::cout << boost::format("Setting RX Bandwidth: %f MHz...") % bw << std::endl;
-        usrp->set_rx_bandwidth(bw);
-        std::cout << boost::format("Actual RX Bandwidth: %f MHz...") % usrp->get_rx_bandwidth() << std::endl << std::endl;
-    }
-
-    //set the antenna
-    if (vm.count("ant")) usrp->set_rx_antenna(ant);
-
-    boost::this_thread::sleep(boost::posix_time::seconds(setup_time)); //allow for some setup time
-
-    //check Ref and LO Lock detect
-    if (not vm.count("skip-lo")){
-		check_locked_sensor(usrp->get_rx_sensor_names(0), "lo_locked", boost::bind(&uhd::usrp::multi_usrp::get_rx_sensor, usrp, _1, 0), setup_time);
-		if (ref == "mimo")
-			check_locked_sensor(usrp->get_mboard_sensor_names(0), "mimo_locked", boost::bind(&uhd::usrp::multi_usrp::get_mboard_sensor, usrp, _1, 0), setup_time);
-		if (ref == "external")
-			check_locked_sensor(usrp->get_mboard_sensor_names(0), "ref_locked", boost::bind(&uhd::usrp::multi_usrp::get_mboard_sensor, usrp, _1, 0), setup_time);
-	}
-
-    if (total_num_samps == 0){
-        std::signal(SIGINT, &sig_int_handler);
-        std::cout << "Press Ctrl + C to stop streaming..." << std::endl;
-    }
 
 #define recv_to_file_args(format) \
-	(usrp, format, wirefmt, file, spb, total_num_samps, total_time, bw_summary, stats, null, enable_size_map, continue_on_bad_packet)
-    //recv to file
-    if (type == "double") recv_to_file<std::complex<double> >recv_to_file_args("fc64");
-    else if (type == "float") recv_to_file<std::complex<float> >recv_to_file_args("fc32");
-    else if (type == "short") recv_to_file<std::complex<short> >recv_to_file_args("sc16");
-    else throw std::runtime_error("Unknown type " + type);
+	(usrp, phy, format, wirefmt, file, spb, total_num_samps, total_time, bw_summary, stats, null, enable_size_map, continue_on_bad_packet)
 
-    //finished
-    std::cout << std::endl << "Done!" << std::endl << std::endl;
+	bool phy_ok, start_over;
 
-    return EXIT_SUCCESS;
+	do {
+		phy_ok = usrp_set_phy(usrp, phy, ref, vm.count("int-n"), not vm.count("skip-lo"), setup_time);
+		if (!phy_ok)
+			continue;
+
+		//recv to file
+		if (type == "double")
+			start_over = recv_to_file<std::complex<double> >recv_to_file_args("fc64");
+		else if (type == "float")
+			start_over = recv_to_file<std::complex<float> >recv_to_file_args("fc32");
+		else if (type == "short")
+			start_over = recv_to_file<std::complex<short> >recv_to_file_args("sc16");
+		else
+			throw std::runtime_error("Unknown type " + type);
+
+		//finished
+		std::cout << std::endl << "Done!" << std::endl << std::endl;
+	} while (phy_ok && start_over);
+
+	return EXIT_SUCCESS;
 }
