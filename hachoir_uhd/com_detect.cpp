@@ -11,7 +11,6 @@
 
 #define COMS_DETECT_MIN_SAMPLES 200
 #define COMS_DETECT_SAMPLES_UNDER_THRS 20
-#define COMS_PREFIX_SAMPLE_COUNT 50
 
 enum rx_state_t {
 	LISTEN = 0,
@@ -124,7 +123,7 @@ process_samples_sc16(phy_parameters_t &phy, uhd::rx_metadata_t md,
 			com_sample++;
 
 			/* detect the end of the transmission */
-			if (detect_samples_under > COMS_DETECT_SAMPLES_UNDER_THRS) {
+			if (detect_samples_under >= COMS_DETECT_SAMPLES_UNDER_THRS) {
 				state = LISTEN;
 
 				if (com_sample >= COMS_DETECT_MIN_SAMPLES) {

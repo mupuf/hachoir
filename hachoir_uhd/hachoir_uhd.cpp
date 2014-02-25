@@ -126,14 +126,6 @@ template<typename samp_type> bool recv_to_file(
 		if (outfile.is_open())
 			outfile.write((const char*)&buff.front(), num_rx_samps*sizeof(samp_type));
 
-		/*std::complex<short> c[4];
-		c[0] = std::complex<short>(32000, 32000);
-		c[1] = std::complex<short>(-32000, 32000);
-		c[2] = std::complex<short>(-32000, -32000);
-		c[3] = std::complex<short>(32000, -32000);
-		for (int e = 0; e < 100; e++)
-			buff[e+num_total_samps-100] = c[e % 4];*/
-
 		if (process_samples(phy, md, cpu_format, buff.data(), num_rx_samps) == RET_CH_PHY) {
 			//tear-down streaming
 			uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
@@ -143,11 +135,6 @@ template<typename samp_type> bool recv_to_file(
 
 			return true;
 		}
-
-		/*for (int e = 0; e < 100; e++)
-			buff[e] = c[e % 4];
-
-		process_samples(md, cpu_format, buff.data(), 200);*/
 
 		if (bw_summary){
 			last_update_samps += num_rx_samps;
