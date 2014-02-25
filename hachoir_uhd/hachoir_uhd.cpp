@@ -187,8 +187,14 @@ bool usrp_set_phy(uhd::usrp::multi_usrp::sptr usrp, const phy_parameters_t &phy,
 	std::cout << boost::format("Setting RX Freq: %f MHz...") % (phy.central_freq/1e6) << std::endl;
 	uhd::tune_request_t tune_request(phy.central_freq);
 	if(int_n_tuning) tune_request.args = uhd::device_addr_t("mode_n=integer");
-	usrp->set_rx_freq(tune_request);
+	uhd::tune_result_t ret = usrp->set_rx_freq(tune_request);
 	std::cout << boost::format("Actual RX Freq: %f MHz...") % (usrp->get_rx_freq()/1e6) << std::endl << std::endl;
+
+	float tune_err = fabs(ret.target_rf_freq - ret.actual_rf_freq) / ret.target_rf_freq;
+	if (tune_err > 0.01) {
+		std::cerr << "Set_PHY: Tune error > 1% (" << tune_err * 100 << " %), abort" << std::endl;
+		return false;
+	}
 
 	//set the sample rate
 	if (phy.sample_rate <= 0.0){
@@ -310,7 +316,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
 	if (total_num_samps == 0){
 	std::signal(SIGINT, &sig_int_handler);
-	std::cout << "Press Ctrl + C to stop streaming..." << std::endl;
+	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 	}
 
 #define recv_to_file_args(format) \
