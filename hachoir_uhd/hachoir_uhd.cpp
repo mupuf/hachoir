@@ -173,6 +173,8 @@ template<typename samp_type> bool recv_to_file(
 				std::cout << it->first << ":\t" << it->second << std::endl;
 		}
 	}
+
+	return false;
 }
 
 typedef boost::function<uhd::sensor_value_t (const std::string&)> get_sensor_fn_t;
