@@ -1,4 +1,31 @@
+= Hachoir UHD =
 
-callback:
+== Compilation ==
 
-void process_burst(float freq, uint64 timestamp_us, sample_t *samples, uint64 len, 
+=== Dependencies ===
+
+- Libuhd: 3.6.x
+- cmake 2.6 or later
+- g++
+
+=== Instructions ===
+
+mkdir build
+cd build
+
+# Compile for speed
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make
+
+# Compile for debuggability
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make
+
+== Execution ==
+
+Get help:
+./hachoir_uhd --help
+
+
+Example:
+./hachoir_uhd --freq 868.5e6 --gain 45
