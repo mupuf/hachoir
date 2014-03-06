@@ -12,4 +12,7 @@ target_link_libraries(hachoir_uhd ${Boost_LIBRARIES} "-luhd" )
 add_executable(tx_samples_from_file utils/tx_samples_from_file.cpp)
 target_link_libraries(tx_samples_from_file ${Boost_LIBRARIES} "-luhd" )
 
+add_executable(rx_samples_to_file utils/rx_samples_to_file.cpp)
+target_link_libraries(rx_samples_to_file ${Boost_LIBRARIES} "-luhd" )
+
 message("Build type: ${CMAKE_BUILD_TYPE} (-DCMAKE_BUILD_TYPED=Debug|Release)")
