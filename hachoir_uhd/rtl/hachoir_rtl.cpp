@@ -38,38 +38,13 @@ bool rtl_set_phy(rtlsdr_dev_t *dev, const phy_parameters_t &phy)
 
 		std::cout << boost::format("Setting RX Gain: %f dB...") % phy.gain << std::endl;
 		rtlsdr_set_tuner_gain(dev, phy.gain * 10);
+		// TODO: IF gain
 		std::cout << boost::format("Actual RX Gain: %f dB...") % rtlsdr_get_tuner_gain(dev) << std::endl << std::endl;
 	} else {
 		std::cout << boost::format("Setting RX Gain Mode: Auto...") << std::endl;
 		rtlsdr_set_tuner_gain_mode(dev, true);
 		std::cout << boost::format("Actual RX Gains: tuner: %f dB...") % (rtlsdr_get_tuner_gain(dev) / 10.0)  << std::endl << std::endl;
 	}
-
-#if 0
-
-
-	//set the IF filter bandwidth
-	if (phy.IF_bw >= 0.0) {
-		std::cout << boost::format("Setting RX Bandwidth: %f MHz...") % phy.IF_bw << std::endl;
-		usrp->set_rx_bandwidth(phy.IF_bw);
-		std::cout << boost::format("Actual RX Bandwidth: %f MHz...") % usrp->get_rx_bandwidth() << std::endl << std::endl;
-	}
-
-	// wait for lo_locked */
-	std::cout << "Waiting on the LO: ";
-	int i = 0;
-	while (not usrp->get_rx_sensor("lo_locked").to_bool()){
-		boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-		i++;
-		if (i % 100)
-			std::cout << "+ ";
-		if (i > 1000) {
-			std::cout << "failed!" << std::endl;
-			return false;
-		}
-	}
-	std::cout << "locked!" << std::endl << std::endl;
-#endif
 
 	// reset the samples buffer to get rid of all the intermediate samples
 	rtlsdr_reset_buffer(dev);
