@@ -28,7 +28,7 @@
 #include <csignal>
 #include <complex>
 
-#include "com_detect.h"
+#include "../com_detect.h"
 
 namespace po = boost::program_options;
 
