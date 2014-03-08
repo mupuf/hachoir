@@ -1,5 +1,8 @@
 #include <stdint.h>
 #include <iostream>
+#include <malloc.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "com_detect.h"
 #include "com_decode.h"
@@ -26,7 +29,7 @@ burst_sc16_init()
 
 inline void
 burst_sc16_start(burst_sc16_t *b, const phy_parameters_t &phy,
-		 float noise_mag_avr, uhd::time_spec_t blk_time, size_t blk_off)
+		 float noise_mag_avr, uint64_t time_us, size_t blk_off)
 {
 	size_t sec_ticks = 1000000;
 
@@ -34,7 +37,7 @@ burst_sc16_start(burst_sc16_t *b, const phy_parameters_t &phy,
 	b->phy = phy;
 	b->noise_mag_avr = noise_mag_avr;
 	b->burst_id = -1;
-	b->start_time_us = blk_time.to_ticks(sec_ticks);
+	b->start_time_us = time_us;
 	b->start_time_us += (blk_off * sec_ticks) / sec_ticks;
 }
 
@@ -72,7 +75,7 @@ burst_sc16_done(burst_sc16_t *b)
 
 
 process_return_val_t
-process_samples_sc16(phy_parameters_t &phy, uhd::rx_metadata_t md,
+process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 				      std::complex<short> *samples, size_t count)
 {
 	/* detection + current state */
@@ -107,7 +110,7 @@ process_samples_sc16(phy_parameters_t &phy, uhd::rx_metadata_t md,
 		if (mag >= com_thrs) {
 			if (state == LISTEN) {
 				state = RX;
-				burst_sc16_start(&burst, phy, noise_avr, md.time_spec, i);
+				burst_sc16_start(&burst, phy, noise_avr, time_us, i);
 				com_mag_sum = 0.0;
 				com_sample = 0;
 				com_blk_start = i;
@@ -170,13 +173,13 @@ process_samples_sc16(phy_parameters_t &phy, uhd::rx_metadata_t md,
 }
 
 
-process_return_val_t process_samples_fc32(phy_parameters_t &phy, uhd::rx_metadata_t md, std::complex<float> *samples, size_t count)
+process_return_val_t process_samples_fc32(phy_parameters_t &phy, uint64_t time_us, std::complex<float> *samples, size_t count)
 {
 	std::cout << "fc32: received " << count << " samples!" << std::endl;
 	return RET_NOP;
 }
 
-process_return_val_t process_samples_fc64(phy_parameters_t &phy, uhd::rx_metadata_t md, std::complex<double> *samples, size_t count)
+process_return_val_t process_samples_fc64(phy_parameters_t &phy, uint64_t time_us, std::complex<double> *samples, size_t count)
 {
 	std::cout << "fc64: received " << count << " samples!" << std::endl;
 	return RET_NOP;

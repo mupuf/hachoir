@@ -126,7 +126,7 @@ template<typename samp_type> bool recv_to_file(
 		if (outfile.is_open())
 			outfile.write((const char*)&buff.front(), num_rx_samps*sizeof(samp_type));
 
-		if (process_samples(phy, md, cpu_format, buff.data(), num_rx_samps) == RET_CH_PHY) {
+		if (process_samples(phy, md.time_spec.to_ticks(1000000), cpu_format, buff.data(), num_rx_samps) == RET_CH_PHY) {
 			//tear-down streaming
 			uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
 			stream_cmd.stream_now = true;
