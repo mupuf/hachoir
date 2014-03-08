@@ -95,8 +95,8 @@ bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy)
 			std::cerr << "rtlsdr_read_sync returned an error, len = " << len << std::endl;
 
 		for (int i = 0; i < len / 2; i++) {
-			samples[i].real() = buf[i * 2];
-			samples[i].imag() = buf[(i * 2) + 1];
+			samples[i].real() = buf[i * 2] - 127;
+			samples[i].imag() = buf[(i * 2) + 1] - 127;
 		}
 
 		if (process_samples(phy, time_us(), "sc16", samples, len / 2)) {
