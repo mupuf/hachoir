@@ -39,6 +39,7 @@ burst_sc16_start(burst_sc16_t *b, const phy_parameters_t &phy,
 	b->burst_id = -1;
 	b->start_time_us = time_us;
 	b->start_time_us += (blk_off * sec_ticks) / sec_ticks;
+	b->stop_time_us = 0;
 }
 
 inline void
@@ -70,9 +71,11 @@ inline void
 burst_sc16_done(burst_sc16_t *b)
 {
 	static uint64_t burst_id = 0;
-	b->burst_id = burst_id++;
-}
+	size_t sec_ticks = 1000000;
 
+	b->burst_id = burst_id++;
+	b->stop_time_us = b->start_time_us + (b->len * sec_ticks) / sec_ticks;
+}
 
 process_return_val_t
 process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
