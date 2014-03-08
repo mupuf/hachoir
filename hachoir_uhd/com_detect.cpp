@@ -99,6 +99,7 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 		noise_mag_sum += mag;
 		if (i % NOISE_AVR_SAMPLE_COUNT == NOISE_AVR_SAMPLE_COUNT -1) {
 			float avr = noise_mag_sum / NOISE_AVR_SAMPLE_COUNT;
+
 			if (noise_avr < 0 || avr < noise_avr) {
 				noise_avr = avr;
 				com_thrs = noise_avr * NOISE_THRESHOLD_FACTOR;

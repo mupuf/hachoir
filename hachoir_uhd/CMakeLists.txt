@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.6) 
+cmake_minimum_required (VERSION 2.6)
 project (Hachoir_UHD)
 
 INCLUDE(FindPkgConfig)
@@ -34,7 +34,7 @@ if(librtl_FOUND AND APPS_RTL_ENABLE)
 	include_directories(${librtl_INCLUDE_DIRS})
 	link_directories(${librtl_LIBRARY_DIRS})
 
-	add_executable(hachoir_rtl "rtl/hachoir_rtl.cpp")
+	add_executable(hachoir_rtl ${common_src} "rtl/hachoir_rtl.cpp")
 	target_link_libraries(hachoir_rtl ${Boost_LIBRARIES} ${librtl_LIBRARIES})
 else()
 	set(APPS_RTL_ENABLE "OFF")

@@ -17,20 +17,10 @@ void sig_int_handler(int){stop_signal_called = true;}
 
 bool rtl_set_phy(rtlsdr_dev_t *dev, const phy_parameters_t &phy)
 {
-
-#if 0
 	//set the center frequency
-	std::cout << boost::format("Setting RX Freq: %f MHz...") % (phy.central_freq/1e6) << std::endl;
-	uhd::tune_request_t tune_request(phy.central_freq);
-	if(int_n_tuning) tune_request.args = uhd::device_addr_t("mode_n=integer");
-	uhd::tune_result_t ret = usrp->set_rx_freq(tune_request);
-	std::cout << boost::format("Actual RX Freq: %f MHz...") % (usrp->get_rx_freq()/1e6) << std::endl << std::endl;
-
-	float tune_err = fabs(ret.target_rf_freq - ret.actual_rf_freq) / ret.target_rf_freq;
-	if (tune_err > 0.01) {
-		std::cerr << "Set_PHY: Tune error > 1% (" << tune_err * 100 << " %), abort" << std::endl;
-		return false;
-	}
+	std::cout << boost::format("Setting RX Freq: %u MHz...") % (phy.central_freq/1e6) << std::endl;
+	rtlsdr_set_center_freq(dev, phy.central_freq);
+	std::cout << boost::format("Actual RX Freq: %u MHz...") % (rtlsdr_get_center_freq(dev) / 1e6) << std::endl << std::endl;
 
 	//set the sample rate
 	if (phy.sample_rate <= 0.0){
@@ -38,15 +28,25 @@ bool rtl_set_phy(rtlsdr_dev_t *dev, const phy_parameters_t &phy)
 		return false;
 	}
 	std::cout << boost::format("Setting RX Rate: %f Msps...") % (phy.sample_rate/1e6) << std::endl;
-	usrp->set_rx_rate(phy.sample_rate);
-	std::cout << boost::format("Actual RX Rate: %f Msps...") % (usrp->get_rx_rate()/1e6) << std::endl << std::endl;
+	rtlsdr_set_sample_rate(dev, phy.sample_rate);
+	std::cout << boost::format("Actual RX Rate: %f Msps...") % (rtlsdr_get_sample_rate(dev)/1e6) << std::endl << std::endl;
 
 	//set the rf gain
 	if (phy.gain >= 0.0) {
+		std::cout << boost::format("Setting RX Gain Mode: Manual...") << std::endl;
+		rtlsdr_set_tuner_gain_mode(dev, false);
+
 		std::cout << boost::format("Setting RX Gain: %f dB...") % phy.gain << std::endl;
-		usrp->set_rx_gain(phy.gain);
-		std::cout << boost::format("Actual RX Gain: %f dB...") % usrp->get_rx_gain() << std::endl << std::endl;
+		rtlsdr_set_tuner_gain(dev, phy.gain * 10);
+		std::cout << boost::format("Actual RX Gain: %f dB...") % rtlsdr_get_tuner_gain(dev) << std::endl << std::endl;
+	} else {
+		std::cout << boost::format("Setting RX Gain Mode: Auto...") << std::endl;
+		rtlsdr_set_tuner_gain_mode(dev, true);
+		std::cout << boost::format("Actual RX Gains: tuner: %f dB...") % (rtlsdr_get_tuner_gain(dev) / 10.0)  << std::endl << std::endl;
 	}
+
+#if 0
+
 
 	//set the IF filter bandwidth
 	if (phy.IF_bw >= 0.0) {
@@ -70,7 +70,41 @@ bool rtl_set_phy(rtlsdr_dev_t *dev, const phy_parameters_t &phy)
 	}
 	std::cout << "locked!" << std::endl << std::endl;
 #endif
+
+	// reset the samples buffer to get rid of all the intermediate samples
+	rtlsdr_reset_buffer(dev);
 	return true;
+}
+
+uint64_t time_us()
+{
+	struct timeval time;
+	gettimeofday(&time, NULL);
+	return time.tv_sec * 1000000 + time.tv_usec;
+}
+
+bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy)
+{
+	std::complex<unsigned short> samples[4096];
+	bool stop = false;
+	uint8_t buf[8192];
+	int len;
+
+	do {
+		if (rtlsdr_read_sync(dev, buf, sizeof(buf), &len) && (len % 2) == 0)
+			std::cerr << "rtlsdr_read_sync returned an error, len = " << len << std::endl;
+
+		for (int i = 0; i < len / 2; i++) {
+			samples[i].real() = buf[i * 2];
+			samples[i].imag() = buf[(i * 2) + 1];
+		}
+
+		if (process_samples(phy, time_us(), "sc16", samples, len / 2)) {
+			return true;
+		}
+	} while (!stop);
+
+	return false;
 }
 
 int main(int argc, char *argv[])
@@ -100,20 +134,31 @@ int main(int argc, char *argv[])
 	if (not vm.count("gain"))
 		phy.gain = -1.0;
 
+
+	// find one device
+	if(rtlsdr_open(&dev, 0)) {
+		std::cerr << "rtlsdr_open: couldn't open the rtl-sdr device" << std::endl;
+		return -1;
+	}
+
 	std::signal(SIGINT, &sig_int_handler);
 	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
 	bool phy_ok, start_over;
+	int len;
 	do {
 		phy_ok = rtl_set_phy(dev, phy);
 		if (!phy_ok)
 			continue;
 
-		/* Treat */
+		/* Process samples */
+		start_over = samples_read(dev, phy);
 
 		//finished
 		std::cout << std::endl << "Done!" << std::endl << std::endl;
 	} while (phy_ok && start_over);
+
+	rtlsdr_close(dev);
 
 	return EXIT_SUCCESS;
 }
