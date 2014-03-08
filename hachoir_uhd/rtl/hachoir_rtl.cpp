@@ -78,9 +78,14 @@ bool rtl_set_phy(rtlsdr_dev_t *dev, const phy_parameters_t &phy)
 
 uint64_t time_us()
 {
+	static struct timeval time_start = {0, 0};
 	struct timeval time;
 	gettimeofday(&time, NULL);
-	return time.tv_sec * 1000000 + time.tv_usec;
+
+	if (time_start.tv_sec == 0)
+		time_start = time;
+
+	return (time.tv_sec * 1000000 + time.tv_usec) - (time_start.tv_sec * 1000000 + time_start.tv_usec);
 }
 
 bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy)
