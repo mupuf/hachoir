@@ -57,13 +57,13 @@ void process_burst_sc16(burst_sc16_t *burst)
 	else
 		fprintf(stderr, "unknown burst len %u\n", burst->len);*/
 
-	/*char filename[100];
+	char filename[100];
 	sprintf(filename, "burst_%i.csv", burst->burst_id);
 	FILE *f = fopen(filename, "wb");
 	for (int i = 0; i < burst->len; i++) {
 		fprintf(f, "%i, %i\n", burst->samples[i].real(), burst->samples[i].imag());
 	}
-	fclose(f);*/
+	fclose(f);
 
 	/*char filename[100];
 	sprintf(filename, "burst_%i.dat", burst->burst_id);

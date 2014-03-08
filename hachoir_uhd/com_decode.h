@@ -3,13 +3,25 @@
 
 #include <stdint.h>
 #include <complex>
+#include <vector>
 
 #include "com_detect.h"
+
+struct sub_burst_sc16_t {
+	std::complex<short> *start;
+	std::complex<short> *end;
+	size_t len;
+
+	uint64_t time_start_us;
+	uint64_t time_stop_us;
+};
 
 struct burst_sc16_t {
 	std::complex<short> *samples;
 	size_t allocated_len;
 	size_t len;
+
+	std::vector<sub_burst_sc16_t> sub_bursts;
 
 	uint64_t burst_id;
 	uint64_t start_time_us;
