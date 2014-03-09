@@ -26,9 +26,9 @@ std::string Message::toStringHex() const
 		boost::dynamic_bitset<>::size_type b;
 		uint8_t tmp = 0;
 
-		for (b = i; b < i + 8; b++) {
+		for (b = 0; b < 8; b++) {
 			size_t bit_idx = 7 - b;
-			tmp |= (data[b] << bit_idx);
+			tmp |= (data[i + b] << bit_idx);
 		}
 
 		ss << std::hex << std::setfill('0') << std::setw(2)
