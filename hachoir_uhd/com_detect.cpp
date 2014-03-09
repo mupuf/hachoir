@@ -12,8 +12,8 @@
 #define NOISE_AVR_SAMPLE_COUNT 1000
 #define NOISE_THRESHOLD_FACTOR 8
 
-#define COMS_DETECT_MIN_SAMPLES 100
-#define COMS_DETECT_SAMPLES_UNDER_THRS 20
+#define COMS_DETECT_MIN_SAMPLES 150
+#define COMS_DETECT_SAMPLES_UNDER_THRS 30
 #define COMS_DETECT_COALESCING_TIME_US 10000
 
 enum rx_state_t {
@@ -46,19 +46,19 @@ burst_sc16_sub_start(burst_sc16_t *b)
 {
 	struct sub_burst_sc16_t sb;
 
-	sb.start = b->samples + b->len;
-	sb.end = NULL;
+	sb.start = b->len;
+	sb.end = 0;
 	sb.time_start_us = b->start_time_us;
 	sb.time_start_us += time_from_sample_count(b->phy.sample_rate, b->len);
 	sb.time_stop_us = 0;
 	sb.len = 0;
 
-	/*uint64_t prev = 0;
+	uint64_t prev = 0;
 	if (b->sub_bursts.size() > 0)
 		prev = b->sub_bursts.back().time_stop_us;
 
-	fprintf(stderr, "	substart: time = %u µs (prev = %u, diff = %u)\n",
-		sb.time_start_us, prev, sb.time_start_us - prev);*/
+	/*fprintf(stderr, "	substart: time = %u µs, start = %u\n",
+		sb.time_start_us, sb.start);*/
 
 	b->sub_bursts.push_back(sb);
 }
@@ -68,7 +68,7 @@ burst_sc16_sub_stop(burst_sc16_t *b)
 {
 	struct sub_burst_sc16_t &sb = b->sub_bursts.back();
 
-	sb.end = b->samples + b->len;
+	sb.end = b->len;
 	sb.time_stop_us = b->start_time_us;
 	sb.time_stop_us += time_from_sample_count(b->phy.sample_rate, b->len);
 
@@ -124,6 +124,11 @@ inline void
 burst_sc16_done(burst_sc16_t *b)
 {
 	static uint64_t burst_id = 0;
+
+	/*fprintf(stderr, "b->sub_bursts.back().end = %p\n", b->sub_bursts.back().end);
+	fprintf(stderr, "b->sub_bursts.front().start = %p\n", b->sub_bursts.front().start);*/
+
+	b->len = b->sub_bursts.back().end - b->sub_bursts.front().start;
 
 	b->burst_id = burst_id++;
 	b->stop_time_us = b->start_time_us;

@@ -8,8 +8,8 @@
 #include "com_detect.h"
 
 struct sub_burst_sc16_t {
-	std::complex<short> *start;
-	std::complex<short> *end;
+	size_t start;
+	size_t end;
 	size_t len;
 
 	uint64_t time_start_us;

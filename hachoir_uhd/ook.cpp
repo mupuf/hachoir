@@ -101,10 +101,10 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	size_t last_crossing = 0;
 
 	for (size_t b = 0; b < burst->sub_bursts.size(); b++) {
-		std::complex<short> *start = burst->sub_bursts[0].start;
+		std::complex<short> *start = &burst->samples[burst->sub_bursts[b].start];
 
 		last_crossing = 0;
-		for (size_t i = 0; i < burst->sub_bursts[0].len - 1; i++) {
+		for (size_t i = 0; i < burst->sub_bursts[b].len - 1; i++) {
 			if (start[i].real() > 0 && start[i + 1].real() < 0 ||
 			    start[i].real() < 0 && start[i + 1].real() > 0) {
 				if (last_crossing > 0) {
