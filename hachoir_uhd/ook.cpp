@@ -96,16 +96,18 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	else
 		score += 8 * burst->sub_bursts.size();
 
-	fprintf(stderr, "OOK: ON[%u,%u] (%u), OFF[%u,%u] (%u), score = %u\n",
-		_on.time_min, _on.time_max, _on.bps,
-		_off.time_min, _off.time_max, _off.bps, score);
-
 	return score;
 }
 
 Message OOK::demod(const burst_sc16_t * const burst)
 {
-	Message m;
+	char mod_details[100];
+	snprintf(mod_details, sizeof(mod_details),
+		"OOK, ON [%u µs,%u µs] (%u bps), OFF [%u µs, %u µs] (%u bps)",
+		_on.time_min, _on.time_max, _on.bps,
+		_off.time_min, _off.time_max, _off.bps);
+
+	Message m(mod_details);
 
 	for (int i = 0; i < _on.data.size() - 1; i++) {
 		mapSymbol(m, _on, _on.data[i]);

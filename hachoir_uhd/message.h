@@ -9,19 +9,25 @@ class Message
 {
 	boost::dynamic_bitset<> data;
 
+	std::string _modulation;
+	// TODO: Central freq of the signal, bw
+
 	std::string toStringBinary() const;
 	std::string toStringHex() const;
 
-	// TODO: Add the modulation that was used!
 public:
 	enum MessagePrintStyle {
 		BINARY = 0,
 		HEX = 1
 	};
 
+	Message (const std::string &modulation = std::string());
+
 	void addBit(bool b);
 	size_t size() const;
 	void clear();
+
+	std::string modulation() const;
 
 	std::string toString(MessagePrintStyle style) const;
 	void print(std::ostream &stream, MessagePrintStyle style) const;

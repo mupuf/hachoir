@@ -50,6 +50,10 @@ std::string Message::toStringHex() const
 	return ss.str();
 }
 
+Message::Message (const std::string &modulation) : _modulation(modulation)
+{
+}
+
 void Message::addBit(bool b)
 {
 	data.push_back(b);
@@ -63,6 +67,11 @@ size_t Message::size() const
 void Message::clear()
 {
 	data.clear();
+}
+
+std::string Message::modulation() const
+{
+	return _modulation;
 }
 
 std::string Message::toString(MessagePrintStyle style) const
