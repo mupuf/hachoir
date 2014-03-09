@@ -3,6 +3,8 @@ project (Hachoir_UHD)
 
 INCLUDE(FindPkgConfig)
 
+add_definitions("-std=c++11")
+
 find_package(Boost COMPONENTS program_options system thread REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})

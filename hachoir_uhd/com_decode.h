@@ -26,8 +26,8 @@ struct burst_sc16_t {
 	uint64_t burst_id;
 	uint64_t start_time_us;
 	uint64_t stop_time_us;
-	phy_parameters_t phy;
 	float noise_mag_avr;
+	phy_parameters_t phy;
 };
 
 void process_burst_sc16(burst_sc16_t *burst);

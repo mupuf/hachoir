@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <iostream>
+
+#include "ook.h"
+
 #define MSG_MAX_LEN 100
 
 struct message_t {
@@ -41,6 +45,12 @@ void process_burst_sc16(burst_sc16_t *burst)
 	static message_t msg;
 	static uint64_t last;
 
+	OOK ook;
+
+	//std::cerr << "ook.likeliness == " << (int)  << std::endl;
+	ook.likeliness(burst);
+	ook.demod(burst);
+
 	/*fprintf(stderr, "")
 
 	last = burst->stop_time_us;*/
@@ -57,13 +67,13 @@ void process_burst_sc16(burst_sc16_t *burst)
 	else
 		fprintf(stderr, "unknown burst len %u\n", burst->len);*/
 
-	char filename[100];
+	/*char filename[100];
 	sprintf(filename, "burst_%i.csv", burst->burst_id);
 	FILE *f = fopen(filename, "wb");
 	for (int i = 0; i < burst->len; i++) {
 		fprintf(f, "%i, %i\n", burst->samples[i].real(), burst->samples[i].imag());
 	}
-	fclose(f);
+	fclose(f);*/
 
 	/*char filename[100];
 	sprintf(filename, "burst_%i.dat", burst->burst_id);

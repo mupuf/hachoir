@@ -37,7 +37,7 @@ uint64_t sample_count_from_time(float sample_rate, uint64_t time_us)
 burst_sc16_t
 burst_sc16_init()
 {
-	burst_sc16_t b = {NULL, 0, 0, std::vector<sub_burst_sc16_t>(), 0, 0.0, 0, 0.0 };
+	burst_sc16_t b = {NULL, 0, 0, std::vector<sub_burst_sc16_t>(), 0, 0, 0, 0.0 };
 	return b;
 }
 
@@ -52,6 +52,13 @@ burst_sc16_sub_start(burst_sc16_t *b)
 	sb.time_start_us += time_from_sample_count(b->phy.sample_rate, b->len);
 	sb.time_stop_us = 0;
 	sb.len = 0;
+
+	/*uint64_t prev = 0;
+	if (b->sub_bursts.size() > 0)
+		prev = b->sub_bursts.back().time_stop_us;
+
+	fprintf(stderr, "	substart: time = %u µs (prev = %u, diff = %u)\n",
+		sb.time_start_us, prev, sb.time_start_us - prev);*/
 
 	b->sub_bursts.push_back(sb);
 }
@@ -168,8 +175,13 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 				com_sample = 0;
 				com_blk_start = i;
 			} else if(state == COALESCING) {
-				state = RX;
+				size_t com_blk_len = i - com_blk_start;
+				burst_sc16_append(&burst, samples + com_blk_start,
+								  com_blk_len);
 				burst_sc16_sub_start(&burst);
+
+				state = RX;
+				com_blk_start = i;
 			}
 			detect_samples_under = 0;
 		} else
@@ -201,7 +213,7 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 				burst_sc16_done(&burst);
 				process_burst_sc16(&burst);
 
-				std::cout << burst.burst_id
+				std::cerr << burst.burst_id
 					  << ": new communication, time = "
 					  << burst.start_time_us
 					  << " µs, len = "
