@@ -9,8 +9,8 @@ class Message
 {
 	std::vector<bool> data;
 
-	void printBinary(std::ostream &stream) const;
-	void printHex(std::ostream &stream) const;
+	std::string toStringBinary() const;
+	std::string toStringHex() const;
 public:
 	enum MessagePrintStyle {
 		BINARY = 0,
@@ -21,6 +21,7 @@ public:
 	size_t size() const;
 	void clear();
 
+	std::string toString(MessagePrintStyle style) const;
 	void print(std::ostream &stream, MessagePrintStyle style) const;
 
 	Message &operator<< (bool bit);

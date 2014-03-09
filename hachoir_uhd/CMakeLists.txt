@@ -10,7 +10,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
 # Find all the common files
-file(GLOB common_src "*.cpp")
+file(GLOB common_src "*.cpp" "*.h")
 
 pkg_search_module(libuhd uhd)
 option(APPS_UHD_ENABLE "Enable applications depending on the libuhd" ON)

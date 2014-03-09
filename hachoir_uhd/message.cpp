@@ -1,19 +1,25 @@
 #include "message.h"
 #include <iostream>
+#include <sstream>
 
-void Message::printBinary(std::ostream &stream) const
+std::string Message::toStringBinary() const
 {
+	std::stringstream ss;
+
 	int i = 0;
 	for (bool bit : data) {
-		stream << bit;
+		ss << bit;
 		if (((i++) % 4) == 3)
-			stream << " ";
+			ss << " ";
 	}
+
+	return ss.str();
 }
 
-void Message::printHex(std::ostream &stream) const
+std::string Message::toStringHex() const
 {
-
+	// TODO
+	return std::string();
 }
 
 void Message::addBit(bool b)
@@ -31,14 +37,27 @@ void Message::clear()
 	data.clear();
 }
 
+std::string Message::toString(MessagePrintStyle style) const
+{
+	switch(style) {
+	case BINARY:
+		return toStringBinary();
+	case HEX:
+		return toStringHex();
+	default:
+		std::cerr << "Message::print: unknown print style" << std::endl;
+		return std::string();
+	}
+}
+
 void Message::print(std::ostream &stream, MessagePrintStyle style) const
 {
 	switch(style) {
 	case BINARY:
-		printBinary(stream);
+		stream << toStringBinary();
 		break;
 	case HEX:
-		printHex(stream);
+		stream << toStringHex();
 		break;
 	default:
 		std::cerr << "Message::print: unknown print style" << std::endl;

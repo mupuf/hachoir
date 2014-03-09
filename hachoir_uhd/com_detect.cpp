@@ -211,7 +211,6 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 				state = LISTEN;
 
 				burst_sc16_done(&burst);
-				process_burst_sc16(&burst);
 
 				std::cerr << burst.burst_id
 					  << ": new communication, time = "
@@ -230,6 +229,8 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 					  << noise_avr
 					  << ")"
 					  << std::endl;
+
+				process_burst_sc16(&burst);
 
 				/* change the phy parameters, if wanted */
 				/*phy.central_freq = 869.5e6;

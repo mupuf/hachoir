@@ -103,7 +103,7 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	return score;
 }
 
-Message &OOK::demod(const burst_sc16_t * const burst)
+Message OOK::demod(const burst_sc16_t * const burst)
 {
 	Message m;
 
@@ -113,7 +113,5 @@ Message &OOK::demod(const burst_sc16_t * const burst)
 	}
 	mapSymbol(m, _on, _on.data[_on.data.size() - 1]);
 
-	std::cerr << "MSG: len = " << m.size() << ": ";
-	m.print(std::cerr, Message::BINARY);
-	std::cerr << std::endl<< std::endl;
+	return m;
 }
