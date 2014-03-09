@@ -1,16 +1,18 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
+#include <boost/dynamic_bitset.hpp>
 #include <stdint.h>
-#include <vector>
 #include <ostream>
 
 class Message
 {
-	std::vector<bool> data;
+	boost::dynamic_bitset<> data;
 
 	std::string toStringBinary() const;
 	std::string toStringHex() const;
+
+	// TODO: Add the modulation that was used!
 public:
 	enum MessagePrintStyle {
 		BINARY = 0,

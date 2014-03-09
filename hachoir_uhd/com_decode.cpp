@@ -41,7 +41,7 @@ void process_burst_sc16(burst_sc16_t *burst)
 
 	Message m = fittest->demod(burst);
 
-	std::cerr << "New decoded message: " << m.toString(Message::BINARY) << std::endl << std::endl;
+	std::cerr << "New decoded message (len = " << m.size() << "): " << m.toString(Message::HEX) << std::endl << std::endl;
 
 	/*char filename[100];
 	sprintf(filename, "burst_%i.csv", burst->burst_id);

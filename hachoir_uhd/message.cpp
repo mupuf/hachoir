@@ -1,15 +1,15 @@
 #include "message.h"
 #include <iostream>
 #include <sstream>
+#include <iomanip>
 
 std::string Message::toStringBinary() const
 {
 	std::stringstream ss;
 
-	int i = 0;
-	for (bool bit : data) {
-		ss << bit;
-		if (((i++) % 4) == 3)
+	for (boost::dynamic_bitset<>::size_type i = 0; i < data.size(); ++i) {
+		ss << data[i];
+		if ((i % 4) == 3)
 			ss << " ";
 	}
 
@@ -18,8 +18,36 @@ std::string Message::toStringBinary() const
 
 std::string Message::toStringHex() const
 {
-	// TODO
-	return std::string();
+	boost::dynamic_bitset<>::size_type i;
+	std::stringstream ss;
+
+	// print in hex all the bytes
+	for (i = 0; i < (data.size() / 8) * 8; i+=8) {
+		boost::dynamic_bitset<>::size_type b;
+		uint8_t tmp = 0;
+
+		for (b = i; b < i + 8; b++) {
+			size_t bit_idx = 7 - b;
+			tmp |= (data[b] << bit_idx);
+		}
+
+		ss << std::hex << std::setfill('0') << std::setw(2)
+		   << (int) tmp << " ";
+	}
+
+	if (i == data.size())
+		return ss.str();
+
+	// print the rest in binary
+	ss << "(";
+	for (; i < data.size(); ++i) {
+		ss << std::hex << std::setw(1) << data[i];
+		if ((i % 4) == 3)
+			ss << " ";
+	}
+	ss << ")";
+
+	return ss.str();
 }
 
 void Message::addBit(bool b)
