@@ -11,6 +11,8 @@ class OOK : public Demodulator
 		size_t bps;
 	} _on, _off;
 
+	std::string _phy_params;
+
 	size_t findBitsPerSymbol(size_t time_min, size_t time_max);
 	bool mapSymbol(Message &m, state &st, size_t len);
 public:

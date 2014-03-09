@@ -96,18 +96,44 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	else
 		score += 8 * burst->sub_bursts.size();
 
+	// get the frequency of the signal
+	uint64_t sum_cnt = 0, count_cnt = 0;
+	size_t last_crossing = 0;
+
+	for (size_t b = 0; b < burst->sub_bursts.size(); b++) {
+		std::complex<short> *start = burst->sub_bursts[0].start;
+
+		last_crossing = 0;
+		for (size_t i = 0; i < burst->sub_bursts[0].len - 1; i++) {
+			if (start[i].real() > 0 && start[i + 1].real() < 0 ||
+			    start[i].real() < 0 && start[i + 1].real() > 0) {
+				if (last_crossing > 0) {
+					sum_cnt += (i - last_crossing);
+					count_cnt++;
+				}
+				last_crossing = i;
+			}
+		}
+	}
+
+	// store the PHY parameters in a single string
+	char phy_params[150];
+	float sample_avr = sum_cnt * 1.0 / count_cnt;
+	float freq_offset = (burst->phy.sample_rate / sample_avr) / 2;
+	snprintf(phy_params, sizeof(phy_params),
+		"OOK, ON [%u µs,%u µs] (%u bps), OFF [%u µs, %u µs] (%u bps), freq = %.03f MHz or %.03f MHz",
+		_on.time_min, _on.time_max, _on.bps,
+		_off.time_min, _off.time_max, _off.bps,
+		(burst->phy.central_freq + freq_offset) / 1000000.0,
+		(burst->phy.central_freq - freq_offset) / 1000000.0);
+	_phy_params = phy_params;
+
 	return score;
 }
 
 Message OOK::demod(const burst_sc16_t * const burst)
 {
-	char mod_details[100];
-	snprintf(mod_details, sizeof(mod_details),
-		"OOK, ON [%u µs,%u µs] (%u bps), OFF [%u µs, %u µs] (%u bps)",
-		_on.time_min, _on.time_max, _on.bps,
-		_off.time_min, _off.time_max, _off.bps);
-
-	Message m(mod_details);
+	Message m(_phy_params);
 
 	for (int i = 0; i < _on.data.size() - 1; i++) {
 		mapSymbol(m, _on, _on.data[i]);
