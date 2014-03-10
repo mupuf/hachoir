@@ -15,8 +15,8 @@ void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_std)
 
 		last_crossing = 0;
 		for (size_t i = 0; i < burst->sub_bursts[b].len - 1; i++) {
-			if (start[i].real() > 0 && start[i + 1].real() < 0 ||
-			    start[i].real() < 0 && start[i + 1].real() > 0) {
+			if ((start[i].real() > 0 && start[i + 1].real() <= 0) ||
+			    (start[i].real() < 0 && start[i + 1].real() >= 0)) {
 				if (last_crossing > 0) {
 					size_t len = (i - last_crossing);
 					sum_cnt += len;
@@ -50,8 +50,8 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 	// get the average dist
 	std::complex<short> *start = &burst->samples[burst->sub_bursts[0].start];
 	for (size_t i = 0; i < burst->sub_bursts[0].len - 1; i++) {
-		if (start[i].real() > 0 && start[i + 1].real() <= 0 ||
-		    start[i].real() < 0 && start[i + 1].real() >= 0) {
+		if ((start[i].real() > 0 && start[i + 1].real() <= 0) ||
+		    (start[i].real() < 0 && start[i + 1].real() >= 0)) {
 			if (last_crossing > 0) {
 				size_t cnt = i - last_crossing;
 				sum_cnt += cnt;
@@ -88,10 +88,10 @@ Message FSK::demod(const burst_sc16_t * const burst)
 	Message m(_phy_params);
 
 	char filename[100];
-	sprintf(filename, "burst_%i_fsk_freq.csv", burst->burst_id);
+	sprintf(filename, "burst_%u_fsk_freq.csv", burst->burst_id);
 	FILE *f = fopen(filename, "w");
 
-	for (int i = 0; i < _cnt_table.size(); i++) {
+	for (size_t i = 0; i < _cnt_table.size(); i++) {
 		if (_cnt_table[i] > _threshold)
 			m.addBit(true);
 		else

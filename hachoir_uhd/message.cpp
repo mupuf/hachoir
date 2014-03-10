@@ -104,6 +104,7 @@ void Message::print(std::ostream &stream, MessagePrintStyle style) const
 Message &Message::operator<< (bool bit)
 {
 	addBit(bit);
+	return *this;
 }
 
 bool Message::operator[](size_t i)

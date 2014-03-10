@@ -17,7 +17,7 @@ static void burst_dump_samples(burst_sc16_t *burst)
 
 	sprintf(filename, "burst_%i.csv", burst->burst_id);
 	f = fopen(filename, "wb");
-	for (int i = 0; i < burst->len; i++) {
+	for (size_t i = 0; i < burst->len; i++) {
 		fprintf(f, "%i, %i\n", burst->samples[i].real(), burst->samples[i].imag());
 	}
 	fclose(f);
@@ -34,8 +34,8 @@ static void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_st
 
 		last_crossing = 0;
 		for (size_t i = 0; i < burst->sub_bursts[b].len - 1; i++) {
-			if (start[i].real() > 0 && start[i + 1].real() <= 0 ||
-			    start[i].real() < 0 && start[i + 1].real() >= 0) {
+			if ((start[i].real() > 0 && start[i + 1].real() <= 0) ||
+			    (start[i].real() < 0 && start[i + 1].real() >= 0)) {
 				if (last_crossing > 0) {
 					size_t len = (i - last_crossing);
 					sum_cnt += len;
@@ -60,7 +60,7 @@ static void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_st
 
 void process_burst_sc16(burst_sc16_t *burst)
 {
-	float freq_offset, freq_std;
+	//float freq_offset, freq_std;
 
 	// List of available demodulators
 	OOK ook;
@@ -78,7 +78,7 @@ void process_burst_sc16(burst_sc16_t *burst)
 	Demodulator *fittest = NULL;
 	uint8_t bestScore = 0;
 
-	for (int i = 0; i < sizeof(demod) / sizeof(Demodulator *); i++) {
+	for (size_t i = 0; i < sizeof(demod) / sizeof(Demodulator *); i++) {
 		Demodulator *d = demod[i];
 		uint8_t score = d->likeliness(burst);
 		if (!fittest || score > bestScore) {

@@ -124,7 +124,6 @@ int main(int argc, char *argv[])
 	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
 	bool phy_ok, start_over;
-	int len;
 	do {
 		phy_ok = rtl_set_phy(dev, phy);
 		if (!phy_ok)

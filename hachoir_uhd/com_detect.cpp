@@ -53,11 +53,11 @@ burst_sc16_sub_start(burst_sc16_t *b)
 	sb.time_stop_us = 0;
 	sb.len = 0;
 
-	uint64_t prev = 0;
+	/*uint64_t prev = 0;
 	if (b->sub_bursts.size() > 0)
 		prev = b->sub_bursts.back().time_stop_us;
 
-	/*fprintf(stderr, "	substart: time = %u µs, start = %u\n",
+	fprintf(stderr, "	substart: time = %u µs, start = %u\n",
 		sb.time_start_us, sb.start);*/
 
 	b->sub_bursts.push_back(sb);
@@ -82,8 +82,6 @@ inline void
 burst_sc16_start(burst_sc16_t *b, const phy_parameters_t &phy,
 		 float noise_mag_avr, uint64_t time_us, size_t blk_off)
 {
-	size_t sec_ticks = 1000000;
-
 	b->len = 0;
 	b->sub_bursts.clear();
 	b->phy = phy;
