@@ -12,7 +12,7 @@
 
 namespace po = boost::program_options;
 
-static bool stop_signal_called = false;
+static volatile bool stop_signal_called = false;
 void sig_int_handler(int){stop_signal_called = true;}
 
 bool rtl_set_phy(rtlsdr_dev_t *dev, const phy_parameters_t &phy)
@@ -63,33 +63,57 @@ uint64_t time_us()
 	return (time.tv_sec * 1000000 + time.tv_usec) - (time_start.tv_sec * 1000000 + time_start.tv_usec);
 }
 
-bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy)
+bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy, const std::string &file)
 {
 	std::complex<unsigned short> samples[4096];
-	bool stop = false;
+	std::ofstream outfile;
 	uint8_t buf[8192];
 	int len;
+	bool ret = false;
+
+	if (file != std::string()) {
+		char filename[100];
+		snprintf(filename, sizeof(filename), "%s-%.0fkHz-%.0fkSPS.dat",
+			file.c_str(), phy.central_freq / 1000, phy.sample_rate / 1000);
+
+		outfile.open(filename, std::ofstream::binary);
+		if (outfile.is_open())
+			std::cout << "Recording samples to '" << filename << "'." << std::endl;
+		else
+			std::cerr << "Failed to open '" << filename << "'." << std::endl;
+	}
 
 	do {
-		if (rtlsdr_read_sync(dev, buf, sizeof(buf), &len) && (len % 2) == 0)
+		if (rtlsdr_read_sync(dev, buf, sizeof(buf), &len) || (len % 2) != 0) {
 			std::cerr << "rtlsdr_read_sync returned an error, len = " << len << std::endl;
+			ret = false;
+			break;
+		}
 
 		for (int i = 0; i < len / 2; i++) {
 			samples[i] = std::complex<short>(buf[i * 2] - 127, buf[(i * 2) + 1] - 127);
 		}
 
 		if (process_samples(phy, time_us(), "sc16", samples, len / 2)) {
-			return true;
+			ret = true;
+			break;
 		}
-	} while (!stop);
 
-	return false;
+		if (outfile.is_open())
+			outfile.write((const char*)&samples, len*sizeof(std::complex<unsigned short>));
+	} while (!stop_signal_called);
+
+	if (outfile.is_open())
+		outfile.close();
+
+	return ret;
 }
 
 int main(int argc, char *argv[])
 {
 	phy_parameters_t phy;
 	rtlsdr_dev_t *dev;
+	std::string file;
 
 	//setup the program options
 	po::options_description desc("Allowed options");
@@ -98,6 +122,7 @@ int main(int argc, char *argv[])
 		("rate", po::value<float>(&phy.sample_rate)->default_value(1e6), "rate of incoming samples")
 		("freq", po::value<float>(&phy.central_freq)->default_value(0.0), "RF center frequency in Hz")
 		("gain", po::value<float>(&phy.gain), "gain for the RF chain")
+		("file", po::value<std::string>(&file), "output all the samples to this file")
 	;
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -130,7 +155,7 @@ int main(int argc, char *argv[])
 			continue;
 
 		/* Process samples */
-		start_over = samples_read(dev, phy);
+		start_over = samples_read(dev, phy, file);
 
 		//finished
 		std::cout << std::endl << "Done!" << std::endl << std::endl;
