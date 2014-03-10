@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "ook.h"
+#include "fsk.h"
 
 static void burst_dump_samples(burst_sc16_t *burst)
 {
@@ -33,8 +34,8 @@ static void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_st
 
 		last_crossing = 0;
 		for (size_t i = 0; i < burst->sub_bursts[b].len - 1; i++) {
-			if (start[i].real() > 0 && start[i + 1].real() < 0 ||
-			    start[i].real() < 0 && start[i + 1].real() > 0) {
+			if (start[i].real() > 0 && start[i + 1].real() <= 0 ||
+			    start[i].real() < 0 && start[i + 1].real() >= 0) {
 				if (last_crossing > 0) {
 					size_t len = (i - last_crossing);
 					sum_cnt += len;
@@ -63,14 +64,16 @@ void process_burst_sc16(burst_sc16_t *burst)
 
 	// List of available demodulators
 	OOK ook;
+	FSK fsk;
 	Demodulator *demod[] = {
 		&ook,
+		&fsk,
 		// Add demodulations here
 	};
 
 	// dump the samples to files
 	burst_dump_samples(burst);
-	freq_get_avr(burst, freq_offset, freq_std);
+	//freq_get_avr(burst, freq_offset, freq_std);
 
 	Demodulator *fittest = NULL;
 	uint8_t bestScore = 0;

@@ -68,7 +68,7 @@ burst_sc16_sub_stop(burst_sc16_t *b)
 {
 	struct sub_burst_sc16_t &sb = b->sub_bursts.back();
 
-	sb.end = b->len;
+	sb.end = b->len - COMS_DETECT_SAMPLES_UNDER_THRS;
 	sb.time_stop_us = b->start_time_us;
 	sb.time_stop_us += time_from_sample_count(b->phy.sample_rate, b->len);
 
