@@ -46,85 +46,83 @@ template<typename samp_type> void recv_to_file(
     bool enable_size_map = false,
     bool continue_on_bad_packet = false
 ){
-    unsigned long long num_total_samps = 0;
-    //create a receive streamer
-    uhd::stream_args_t stream_args(cpu_format,wire_format);
-    uhd::rx_streamer::sptr rx_stream = usrp->get_rx_stream(stream_args);
+	unsigned long long num_total_samps = 0;
+	//create a receive streamer
+	uhd::stream_args_t stream_args(cpu_format,wire_format);
+	uhd::rx_streamer::sptr rx_stream = usrp->get_rx_stream(stream_args);
 
-    uhd::rx_metadata_t md;
-    std::vector<samp_type> buff(samps_per_buff);
-    std::ofstream outfile;
-    if (not null)
+	uhd::rx_metadata_t md;
+	std::vector<samp_type> buff(samps_per_buff);
+	std::ofstream outfile;
+	if (not null)
 		outfile.open(file.c_str(), std::ofstream::binary);
-    bool overflow_message = true;
+	bool overflow_message = true;
 
-    //setup streaming
-    uhd::stream_cmd_t stream_cmd((num_requested_samples == 0)?
-        uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS:
-        uhd::stream_cmd_t::STREAM_MODE_NUM_SAMPS_AND_DONE
-    );
-    stream_cmd.num_samps = num_requested_samples;
-    stream_cmd.stream_now = true;
-    stream_cmd.time_spec = uhd::time_spec_t();
-    rx_stream->issue_stream_cmd(stream_cmd);
-    
-    boost::system_time start = boost::get_system_time();
-    unsigned long long ticks_requested = (long)(time_requested * (double)boost::posix_time::time_duration::ticks_per_second());
-    boost::posix_time::time_duration ticks_diff;
-    boost::system_time last_update = start;
-    unsigned long long last_update_samps = 0;
-    
-    typedef std::map<size_t,size_t> SizeMap;
-    SizeMap mapSizes;
+	//setup streaming
+	uhd::stream_cmd_t stream_cmd((num_requested_samples == 0)?
+	uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS:
+	uhd::stream_cmd_t::STREAM_MODE_NUM_SAMPS_AND_DONE
+	);
+	stream_cmd.num_samps = num_requested_samples;
+	stream_cmd.stream_now = true;
+	stream_cmd.time_spec = uhd::time_spec_t();
+	rx_stream->issue_stream_cmd(stream_cmd);
 
-    while(not stop_signal_called and (num_requested_samples != num_total_samps or num_requested_samples == 0)){
+	boost::system_time start = boost::get_system_time();
+	unsigned long long ticks_requested = (long)(time_requested * (double)boost::posix_time::time_duration::ticks_per_second());
+	boost::posix_time::time_duration ticks_diff;
+	boost::system_time last_update = start;
+	unsigned long long last_update_samps = 0;
+
+	typedef std::map<size_t,size_t> SizeMap;
+	SizeMap mapSizes;
+
+	while(not stop_signal_called and (num_requested_samples != num_total_samps or num_requested_samples == 0)) {
 		boost::system_time now = boost::get_system_time();
 		
-        size_t num_rx_samps = rx_stream->recv(&buff.front(), buff.size(), md, 3.0, enable_size_map);
+		size_t num_rx_samps = rx_stream->recv(&buff.front(), buff.size(), md, 3.0, enable_size_map);
 
-        if (md.error_code == uhd::rx_metadata_t::ERROR_CODE_TIMEOUT) {
-            std::cout << boost::format("Timeout while streaming") << std::endl;
-            break;
-        }
-        if (md.error_code == uhd::rx_metadata_t::ERROR_CODE_OVERFLOW){
-            if (overflow_message){
-                overflow_message = false;
-                std::cerr << boost::format(
-                    "Got an overflow indication. Please consider the following:\n"
-                    "  Your write medium must sustain a rate of %fMB/s.\n"
-                    "  Dropped samples will not be written to the file.\n"
-                    "  Please modify this example for your purposes.\n"
-                    "  This message will not appear again.\n"
-                ) % (usrp->get_rx_rate()*sizeof(samp_type)/1e6);
-            }
-            continue;
-        }
-        if (md.error_code != uhd::rx_metadata_t::ERROR_CODE_NONE){
-			std::string error = str(boost::format(
-                "Unexpected error code 0x%x"
-            ) % md.error_code);
-            
+		if (md.error_code == uhd::rx_metadata_t::ERROR_CODE_TIMEOUT) {
+			std::cout << boost::format("Timeout while streaming") << std::endl;
+			break;
+		}
+		if (md.error_code == uhd::rx_metadata_t::ERROR_CODE_OVERFLOW){
+			if (overflow_message) {
+				overflow_message = false;
+				std::cerr << boost::format(
+				    "Got an overflow indication. Please consider the following:\n"
+				    "  Your write medium must sustain a rate of %fMB/s.\n"
+				    "  Dropped samples will not be written to the file.\n"
+				    "  Please modify this example for your purposes.\n"
+				    "  This message will not appear again.\n"
+				) % (usrp->get_rx_rate()*sizeof(samp_type)/1e6);
+			}
+			continue;
+		}
+		if (md.error_code != uhd::rx_metadata_t::ERROR_CODE_NONE){
+			std::string error = str(boost::format("Unexpected error code 0x%x") % md.error_code);
+
 			if (continue_on_bad_packet){
 				std::cerr << error << std::endl;
 				continue;
 			}
 			else
 				throw std::runtime_error(error);
-        }
-        
-        if (enable_size_map){
+		}
+
+		if (enable_size_map){
 			SizeMap::iterator it = mapSizes.find(num_rx_samps);
 			if (it == mapSizes.end())
 				mapSizes[num_rx_samps] = 0;
 			mapSizes[num_rx_samps] += 1;
 		}
 
-        num_total_samps += num_rx_samps;
+		num_total_samps += num_rx_samps;
 
 		if (outfile.is_open())
 			outfile.write((const char*)&buff.front(), num_rx_samps*sizeof(samp_type));
 
-		if (bw_summary){
+		if (bw_summary) {
 			last_update_samps += num_rx_samps;
 			boost::posix_time::time_duration update_diff = now - last_update;
 			if (update_diff.ticks() > boost::posix_time::time_duration::ticks_per_second()) {
@@ -135,18 +133,18 @@ template<typename samp_type> void recv_to_file(
 				last_update = now;
 			}
 		}
-        
-        ticks_diff = now - start;
+
+		ticks_diff = now - start;
 		if (ticks_requested > 0){
 			if ((unsigned long long)ticks_diff.ticks() > ticks_requested)
 				break;
 		}
-    }
-    
-    if (outfile.is_open())
+	}
+
+	if (outfile.is_open())
 		outfile.close();
-    
-    if (stats){
+
+	if (stats){
 		std::cout << std::endl;
 
 		double t = (double)ticks_diff.ticks() / (double)boost::posix_time::time_duration::ticks_per_second();
