@@ -280,7 +280,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 
 	//print the help message
 	if (vm.count("help")){
-	std::cout << boost::format("UHD RX samples to file %s") % desc << std::endl;
+	std::cout << boost::format("Hachoir UHD %s") % desc << std::endl;
 	return ~0;
 	}
 

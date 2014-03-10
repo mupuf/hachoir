@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 
 	//print the help message
 	if (vm.count("help")){
-		std::cout << boost::format("UHD RX samples to file %s") % desc << std::endl;
+		std::cout << boost::format("Hachoir RTL %s") % desc << std::endl;
 		return ~0;
 	}
 
