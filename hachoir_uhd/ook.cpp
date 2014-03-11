@@ -5,26 +5,45 @@ OOK::OOK()
 {
 }
 
-size_t OOK::findBitsPerSymbol(size_t time_min, size_t time_max)
+uint8_t OOK::getBPS(const Constellation &constellation, state &st)
 {
-	float ratio = (float)time_max / time_min;
+	ConstellationPoint c[2];
+	uint8_t score = 0;
 
-	if (ratio < 1.75)
-		return 0;
-	else if (ratio < 2.75)
-		return 1;
-	else if (ratio < 4.75)
-		return 2;
-	else
-		return 0;
+	for (size_t i = 0; i < sizeof(c) / sizeof(ConstellationPoint); i++)
+		c[i] = constellation.mostProbabilisticPoint(i);
+
+	st.points.push_back(c[0]);
+	st.points.push_back(c[1]);
+
+	// make sure most the two symbols are really common
+	if (c[0].proba > 0.33 && c[1].proba > 0.20) {
+		score += 128;
+	}
+
+	// make sure the positions are multiple
+	if ((c[0].pos * 1.9 < c[1].pos && c[0].pos * 2.1 > c[1].pos) ||
+	    (c[1].pos * 1.9 < c[0].pos && c[1].pos * 2.1 > c[0].pos)) {
+		score += 127;
+	}
+
+	if (score >= 128) {
+		st.bps = 1;
+	} else {
+		st.bps = 0;
+	}
+
+	return score;
 }
 
 bool OOK::mapSymbol(Message &m, state &st, size_t len)
 {
 	if (st.bps == 1) {
-		size_t thrs = st.time_min + (st.time_max - st.time_min) / 2;
+		float min = st.points[0].pos < st.points[1].pos ? st.points[0].pos : st.points[1].pos;
+		float max = st.points[0].pos > st.points[1].pos ? st.points[0].pos : st.points[1].pos;
+		float thrs = min + (max - min) / 2;
 		m.addBit(len < thrs);
-	} else if (st.bps == 2) {
+	} /*else if (st.bps == 2) {
 		size_t thrs0 = st.time_min + 1 * ((st.time_max - st.time_min) / 4);
 		size_t thrs1 = st.time_min + 2 * ((st.time_max - st.time_min) / 4);
 		size_t thrs2 = st.time_min + 3 * ((st.time_max - st.time_min) / 4);
@@ -43,58 +62,43 @@ bool OOK::mapSymbol(Message &m, state &st, size_t len)
 			m.addBit(false);
 		}
 	} else
-		return false;
+		return false;*/
 
 	return true;
 }
 
 uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 {
-	uint8_t score;
+	Constellation cOn, cOff;
+	uint16_t score = 0;
 
 	/* reset the parameters */
 	_on.data.clear();
 	_off.data.clear();
-	_on.time_min = ~0;
-	_off.time_min = ~0;
-	_on.time_max = 0;
-	_off.time_max = 0;
 
 	// put all the on and off times in two vectors
 	uint64_t last_stop = 0;
 	for (sub_burst_sc16_t sb : burst->sub_bursts) {
 		if (last_stop > 0) {
 			size_t off_time = sb.time_start_us - last_stop;
-
-			if (off_time > _off.time_max) _off.time_max = off_time;
-			if (off_time < _off.time_min) _off.time_min = off_time;
-
+			cOff.addPoint(off_time);
 			_off.data.push_back(off_time);
-			//std::cerr << "OOK: add offs: " << off_time << std::endl;
 		}
 
 		size_t on_time = sb.time_stop_us - sb.time_start_us;
-		if (on_time > _on.time_max) _on.time_max = on_time;
-		if (on_time < _on.time_min) _on.time_min = on_time;
-		//std::cerr << "OOK: add ons: " << on_time << std::endl;
+		cOn.addPoint(on_time);
 		_on.data.push_back(on_time);
 
 		last_stop = sb.time_stop_us;
 	}
 
+	cOn.clusterize();
+	cOff.clusterize();
+
 	// calculate the number of bits per symbols
-	_on.bps = findBitsPerSymbol(_on.time_min, _on.time_max);
-	_off.bps = findBitsPerSymbol(_off.time_min, _off.time_max);
-
-	if (_on.bps == 0 && _off.bps == 0)
-		return 0;
-	else
-		score = 128;
-
-	if (burst->sub_bursts.size() >= 16)
-		score += 127;
-	else
-		score += 8 * burst->sub_bursts.size();
+	score += getBPS(cOn, _on);
+	score += getBPS(cOff, _off);
+	score /= 2;
 
 	// get the frequency of the signal
 	uint64_t sum_cnt = 0, count_cnt = 0;
@@ -121,9 +125,9 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	float sample_avr = sum_cnt * 1.0 / count_cnt;
 	float freq_offset = (burst->phy.sample_rate / sample_avr) / 2;
 	snprintf(phy_params, sizeof(phy_params),
-		"OOK, ON [%u µs,%u µs] (%u bps), OFF [%u µs, %u µs] (%u bps), freq = %.03f MHz or %.03f MHz",
-		_on.time_min, _on.time_max, _on.bps,
-		_off.time_min, _off.time_max, _off.bps,
+		"OOK, ON(%u bps) = { %.01f (p=%.02f), %.01f (p=%.02f) }, OFF(%u bps) = { %.01f (p=%.02f), %.01f (p=%.02f) }, freq = %.03f MHz or %.03f MHz",
+		_on.bps, _on.points[0].pos, _on.points[0].proba, _on.points[1].pos, _on.points[1].proba,
+		_off.bps, _off.points[0].pos, _off.points[0].proba, _off.points[1].pos, _off.points[1].proba,
 		(burst->phy.central_freq + freq_offset) / 1000000.0,
 		(burst->phy.central_freq - freq_offset) / 1000000.0);
 	_phy_params = phy_params;
@@ -135,6 +139,7 @@ Message OOK::demod(const burst_sc16_t * const burst)
 {
 	Message m(_phy_params);
 
+	// TODO: Detect the end of the message to start another one!
 	for (size_t i = 0; i < _on.data.size() - 1; i++) {
 		mapSymbol(m, _on, _on.data[i]);
 		mapSymbol(m, _off, _off.data[i]);

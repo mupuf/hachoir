@@ -1,10 +1,12 @@
 #include "fsk.h"
 
+#include "constellation.h"
+
 FSK::FSK()
 {
 }
 
-void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_std)
+/*void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_std)
 {
 	// get the frequency of the signal
 	uint64_t sum_cnt = 0, sum_cnt_sq = 0, count_cnt = 0;
@@ -37,13 +39,12 @@ void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_std)
 		(burst->phy.central_freq + freq_offset) / 1000000.0,
 		(burst->phy.central_freq - freq_offset) / 1000000.0,
 		freq_std * 100.0 / freq_offset);
-}
+}*/
 
 uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 {
-	uint64_t sum_cnt = 0;
-	size_t cnt_min = ~0, cnt_max = 0, last_crossing = 0;
-	size_t const_low, const_high;
+	size_t last_crossing = 0;
+	Constellation c;
 
 	_cnt_table.reserve(1000);
 
@@ -54,31 +55,32 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 		    (start[i].real() < 0 && start[i + 1].real() >= 0)) {
 			if (last_crossing > 0) {
 				size_t cnt = i - last_crossing;
-				sum_cnt += cnt;
-				if (cnt > cnt_max) cnt_max = cnt;
-				if (cnt < cnt_min) cnt_min = cnt;
 				_cnt_table.push_back(cnt);
+				c.addPoint(cnt);
 			}
 			last_crossing = i;
 		}
 	}
 
-	// TODO: Create constellations and try to map the samples to it!
-	if (cnt_max - cnt_min < 10)
-		return 0;
+	c.clusterize();
+
+	ConstellationPoint cp0 = c.mostProbabilisticPoint(0);
+	ConstellationPoint cp1 = c.mostProbabilisticPoint(1);
 
 	// TODO: support more than the 2-FSK (FIXME)
-	_threshold = sum_cnt * 1.0 / _cnt_table.size();
-	const_low = cnt_min;
-	const_high = cnt_max;
-
-	//
-	float freq_diff = (burst->phy.sample_rate / (const_high - const_low));
+	ConstellationPoint *min = cp0.pos < cp1.pos ? &cp0 : &cp1;
+	ConstellationPoint *max = cp0.pos > cp1.pos ? &cp0 : &cp1;
+	_threshold = min->pos + (max->pos - min->pos) / 2;
+	float freq_diff = (burst->phy.sample_rate / (max->pos - min->pos));
 
 	char phy_params[150];
-	snprintf(phy_params, sizeof(phy_params), "2-FSK: [%u, %u, %u], freq_diff = %u Hz",
-		 cnt_min, _threshold, cnt_max, freq_diff);
+	snprintf(phy_params, sizeof(phy_params), "2-FSK: [low = %f (p=%.2f), threshold = %u, high = %f (p=%.2f)], freq_diff = %.2f kHz",
+		 min->pos, min->proba, _threshold, cp1.pos, cp1.proba, freq_diff / 1000);
 	_phy_params = phy_params;
+
+	// check the most common frequency values are common-enough
+	if (cp0.proba < 0.33 || cp1.proba < 0.10)
+		return 0;
 
 	return 255;
 }

@@ -2,18 +2,19 @@
 #define OOK_H
 
 #include "demodulator.h"
+#include "constellation.h"
 
 class OOK : public Demodulator
 {
 	struct state {
 		std::vector <uint64_t> data;
-		size_t time_min, time_max;
+		std::vector<ConstellationPoint> points;
 		size_t bps;
 	} _on, _off;
 
 	std::string _phy_params;
 
-	size_t findBitsPerSymbol(size_t time_min, size_t time_max);
+	uint8_t getBPS(const Constellation &constellation, state &st);
 	bool mapSymbol(Message &m, state &st, size_t len);
 public:
 	OOK();
