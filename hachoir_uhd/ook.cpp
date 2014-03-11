@@ -107,8 +107,8 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 		last_stop = sb.time_stop_us;
 	}
 
-	cOn.clusterize();
-	cOff.clusterize();
+	cOn.clusterize(0.1);
+	cOff.clusterize(0.1);
 
 	// calculate the number of bits per symbols
 	uint8_t score_on = getBPS(cOn, _on);

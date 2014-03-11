@@ -64,6 +64,17 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 
 	c.clusterize();
 
+	std::cerr << c.histogram();
+
+	/*int i = 0;
+	ConstellationPoint cp;
+	do {
+		cp = c.mostProbabilisticPoint(i);
+		std::cout << "[" << cp.pos << ", p=" << cp.proba << "] ";
+		i++;
+	} while (cp.proba > 0.0);
+	std::cout << std::endl;*/
+
 	ConstellationPoint cp0 = c.mostProbabilisticPoint(0);
 	ConstellationPoint cp1 = c.mostProbabilisticPoint(1);
 
