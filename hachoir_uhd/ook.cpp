@@ -41,8 +41,11 @@ bool OOK::mapSymbol(Message &m, state &st, size_t len)
 	if (st.bps == 1) {
 		float min = st.points[0].pos < st.points[1].pos ? st.points[0].pos : st.points[1].pos;
 		float max = st.points[0].pos > st.points[1].pos ? st.points[0].pos : st.points[1].pos;
-		float thrs = min + (max - min) / 2;
-		m.addBit(len < thrs);
+		float dist_max = min + (max - min) / 2;
+		if (fabs(len - min) < dist_max)
+			m.addBit(false);
+		else if (fabs(len - max) < dist_max)
+			m.addBit(true);
 	} /*else if (st.bps == 2) {
 		size_t thrs0 = st.time_min + 1 * ((st.time_max - st.time_min) / 4);
 		size_t thrs1 = st.time_min + 2 * ((st.time_max - st.time_min) / 4);
@@ -107,8 +110,16 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	for (size_t b = 0; b < burst->sub_bursts.size(); b++) {
 		std::complex<short> *start = &burst->samples[burst->sub_bursts[b].start];
 
+		/*fprintf(stderr, "%u: samples = %p, start = %p, idx = %u, burst->sub_bursts[b].len = %u, len = %u\n",
+			b, burst->samples, start, burst->sub_bursts[b].start,
+			burst->sub_bursts[b].len, burst->len);*/
+
+		if (burst->sub_bursts[b].len == 0)
+			continue;
+
 		last_crossing = 0;
 		for (size_t i = 0; i < burst->sub_bursts[b].len - 1; i++) {
+			//fprintf(stderr, "i = %u\n", i);
 			if ((start[i].real() > 0 && start[i + 1].real() <= 0) ||
 			    (start[i].real() < 0 && start[i + 1].real() >= 0)) {
 				if (last_crossing > 0) {

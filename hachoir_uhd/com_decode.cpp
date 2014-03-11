@@ -101,6 +101,14 @@ void process_burst_sc16(burst_sc16_t *burst)
 	}
 
 	Message m = fittest->demod(burst);
+	/*Message m2;
+
+	for (int i = 0; i < m.size() - 1; i+=2) {
+		if (m[i] == 0 && m[i + 1] == 1)
+			m.addBit(false);
+		else if (m[i] == 1 && m[i + 1] == 0)
+			m.addBit(true);
+	}*/
 
 	std::cerr << "New decoded message: modulation = '" << m.modulation()
 	<< "', len = " << m.size() << ": " << std::endl
