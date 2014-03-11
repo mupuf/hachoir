@@ -35,13 +35,15 @@ class Constellation
 	int32_t pos_min, pos_max;
 	size_t pos_count;
 
-	size_t getHistAt(int32_t position);
+	size_t getHistAt(int32_t position) const;
 public:
 	Constellation();
 
 	void addPoint(int32_t position);
-	bool clusterize(float sampleDistMax = 0.1);
+	bool clusterize(float sampleDistMax = 0.01, float ignoreValuesUnder = 0.01);
 	ConstellationPoint mostProbabilisticPoint(size_t n) const;
+
+	std::string histogram() const;
 };
 
 #endif // CONSTELLATION_H

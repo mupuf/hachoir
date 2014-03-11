@@ -1,5 +1,6 @@
 #include "constellation.h"
 
+#include <sstream>
 #include <limits.h>
 #include <algorithm>
 
@@ -10,17 +11,19 @@ Constellation::Constellation() : hist_pos(1000, 0), hist_neg(1000, 0),
 
 }
 
-size_t Constellation::getHistAt(int32_t position)
+size_t Constellation::getHistAt(int32_t position) const
 {
 	if (position >= 0) {
-		return hist_pos[position];
+		if (position < hist_pos.size())
+			return hist_pos[position];
+		else
+			return 0;
 	} else {
-		if (position < pos_min)
-			pos_min = position;
-		if (position > pos_max)
-			pos_max = position;
-
-		return hist_neg[-position - 1];
+		position = -position - 1;
+		if (position < hist_neg.size())
+			return hist_neg[position];
+		else
+			return 0;
 	}
 }
 
@@ -29,8 +32,8 @@ void Constellation::addPoint(int32_t position)
 	if (position >= 0) {
 		if (position < pos_min)
 			pos_min = position;
-		if (position > pos_max)
-			pos_max = position;
+		if (position >= pos_max)
+			pos_max = position + 1;
 
 		if ((int32_t)hist_pos.size() < position)
 			hist_pos.resize(position * 2, 0);
@@ -39,8 +42,8 @@ void Constellation::addPoint(int32_t position)
 	} else {
 		if (position < pos_min)
 			pos_min = position;
-		if (position > pos_max)
-			pos_max = position;
+		if (position >= pos_max)
+			pos_max = position + 1;
 
 		position = -position - 1;
 		if ((int32_t)hist_neg.size() < position)
@@ -52,7 +55,7 @@ void Constellation::addPoint(int32_t position)
 	pos_count++;
 }
 
-bool Constellation::clusterize(float sampleDistMax)
+bool Constellation::clusterize(float sampleDistMax, float ignoreValuesUnder)
 {
 	size_t sampleDistMaxReal = sampleDistMax * (pos_max - pos_min);
 	size_t cluster_pos_avr = 0, cluster_sum = 0;
@@ -60,6 +63,10 @@ bool Constellation::clusterize(float sampleDistMax)
 
 	for (int32_t i = pos_min; i < pos_max; i++) {
 		size_t count = getHistAt(i);
+
+		if (count < pos_count * ignoreValuesUnder)
+			count = 0;
+
 		if (count > 0) {
 			cluster_pos_avr += i * count;
 			cluster_sum += count;
@@ -88,4 +95,17 @@ ConstellationPoint Constellation::mostProbabilisticPoint(size_t n) const
 		return prio[n];
 	else
 		return ConstellationPoint();
+}
+
+std::string Constellation::histogram() const
+{
+	std::stringstream ss;
+
+	ss << "value, proba" << std::endl;
+	for (int32_t i = pos_min; i < pos_max; i++) {
+		ss << i << "," << getHistAt(i) * 1.0 / pos_count << std::endl;
+	}
+	ss << std::endl;
+
+	return ss.str();
 }
