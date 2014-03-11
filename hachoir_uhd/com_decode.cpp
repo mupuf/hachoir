@@ -60,7 +60,7 @@ static void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_st
 
 void process_burst_sc16(burst_sc16_t *burst)
 {
-	//float freq_offset, freq_std;
+	float freq_offset, freq_std;
 
 	// List of available demodulators
 	OOK ook;

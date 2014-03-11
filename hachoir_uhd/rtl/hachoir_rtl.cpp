@@ -68,6 +68,7 @@ bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy, const std::string &f
 	std::complex<unsigned short> samples[4096];
 	std::ofstream outfile;
 	uint8_t buf[8192];
+	uint64_t sample_count = 0;
 	int len;
 	bool ret = false;
 
@@ -99,12 +100,16 @@ bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy, const std::string &f
 			break;
 		}
 
-		if (outfile.is_open())
-			outfile.write((const char*)&samples, len*sizeof(std::complex<unsigned short>));
+		if (outfile.is_open()) {
+			outfile.write((const char*)&samples, (len/2) * sizeof(std::complex<unsigned short>));
+			sample_count += (len / 2);
+		}
 	} while (!stop_signal_called);
 
-	if (outfile.is_open())
+	if (outfile.is_open()) {
 		outfile.close();
+		std::cout << "Wrote " << sample_count << " samples to the disk" << std::endl;
+	}
 
 	return ret;
 }
