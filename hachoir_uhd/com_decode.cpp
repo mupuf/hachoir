@@ -6,6 +6,7 @@
 
 #include "ook.h"
 #include "fsk.h"
+#include "manchester.h"
 
 static void burst_dump_samples(burst_sc16_t *burst)
 {
@@ -115,4 +116,12 @@ void process_burst_sc16(burst_sc16_t *burst)
 	<< "BIN: " << m.toString(Message::BINARY) << std::endl
 	<< "HEX: " << m.toString(Message::HEX) << std::endl
 	<< std::endl;
+
+	Message man;
+	if (Manchester::decode(m, man)) {
+		std::cerr << "Manchester code detected:" << std::endl
+		<< "BIN: " << man.toString(Message::BINARY) << std::endl
+		<< "HEX: " << man.toString(Message::HEX) << std::endl
+		<< std::endl;
+	}
 }

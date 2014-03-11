@@ -64,7 +64,7 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 
 	c.clusterize();
 
-	std::cerr << c.histogram();
+	//std::cerr << c.histogram();
 
 	/*int i = 0;
 	ConstellationPoint cp;

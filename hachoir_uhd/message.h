@@ -33,7 +33,7 @@ public:
 	void print(std::ostream &stream, MessagePrintStyle style) const;
 
 	Message &operator<< (bool bit);
-	bool operator[](size_t i);
+	bool operator[](size_t i) const;
 };
 
 #endif // MESSAGE_H

@@ -107,7 +107,7 @@ Message &Message::operator<< (bool bit)
 	return *this;
 }
 
-bool Message::operator[](size_t i)
+bool Message::operator[](size_t i) const
 {
 	return data[i];
 }
