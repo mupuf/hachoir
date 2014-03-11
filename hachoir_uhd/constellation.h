@@ -40,7 +40,7 @@ public:
 	Constellation();
 
 	void addPoint(int32_t position);
-	bool clusterize(float sampleDistMax = 0.01);
+	bool clusterize(float sampleDistMax = 0.1);
 	ConstellationPoint mostProbabilisticPoint(size_t n) const;
 };
 

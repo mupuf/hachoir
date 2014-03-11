@@ -13,19 +13,29 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st)
 	for (size_t i = 0; i < sizeof(c) / sizeof(ConstellationPoint); i++)
 		c[i] = constellation.mostProbabilisticPoint(i);
 
+	int i = 0;
+	ConstellationPoint cp;
+	do {
+		cp = constellation.mostProbabilisticPoint(i);
+		std::cout << "[" << cp.pos << ", p=" << cp.proba << "] ";
+		i++;
+	} while (cp.proba > 0.0);
+	std::cout << std::endl;
+
+
 	st.points.push_back(c[0]);
 	st.points.push_back(c[1]);
 
-	// make sure most the two symbols are really common
-	if (c[0].proba > 0.33 && c[1].proba > 0.20) {
-		score += 128;
+	// make sure most the two symbols are really common and that the least likely bit is as least 20% probable
+	if (c[0].proba + c[1].proba > 0.7 && c[1].proba >= 0.2 * (c[0].proba + c[1].proba)) {
+		score = 255;
 	}
 
 	// make sure the positions are multiple
-	if ((c[0].pos * 1.9 < c[1].pos && c[0].pos * 2.1 > c[1].pos) ||
+	/*if ((c[0].pos * 1.9 < c[1].pos && c[0].pos * 2.1 > c[1].pos) ||
 	    (c[1].pos * 1.9 < c[0].pos && c[1].pos * 2.1 > c[0].pos)) {
 		score += 127;
-	}
+	}*/
 
 	if (score >= 128) {
 		st.bps = 1;
@@ -41,11 +51,13 @@ bool OOK::mapSymbol(Message &m, state &st, size_t len)
 	if (st.bps == 1) {
 		float min = st.points[0].pos < st.points[1].pos ? st.points[0].pos : st.points[1].pos;
 		float max = st.points[0].pos > st.points[1].pos ? st.points[0].pos : st.points[1].pos;
-		float dist_max = min + (max - min) / 2;
+		float dist_max = (max - min) / 2;
 		if (fabs(len - min) < dist_max)
 			m.addBit(false);
 		else if (fabs(len - max) < dist_max)
 			m.addBit(true);
+		else
+			std::cout << "OOK: Unknown symbol " << len << std::endl;
 	} /*else if (st.bps == 2) {
 		size_t thrs0 = st.time_min + 1 * ((st.time_max - st.time_min) / 4);
 		size_t thrs1 = st.time_min + 2 * ((st.time_max - st.time_min) / 4);
@@ -73,7 +85,7 @@ bool OOK::mapSymbol(Message &m, state &st, size_t len)
 uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 {
 	Constellation cOn, cOff;
-	uint16_t score = 0;
+	uint8_t score = 0;
 
 	/* reset the parameters */
 	_on.data.clear();
@@ -99,9 +111,14 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	cOff.clusterize();
 
 	// calculate the number of bits per symbols
-	score += getBPS(cOn, _on);
-	score += getBPS(cOff, _off);
-	score /= 2;
+	uint8_t score_on = getBPS(cOn, _on);
+	uint8_t score_off = getBPS(cOff, _off);
+
+	// calculate the score
+	score = ((score_on > score_off) ? score_on : score_off) / 2;
+	if (burst->sub_bursts.size() > 30)
+		score += 127;
+
 
 	// get the frequency of the signal
 	uint64_t sum_cnt = 0, count_cnt = 0;
