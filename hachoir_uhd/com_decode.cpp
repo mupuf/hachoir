@@ -24,7 +24,7 @@ static void burst_dump_samples(burst_sc16_t *burst)
 	fclose(f);
 }
 
-static void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_std)
+/*static void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_std)
 {
 	// get the frequency of the signal
 	uint64_t sum_cnt = 0, sum_cnt_sq = 0, count_cnt = 0;
@@ -57,11 +57,11 @@ static void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_st
 		(burst->phy.central_freq + freq_offset) / 1000000.0,
 		(burst->phy.central_freq - freq_offset) / 1000000.0,
 		freq_std * 100.0 / freq_offset);
-}
+}*/
 
 void process_burst_sc16(burst_sc16_t *burst)
 {
-	float freq_offset, freq_std;
+	//float freq_offset, freq_std;
 
 	// List of available demodulators
 	OOK ook;

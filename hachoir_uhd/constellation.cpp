@@ -14,13 +14,13 @@ Constellation::Constellation() : hist_pos(1000, 0), hist_neg(1000, 0),
 size_t Constellation::getHistAt(int32_t position) const
 {
 	if (position >= 0) {
-		if (position < hist_pos.size())
+		if ((size_t)position < hist_pos.size())
 			return hist_pos[position];
 		else
 			return 0;
 	} else {
 		position = -position - 1;
-		if (position < hist_neg.size())
+		if ((size_t)position < hist_neg.size())
 			return hist_neg[position];
 		else
 			return 0;
@@ -55,7 +55,7 @@ void Constellation::addPoint(int32_t position)
 	pos_count++;
 }
 
-bool Constellation::clusterize(float sampleDistMax, float ignoreValuesUnder)
+bool Constellation::clusterize(float sampleDistMax, float ignoreProbaUnder)
 {
 	size_t sampleDistMaxReal = sampleDistMax * (pos_max - pos_min);
 	size_t cluster_pos_avr = 0, cluster_sum = 0;
@@ -64,7 +64,7 @@ bool Constellation::clusterize(float sampleDistMax, float ignoreValuesUnder)
 	for (int32_t i = pos_min; i < pos_max; i++) {
 		size_t count = getHistAt(i);
 
-		if (count < pos_count * ignoreValuesUnder)
+		if (count * 1.0 / pos_count < ignoreProbaUnder)
 			count = 0;
 
 		if (count > 0) {

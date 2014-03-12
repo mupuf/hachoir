@@ -13,14 +13,15 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st)
 	for (size_t i = 0; i < sizeof(c) / sizeof(ConstellationPoint); i++)
 		c[i] = constellation.mostProbabilisticPoint(i);
 
-	/*int i = 0;
+	int i = 0;
 	ConstellationPoint cp;
 	do {
 		cp = constellation.mostProbabilisticPoint(i);
-		std::cout << "[" << cp.pos << ", p=" << cp.proba << "] ";
+		if (cp.proba > 0.0)
+			std::cout << "[" << cp.pos << ", p=" << cp.proba << "] ";
 		i++;
 	} while (cp.proba > 0.0);
-	std::cout << std::endl;*/
+	std::cout << std::endl;
 
 
 	st.points.push_back(c[0]);
@@ -57,7 +58,7 @@ bool OOK::mapSymbol(Message &m, state &st, size_t len)
 		else if (fabs(len - max) < dist_max)
 			m.addBit(true);
 		else
-			std::cout << "OOK: Unknown symbol " << len << std::endl;
+			return false;
 	} /*else if (st.bps == 2) {
 		size_t thrs0 = st.time_min + 1 * ((st.time_max - st.time_min) / 4);
 		size_t thrs1 = st.time_min + 2 * ((st.time_max - st.time_min) / 4);
@@ -109,6 +110,10 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 
 	cOn.clusterize(0.1);
 	cOff.clusterize(0.1);
+
+	/*std::cerr << cOff.histogram();
+
+	exit(1);*/
 
 	// calculate the number of bits per symbols
 	uint8_t score_on = getBPS(cOn, _on);
@@ -169,10 +174,13 @@ Message OOK::demod(const burst_sc16_t * const burst)
 
 	// TODO: Detect the end of the message to start another one!
 	for (size_t i = 0; i < _on.data.size() - 1; i++) {
-		mapSymbol(m, _on, _on.data[i]);
-		mapSymbol(m, _off, _off.data[i]);
+		if (!mapSymbol(m, _on, _on.data[i]))
+			std::cout << "OOK: Unknown ON symbol " << _on.data[i] << std::endl;
+		if (!mapSymbol(m, _off, _off.data[i]))
+			std::cout << "OOK: Unknown OFF symbol " << _off.data[i] << std::endl;
 	}
-	mapSymbol(m, _on, _on.data[_on.data.size() - 1]);
+	if (!mapSymbol(m, _on, _on.data[_on.data.size() - 1]))
+			std::cout << "OOK: Unknown ON symbol " << _on.data[_on.data.size() - 1] << std::endl;
 
 	return m;
 }
