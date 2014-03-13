@@ -13,7 +13,7 @@
 #define NOISE_THRESHOLD_FACTOR 8
 
 #define COMS_DETECT_MIN_SAMPLES 150
-#define COMS_DETECT_SAMPLES_UNDER_THRS 30
+#define COMS_DETECT_SAMPLES_UNDER_THRS 20
 #define COMS_DETECT_COALESCING_TIME_US 10000
 
 enum rx_state_t {
@@ -57,8 +57,8 @@ burst_sc16_sub_start(burst_sc16_t *b)
 	if (b->sub_bursts.size() > 0)
 		prev = b->sub_bursts.back().time_stop_us;
 
-	fprintf(stderr, "	substart: time = %u µs, start = %u\n",
-		sb.time_start_us, sb.start);*/
+	fprintf(stderr, "	substart[%i]: time = %u µs, start = %u\n",
+		b->sub_bursts.size(), sb.time_start_us, sb.start);*/
 
 	b->sub_bursts.push_back(sb);
 }
@@ -79,6 +79,20 @@ burst_sc16_sub_stop(burst_sc16_t *b)
 }
 
 inline void
+burst_sc16_sub_cancel_current(burst_sc16_t *b)
+{
+	if (b->sub_bursts.back().end == 0) {
+		b->sub_bursts.pop_back();
+		/*fprintf(stderr, "	subcancel\n");*/
+	}
+	else {
+		std::cerr << "burst_sc16_sub_cancel_current: "
+			  << "Tried to cancel a finished sub-burst"
+			  << std::endl;
+	}
+}
+
+inline void
 burst_sc16_start(burst_sc16_t *b, const phy_parameters_t &phy,
 		 float noise_mag_avr, uint64_t time_us, size_t blk_off)
 {
@@ -92,6 +106,8 @@ burst_sc16_start(burst_sc16_t *b, const phy_parameters_t &phy,
 	b->stop_time_us = 0;
 
 	b->sub_bursts.clear();
+
+	/*fprintf(stderr, "start: pos = %u\n", blk_off);*/
 }
 
 inline void
@@ -123,6 +139,8 @@ burst_sc16_done(burst_sc16_t *b)
 {
 	static uint64_t burst_id = 0;
 
+	/*fprintf(stderr, "end: pos = %u\n", b->len);*/
+
 	/*fprintf(stderr, "b->sub_bursts.back().end = %p\n", b->sub_bursts.back().end);
 	fprintf(stderr, "b->sub_bursts.front().start = %p\n", b->sub_bursts.front().start);*/
 
@@ -144,7 +162,7 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 
 	/* communication */
 	static burst_sc16_t burst = burst_sc16_init();
-	static size_t com_sample = 0;
+	static size_t com_sample = 0, com_sub_sample = 0;
 	static float com_mag_sum = 0.0;
 	size_t com_blk_start = 0;
 	size_t com_coalescing_samples_count = sample_count_from_time(phy.sample_rate,
@@ -176,12 +194,14 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 				burst_sc16_sub_start(&burst);
 				com_mag_sum = 0.0;
 				com_sample = 0;
+				com_sub_sample = 0;
 				com_blk_start = i;
 			} else if(state == COALESCING) {
 				size_t com_blk_len = i - com_blk_start;
 				burst_sc16_append(&burst, samples + com_blk_start,
 								  com_blk_len);
 				burst_sc16_sub_start(&burst);
+				com_sub_sample = 0;
 
 				state = RX;
 				com_blk_start = i;
@@ -192,56 +212,62 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 
 		/* code executed when we are receiving a transmission */
 		if (state > LISTEN) {
+			com_sample++;
+
 			if (state == RX) {
 				com_mag_sum += mag;
-				com_sample++;
+				com_sub_sample++;
 
 				/* detect the end of the transmission */
 				if (detect_samples_under >= COMS_DETECT_SAMPLES_UNDER_THRS) {
-					if (com_sample >= COMS_DETECT_MIN_SAMPLES) {
-						size_t com_blk_len = i - com_blk_start;
-						burst_sc16_append(&burst, samples + com_blk_start,
-								  com_blk_len);
+					size_t com_blk_len = i - com_blk_start;
+					burst_sc16_append(&burst, samples + com_blk_start,
+							  com_blk_len);
+					com_blk_start = i;
+
+					if (com_sub_sample >= COMS_DETECT_MIN_SAMPLES) {
 						burst_sc16_sub_stop(&burst);
-						com_blk_start = i;
 						detect_samples_under = 0;
-						state = COALESCING;
-					} else
-						state = LISTEN;
+					} else {
+						burst_sc16_sub_cancel_current(&burst);
+					}
+					state = COALESCING;
 				}
 			} else if (state == COALESCING &&
 				   detect_samples_under >= com_coalescing_samples_count) {
 				state = LISTEN;
 
-				burst_sc16_done(&burst);
+				if (com_sample >= COMS_DETECT_MIN_SAMPLES) {
+					burst_sc16_done(&burst);
 
-				std::cerr << burst.burst_id
-					  << ": new communication, time = "
-					  << burst.start_time_us
-					  << " µs, len = "
-					  << burst.len
-					  << " samples, len_time = "
-					  << burst.stop_time_us - burst.start_time_us
-					  << " µs, sub-burst = "
-					  << burst.sub_bursts.size()
-					  << ", avg_pwr = "
-					  << (com_mag_sum / com_sample) * 100 / com_thrs
-					  << "% above threshold ("
-					  << com_mag_sum / com_sample
-					  << " vs noise avr "
-					  << noise_avr
-					  << ")"
-					  << std::endl;
+					std::cerr << burst.burst_id
+						  << ": new communication, time = "
+						  << burst.start_time_us
+						  << " µs, len = "
+						  << burst.len
+						  << " samples, len_time = "
+						  << burst.stop_time_us - burst.start_time_us
+						  << " µs, sub-burst = "
+						  << burst.sub_bursts.size()
+						  << ", avg_pwr = "
+						  << (com_mag_sum / com_sample) * 100 / com_thrs
+						  << "% above threshold ("
+						  << com_mag_sum / com_sample
+						  << " vs noise avr "
+						  << noise_avr
+						  << ")"
+						  << std::endl;
 
-				process_burst_sc16(&burst);
+					process_burst_sc16(&burst);
 
-				/* change the phy parameters, if wanted */
-				/*phy.central_freq = 869.5e6;
-				phy.sample_rate = 1500000;
-				phy.IF_bw = 2000000;
-				phy.gain = 45;
-				return RET_CH_PHY;
-				*/
+					/* change the phy parameters, if wanted */
+					/*phy.central_freq = 869.5e6;
+					phy.sample_rate = 1500000;
+					phy.IF_bw = 2000000;
+					phy.gain = 45;
+					return RET_CH_PHY;
+					*/
+				}
 			}
 		}
 
