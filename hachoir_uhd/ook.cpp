@@ -13,7 +13,7 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st)
 	for (size_t i = 0; i < sizeof(c) / sizeof(ConstellationPoint); i++)
 		c[i] = constellation.mostProbabilisticPoint(i);
 
-	int i = 0;
+	/*int i = 0;
 	ConstellationPoint cp;
 	do {
 		cp = constellation.mostProbabilisticPoint(i);
@@ -21,7 +21,7 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st)
 			std::cout << cp.toString() << " ";
 		i++;
 	} while (cp.proba > 0.0);
-	std::cout << std::endl;
+	std::cout << std::endl;*/
 
 
 	st.points.push_back(c[0]);

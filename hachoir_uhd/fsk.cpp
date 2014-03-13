@@ -70,7 +70,8 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 	ConstellationPoint cp;
 	do {
 		cp = c.mostProbabilisticPoint(i);
-		std::cout << "[" << cp.pos << ", p=" << cp.proba << "] ";
+		if (cp.proba > 0.0)
+			std::cout << cp.toString() << " ";
 		i++;
 	} while (cp.proba > 0.0);
 	std::cout << std::endl;*/
