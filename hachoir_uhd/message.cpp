@@ -42,7 +42,7 @@ std::string Message::toStringHex() const
 	ss << "(";
 	for (; i < data.size(); ++i) {
 		ss << std::hex << std::setw(1) << data[i];
-		if ((i % 4) == 3)
+		if ((i % 4) == 3 && i < data.size() - 1)
 			ss << " ";
 	}
 	ss << ")";

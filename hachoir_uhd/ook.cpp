@@ -18,7 +18,7 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st)
 	do {
 		cp = constellation.mostProbabilisticPoint(i);
 		if (cp.proba > 0.0)
-			std::cout << "[" << cp.pos << ", p=" << cp.proba << "] ";
+			std::cout << cp.toString() << " ";
 		i++;
 	} while (cp.proba > 0.0);
 	std::cout << std::endl;
@@ -111,10 +111,6 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	cOn.clusterize(0.1);
 	cOff.clusterize(0.1);
 
-	/*std::cerr << cOff.histogram();
-
-	exit(1);*/
-
 	// calculate the number of bits per symbols
 	uint8_t score_on = getBPS(cOn, _on);
 	uint8_t score_off = getBPS(cOff, _off);
@@ -123,7 +119,6 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	score = ((score_on > score_off) ? score_on : score_off) / 2;
 	if (burst->sub_bursts.size() > 30)
 		score += 127;
-
 
 	// get the frequency of the signal
 	uint64_t sum_cnt = 0, count_cnt = 0;

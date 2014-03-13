@@ -18,8 +18,16 @@ static void burst_dump_samples(burst_sc16_t *burst)
 
 	sprintf(filename, "burst_%i.csv", burst->burst_id);
 	f = fopen(filename, "wb");
+	int b = 0;
 	for (size_t i = 0; i < burst->len; i++) {
-		fprintf(f, "%i, %i\n", burst->samples[i].real(), burst->samples[i].imag());
+		int inSubBurst = 0;
+		if (i >= burst->sub_bursts[b].start) {
+			inSubBurst = (i < burst->sub_bursts[b].end) ? 127 : 0;
+			if (i > burst->sub_bursts[b].end && b < burst->sub_bursts.size())
+				b++;
+		}
+
+		fprintf(f, "%i, %i, %i\n", burst->samples[i].real(), burst->samples[i].imag(), inSubBurst);
 	}
 	fclose(f);
 }
@@ -124,4 +132,7 @@ void process_burst_sc16(burst_sc16_t *burst)
 		<< "HEX: " << man.toString(Message::HEX) << std::endl
 		<< std::endl;
 	}
+
+	/*if (burst->burst_id == 1)
+		exit(1);*/
 }

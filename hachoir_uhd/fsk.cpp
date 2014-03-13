@@ -93,6 +93,10 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 	if (cp0.proba < 0.33 || cp1.proba < 0.10)
 		return 0;
 
+	// check the burst doesn't have too many sub bursts
+	if (burst->sub_bursts.size() > 10)
+		return 0;
+
 	return 255;
 }
 

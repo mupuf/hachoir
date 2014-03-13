@@ -2,7 +2,7 @@
 
 bool Manchester::decode(const Message &in, Message &out)
 {
-	if (in.size() % 2 != 0)
+	if (in.size() == 0 || in.size() % 2 != 0)
 		return false;
 
 	for(size_t i = 0; i < in.size() - 1; i+=2) {
