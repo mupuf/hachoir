@@ -4,6 +4,33 @@
 #include <limits.h>
 #include <algorithm>
 
+ConstellationPoint::ConstellationPoint(float pos, float posMin,
+			   float posMax, float proba) :
+			   pos(pos), posMin(posMin), posMax(posMax),
+			   proba(proba) {
+	//std::cout << "Add point at pos " << pos << ", prio = " << prio << std::endl;
+}
+
+std::string ConstellationPoint::toString() {
+	std::stringstream ss;
+
+	ss << "[ " << pos << "(-" << pos - posMin << ", +" << posMax - pos
+	   << "), p=" << proba << " ]";
+
+	return ss.str();
+}
+
+bool ConstellationPoint::operator > (const ConstellationPoint &c) const
+{
+	return this->proba > c.proba;
+}
+
+bool ConstellationPoint::operator < (const ConstellationPoint &c) const
+{
+	return this->proba < c.proba;
+}
+
+
 Constellation::Constellation() : hist_pos(1000, 0), hist_neg(1000, 0),
 				 pos_min(INT32_MAX), pos_max(INT32_MIN),
 				 pos_count(0)
@@ -59,6 +86,7 @@ bool Constellation::clusterize(float sampleDistMax, float ignoreProbaUnder)
 {
 	size_t sampleDistMaxReal = sampleDistMax * (pos_max - pos_min);
 	size_t cluster_pos_avr = 0, cluster_sum = 0;
+	int32_t cluster_start = -1, cluster_end = -1;
 	size_t val_at_zero_count = 0;
 
 	for (int32_t i = pos_min; i < pos_max; i++) {
@@ -70,19 +98,27 @@ bool Constellation::clusterize(float sampleDistMax, float ignoreProbaUnder)
 		if (count > 0) {
 			cluster_pos_avr += i * count;
 			cluster_sum += count;
+			if (cluster_start < 0)
+				cluster_start = i;
+			cluster_end = i + 1;
 			val_at_zero_count = 0;
 		} else if (cluster_sum > 0 && val_at_zero_count == sampleDistMaxReal) {
 			prio.push_back(ConstellationPoint(1.0 * cluster_pos_avr / cluster_sum,
+							  cluster_start, cluster_end,
 							  1.0 * cluster_sum / pos_count));
 			cluster_pos_avr = 0;
 			cluster_sum = 0;
+			cluster_start = -1;
+			cluster_end = -1;
 		} else
 			val_at_zero_count++;
 	}
 
-	if (cluster_sum > 0)
+	if (cluster_sum > 0) {
 		prio.push_back(ConstellationPoint(1.0 * cluster_pos_avr / cluster_sum,
+						  cluster_start, cluster_end,
 						  1.0 * cluster_sum / pos_count));
+	}
 
 	std::sort(prio.begin(), prio.end(), std::greater<ConstellationPoint>());
 

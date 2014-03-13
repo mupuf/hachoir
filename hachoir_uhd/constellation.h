@@ -4,27 +4,24 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include <string>
+
 
 #include <iostream>
 
 struct ConstellationPoint {
 	float pos;
+	float posMin;
+	float posMax;
 	// TODO: Standard deviation
 	float proba;
 
-	ConstellationPoint(float pos = 0.0, float prio = 0.0) : pos(pos), proba(prio) {
-		//std::cout << "Add point at pos " << pos << ", prio = " << prio << std::endl;
-	}
+	ConstellationPoint(float pos = 0.0, float posMin = 0.0,
+			   float posMax = 0.0, float proba = 0.0);
 
-	bool operator > (const ConstellationPoint &c) const
-	{
-		return this->proba > c.proba;
-	}
-
-	bool operator < (const ConstellationPoint &c) const
-	{
-		return this->proba < c.proba;
-	}
+	std::string toString();
+	bool operator > (const ConstellationPoint &c) const;
+	bool operator < (const ConstellationPoint &c) const;
 };
 
 class Constellation
