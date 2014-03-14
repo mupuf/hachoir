@@ -237,35 +237,38 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 				state = LISTEN;
 
 				if (com_sample >= COMS_DETECT_MIN_SAMPLES) {
-					burst_sc16_done(&burst);
+					if (burst.sub_bursts.size() > 0) {
 
-					std::cerr << burst.burst_id
-						  << ": new communication, time = "
-						  << burst.start_time_us
-						  << " µs, len = "
-						  << burst.len
-						  << " samples, len_time = "
-						  << burst.stop_time_us - burst.start_time_us
-						  << " µs, sub-burst = "
-						  << burst.sub_bursts.size()
-						  << ", avg_pwr = "
-						  << (com_mag_sum / com_sample) * 100 / com_thrs
-						  << "% above threshold ("
-						  << com_mag_sum / com_sample
-						  << " vs noise avr "
-						  << noise_avr
-						  << ")"
-						  << std::endl;
+						burst_sc16_done(&burst);
 
-					process_burst_sc16(&burst);
+						std::cerr << burst.burst_id
+							  << ": new communication, time = "
+							  << burst.start_time_us
+							  << " µs, len = "
+							  << burst.len
+							  << " samples, len_time = "
+							  << burst.stop_time_us - burst.start_time_us
+							  << " µs, sub-burst = "
+							  << burst.sub_bursts.size()
+							  << ", avg_pwr = "
+							  << (com_mag_sum / com_sample) * 100 / com_thrs
+							  << "% above threshold ("
+							  << com_mag_sum / com_sample
+							  << " vs noise avr "
+							  << noise_avr
+							  << ")"
+							  << std::endl;
 
-					/* change the phy parameters, if wanted */
-					/*phy.central_freq = 869.5e6;
-					phy.sample_rate = 1500000;
-					phy.IF_bw = 2000000;
-					phy.gain = 45;
-					return RET_CH_PHY;
-					*/
+						process_burst_sc16(&burst);
+
+						/* change the phy parameters, if wanted */
+						/*phy.central_freq = 869.5e6;
+						phy.sample_rate = 1500000;
+						phy.IF_bw = 2000000;
+						phy.gain = 45;
+						return RET_CH_PHY;
+						*/
+					}
 				}
 			}
 		}
