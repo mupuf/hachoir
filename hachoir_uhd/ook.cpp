@@ -28,7 +28,7 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st)
 	st.points.push_back(c[1]);
 
 	// make sure most the two symbols are really common and that the least likely bit is as least 20% probable
-	if (c[0].proba + c[1].proba > 0.7 && c[1].proba >= 0.2 * (c[0].proba + c[1].proba)) {
+	if (c[0].proba + c[1].proba > 0.7 && c[1].proba >= 0.1 * (c[0].proba + c[1].proba)) {
 		score = 255;
 	}
 
