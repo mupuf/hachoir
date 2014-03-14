@@ -13,7 +13,7 @@ public:
 	FSK();
 
 	uint8_t likeliness(const burst_sc16_t * const burst);
-	Message demod(const burst_sc16_t * const burst);
+	std::vector<Message> demod(const burst_sc16_t * const burst);
 };
 
 #endif // FSK_H

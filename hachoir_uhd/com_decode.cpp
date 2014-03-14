@@ -20,7 +20,7 @@ static void burst_dump_samples(burst_sc16_t *burst)
 	f = fopen(filename, "wb");
 	int b = 0;
 	for (size_t i = 0; i < burst->len; i++) {
-		int inSubBurst = 0;
+		size_t inSubBurst = 0;
 		if (i >= burst->sub_bursts[b].start) {
 			inSubBurst = (i < burst->sub_bursts[b].end) ? 127 : 0;
 			if (i > burst->sub_bursts[b].end && b < burst->sub_bursts.size())
@@ -109,30 +109,21 @@ void process_burst_sc16(burst_sc16_t *burst)
 		return;
 	}
 
-	Message m = fittest->demod(burst);
-	/*Message m2;
+	std::vector<Message> msgs = fittest->demod(burst);
+	std::cerr << "New message: modulation = '" << msgs[0].modulation()
+		  << "', sub messages = " << msgs.size() << std::endl;
+	for (size_t i = 0; i < msgs.size(); i++) {
+		std::cerr << "Sub msg " << i << ": len = " << msgs[i].size() << ": " << std::endl
+		<< "BIN: " << msgs[i].toString(Message::BINARY) << std::endl
+		<< "HEX: " << msgs[i].toString(Message::HEX) << std::endl;
 
-	for (int i = 0; i < m.size() - 1; i+=2) {
-		if (m[i] == 0 && m[i + 1] == 1)
-			m.addBit(false);
-		else if (m[i] == 1 && m[i + 1] == 0)
-			m.addBit(true);
-	}*/
+		Message man;
+		if (Manchester::decode(msgs[i], man)) {
+			std::cerr << "Manchester code detected:" << std::endl
+				  << "BIN: " << man.toString(Message::BINARY) << std::endl
+				  << "HEX: " << man.toString(Message::HEX) << std::endl;
+		}
 
-	std::cerr << "New decoded message: modulation = '" << m.modulation()
-	<< "', len = " << m.size() << ": " << std::endl
-	<< "BIN: " << m.toString(Message::BINARY) << std::endl
-	<< "HEX: " << m.toString(Message::HEX) << std::endl
-	<< std::endl;
-
-	Message man;
-	if (Manchester::decode(m, man)) {
-		std::cerr << "Manchester code detected:" << std::endl
-		<< "BIN: " << man.toString(Message::BINARY) << std::endl
-		<< "HEX: " << man.toString(Message::HEX) << std::endl
-		<< std::endl;
+		std::cerr << std::endl;
 	}
-
-	/*if (burst->burst_id == 1)
-		exit(1);*/
 }

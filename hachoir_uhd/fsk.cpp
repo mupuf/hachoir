@@ -101,8 +101,9 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 	return 255;
 }
 
-Message FSK::demod(const burst_sc16_t * const burst)
+std::vector<Message> FSK::demod(const burst_sc16_t * const burst)
 {
+	std::vector<Message> msg;
 	Message m(_phy_params);
 
 	char filename[100];
@@ -118,5 +119,7 @@ Message FSK::demod(const burst_sc16_t * const burst)
 	}
 	fclose(f);
 
-	return m;
+	msg.push_back(m);
+
+	return msg;
 }
