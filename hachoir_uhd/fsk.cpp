@@ -87,7 +87,7 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 
 	char phy_params[150];
 	snprintf(phy_params, sizeof(phy_params), "2-FSK: [low = %f (p=%.2f), threshold = %u, high = %f (p=%.2f)], freq_diff = %.2f kHz",
-		 min->pos, min->proba, _threshold, cp1.pos, cp1.proba, freq_diff / 1000);
+		 min->pos, min->proba, _threshold, max->pos, max->proba, freq_diff / 1000);
 	_phy_params = phy_params;
 
 	// check the most common frequency values are common-enough
