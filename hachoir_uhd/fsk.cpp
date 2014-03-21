@@ -41,6 +41,7 @@ FSK::FSK()
 		freq_std * 100.0 / freq_offset);
 }*/
 
+#if 0
 uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 {
 	size_t last_crossing = 0;
@@ -97,6 +98,74 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 	// check the burst doesn't have too many sub bursts
 	if (burst->sub_bursts.size() > 10)
 		return 0;
+
+	return 255;
+}
+#endif
+
+uint8_t FSK::likeliness(const burst_sc16_t * const burst)
+{
+	std::vector<float> diff_phase;
+	float phase_sum = 0;
+
+	diff_phase.reserve(10000);
+
+	Constellation cTS;
+
+	FILE *f = fopen("Diff_phase", "w");
+
+	/* compute the phase difference */
+	for (size_t i = 0; i < 15000 /*burst->sub_bursts[0].len - 1*/; i++) {
+		std::complex<float> f1 = std::complex<float>(burst->samples[i].real(), burst->samples[i].imag());
+		std::complex<float> f2 = std::complex<float>(burst->samples[i + 1].real(), burst->samples[i + 1].imag());
+
+		float df = fmod((arg(f1) - arg(f2)),2*M_PI);
+		if (df < 0)
+			df = 2*M_PI + df;
+		df = fmod(df+M_PI,2*M_PI);
+
+		fprintf(f, "%f\n", df);
+
+		diff_phase.push_back(df);
+		phase_sum += df;
+	}
+
+	fclose(f);
+
+	/* compute the symbol time */
+	float phase_avr = phase_sum * 1.0 / diff_phase.size();
+	std::cout << "phase_avr = " << phase_avr << std::endl;
+	size_t last_crossing = 0;
+	for (size_t i = 0; i < diff_phase.size(); i++) {
+		if ((diff_phase[i] > phase_avr && diff_phase[i + 1] <= phase_avr) ||
+		    (diff_phase[i] < phase_avr && diff_phase[i + 1] >= phase_avr)) {
+			if (last_crossing > 0) {
+				size_t cnt = i - last_crossing;
+				if (cnt > 10)
+					cTS.addPoint(cnt);
+			}
+			last_crossing = i;
+		}
+	}
+
+	cTS.clusterize();
+
+	std::cout << cTS.histogram() << std::endl;
+
+	int i = 0;
+	ConstellationPoint cp;
+	do {
+		cp = cTS.mostProbabilisticPoint(i);
+		if (cp.proba > 0.0)
+			std::cout << cp.toString() << " ";
+		i++;
+	} while (cp.proba > 0.0);
+	std::cout << std::endl;
+
+	/*char phy_params[150];
+	snprintf(phy_params, sizeof(phy_params), "2-FSK: [low = %f (p=%.2f), threshold = %u, high = %f (p=%.2f)], freq_diff = %.2f kHz",
+		 min->pos, min->proba, _threshold, max->pos, max->proba, freq_diff / 1000);*/
+	_phy_params = "FSK-2";
 
 	return 255;
 }

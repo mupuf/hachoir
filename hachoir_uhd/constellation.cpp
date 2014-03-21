@@ -137,7 +137,7 @@ std::string Constellation::histogram() const
 {
 	std::stringstream ss;
 
-	ss << "value, proba" << std::endl;
+	ss << "value, proba (n=" << pos_count << ")" << std::endl;
 	for (int32_t i = pos_min; i < pos_max; i++) {
 		ss << i << "," << getHistAt(i) * 1.0 / pos_count << std::endl;
 	}
