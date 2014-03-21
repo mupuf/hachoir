@@ -164,7 +164,7 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 				      std::complex<short> *samples, size_t count)
 {
 	/* output */
-	static FILE* file = fopen("com_detect_output.csv", "w");
+	//static FILE* file = fopen("com_detect_output.csv", "w");
 
 	/* detection + current state */
 	static float noise_avr = -1.0, com_thrs = 100000.0, noise_mag_sum;
@@ -184,7 +184,7 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 		short imag = samples[i].imag();
 		float mag = sqrtf(real*real + imag*imag);
 
-		process_sc16_dump_samples(file, samples[i], mag, noise_avr, state == RX);
+		//process_sc16_dump_samples(file, samples[i], mag, noise_avr, state == RX);
 
 		/* calculate the noise level and thresholds */
 		noise_mag_sum += mag;
