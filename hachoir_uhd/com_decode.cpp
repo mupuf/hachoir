@@ -7,6 +7,7 @@
 #include "ook.h"
 #include "fsk.h"
 #include "manchester.h"
+#include "regulation.h"
 
 static void burst_dump_samples(burst_sc16_t *burst)
 {
@@ -72,10 +73,14 @@ static void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_st
 	freq_offset = (burst->phy.sample_rate / sample_avr) / 2;
 	if (diff_phase_sum < 0)
 		freq_offset *= -1.0;
+	float freq = (burst->phy.central_freq + freq_offset);
 	freq_std = sqrtf(sample_avr_sq - (sample_avr * sample_avr));
-	fprintf(stderr, "crap: freq = %.03f MHz (std = %f%%)\n",
-		(burst->phy.central_freq + freq_offset) / 1000000.0,
-		freq_std * 100.0 / freq_offset);
+
+	RegulationBand band; int channel = -1;
+	if (regDB.bandAtFrequencyRange(freq, freq, band))
+		band.frequencyIsInBand(freq, (size_t*)&channel);
+	fprintf(stderr, "crap: freq = %.03f MHz (std = %f%%, chan = %i)\n",
+		freq / 1000000.0, freq_std * 100.0 / freq_offset, channel);
 }
 
 void process_burst_sc16(burst_sc16_t *burst)
