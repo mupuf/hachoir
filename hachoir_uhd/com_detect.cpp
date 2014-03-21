@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "com_detect.h"
 #include "com_decode.h"
@@ -150,10 +151,21 @@ burst_sc16_done(burst_sc16_t *b)
 	b->stop_time_us += time_from_sample_count(b->phy.sample_rate, b->len);
 }
 
+inline void
+process_sc16_dump_samples(FILE* file, std::complex<short> IQ, float mag,
+			  float noise_avr, bool com_detected)
+{
+	/*fprintf(file, "%hi, %hi, %f, %f, %u\n",
+	       IQ.real(), IQ.imag(), mag, noise_avr, com_detected?127:0);*/
+}
+
 process_return_val_t
 process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 				      std::complex<short> *samples, size_t count)
 {
+	/* output */
+	static FILE* file = fopen("com_detect_output.csv", "w");
+
 	/* detection + current state */
 	static float noise_avr = -1.0, com_thrs = 100000.0, noise_mag_sum;
 	static size_t detect_samples_under = 0;
@@ -166,12 +178,13 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 	size_t com_blk_start = 0;
 	size_t com_coalescing_samples_count = sample_count_from_time(phy.sample_rate,
 								     COMS_DETECT_COALESCING_TIME_US);
-
 	/* for every sample */
 	for (size_t i = 0; i < count; i++) {
 		short real = samples[i].real();
 		short imag = samples[i].imag();
 		float mag = sqrtf(real*real + imag*imag);
+
+		process_sc16_dump_samples(file, samples[i], mag, noise_avr, state == RX);
 
 		/* calculate the noise level and thresholds */
 		noise_mag_sum += mag;
