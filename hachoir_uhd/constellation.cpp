@@ -54,6 +54,21 @@ size_t Constellation::getHistAt(int32_t position) const
 	}
 }
 
+int32_t Constellation::histMinVal() const
+{
+	return pos_min;
+}
+
+int32_t Constellation::histMaxVal() const
+{
+	return pos_max;
+}
+
+int32_t Constellation::histValCount() const
+{
+	return pos_count;
+}
+
 void Constellation::addPoint(int32_t position)
 {
 	if (position >= 0) {
