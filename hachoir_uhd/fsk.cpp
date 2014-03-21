@@ -115,7 +115,7 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 	FILE *f = fopen("Diff_phase", "w");
 
 	/* compute the phase difference */
-	for (size_t i = 0; i < 15000 /*burst->sub_bursts[0].len - 1*/; i++) {
+	for (size_t i = 0; i < burst->sub_bursts[0].len - 1; i++) {
 		std::complex<float> f1 = std::complex<float>(burst->samples[i].real(), burst->samples[i].imag());
 		std::complex<float> f2 = std::complex<float>(burst->samples[i + 1].real(), burst->samples[i + 1].imag());
 
@@ -136,7 +136,7 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 	float phase_avr = phase_sum * 1.0 / diff_phase.size();
 	std::cout << "phase_avr = " << phase_avr << std::endl;
 	size_t last_crossing = 0;
-	for (size_t i = 0; i < diff_phase.size(); i++) {
+	for (size_t i = 0; i < diff_phase.size() - 1; i++) {
 		if ((diff_phase[i] > phase_avr && diff_phase[i + 1] <= phase_avr) ||
 		    (diff_phase[i] < phase_avr && diff_phase[i + 1] >= phase_avr)) {
 			if (last_crossing > 0) {
