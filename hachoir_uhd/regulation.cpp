@@ -18,10 +18,8 @@ float RegulationBand::channelWidth() const
 	return (_freqEnd - _freqStart) / _channelCount;
 }
 
-#include <stdio.h>
 bool RegulationBand::frequencyIsInBand(float freq, size_t *channel)
 {
-	fprintf(stderr, "freq = %f, _freqStart = %f, _freqEnd = %f\n", freq, _freqStart, _freqEnd);
 	if (freq >= _freqStart && freq <= _freqEnd) {
 		if (channel)
 			*channel = (freq - _freqStart) / channelWidth();

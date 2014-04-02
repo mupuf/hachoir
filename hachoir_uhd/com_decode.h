@@ -31,5 +31,6 @@ struct burst_sc16_t {
 };
 
 void process_burst_sc16(burst_sc16_t *burst);
+void freq_get_avr(const burst_sc16_t *burst, float &freq, float &freq_std);
 
 #endif // COM_DECODE_H

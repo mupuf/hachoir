@@ -7,7 +7,6 @@
 #include "ook.h"
 #include "fsk.h"
 #include "manchester.h"
-#include "regulation.h"
 
 static void burst_dump_samples(burst_sc16_t *burst)
 {
@@ -19,7 +18,7 @@ static void burst_dump_samples(burst_sc16_t *burst)
 
 	sprintf(filename, "burst_%i.csv", burst->burst_id);
 	f = fopen(filename, "wb");
-	int b = 0;
+	size_t b = 0;
 	for (size_t i = 0; i < burst->len; i++) {
 		size_t inSubBurst = 0;
 		if (i >= burst->sub_bursts[b].start) {
@@ -33,7 +32,7 @@ static void burst_dump_samples(burst_sc16_t *burst)
 	fclose(f);
 }
 
-static void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_std)
+void freq_get_avr(const burst_sc16_t *burst, float &freq, float &freq_std)
 {
 	// get the frequency of the signal
 	uint64_t sum_cnt = 0, sum_cnt_sq = 0, count_cnt = 0;
@@ -67,26 +66,17 @@ static void freq_get_avr(burst_sc16_t *burst, float &freq_offset, float &freq_st
 		}
 	}
 
-	// store the PHY parameters in a single string
 	float sample_avr = sum_cnt * 1.0 / count_cnt;
 	float sample_avr_sq = sum_cnt_sq * 1.0 / count_cnt;
-	freq_offset = (burst->phy.sample_rate / sample_avr) / 2;
+	float freq_offset = (burst->phy.sample_rate / sample_avr) / 2;
 	if (diff_phase_sum < 0)
 		freq_offset *= -1.0;
-	float freq = (burst->phy.central_freq + freq_offset);
+	freq = (burst->phy.central_freq + freq_offset);
 	freq_std = sqrtf(sample_avr_sq - (sample_avr * sample_avr));
-
-	RegulationBand band; int channel = -1;
-	if (regDB.bandAtFrequencyRange(freq, freq, band))
-		band.frequencyIsInBand(freq, (size_t*)&channel);
-	fprintf(stderr, "crap: freq = %.03f MHz (std = %f%%, chan = %i)\n",
-		freq / 1000000.0, freq_std * 100.0 / freq_offset, channel);
 }
 
 void process_burst_sc16(burst_sc16_t *burst)
 {
-	float freq_offset, freq_std;
-
 	// List of available demodulators
 	OOK ook;
 	FSK fsk;
@@ -98,7 +88,6 @@ void process_burst_sc16(burst_sc16_t *burst)
 
 	// dump the samples to files
 	burst_dump_samples(burst);
-	freq_get_avr(burst, freq_offset, freq_std);
 
 	Demodulator *fittest = NULL;
 	uint8_t bestScore = 0;

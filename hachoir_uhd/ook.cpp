@@ -1,6 +1,9 @@
 #include "ook.h"
 #include <iostream>
 
+#include "com_decode.h"
+#include "regulation.h"
+
 OOK::OOK()
 {
 }
@@ -88,6 +91,10 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	Constellation cOn, cOff;
 	uint8_t score = 0;
 
+	float central_freq, freq_std;
+	RegulationBand band;
+	size_t channel;
+
 	/* reset the parameters */
 	_on.data.clear();
 	_off.data.clear();
@@ -120,44 +127,17 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	if (burst->sub_bursts.size() > 30)
 		score += 127;
 
-	// get the frequency of the signal
-	uint64_t sum_cnt = 0, count_cnt = 0;
-	size_t last_crossing = 0;
-
-	for (size_t b = 0; b < burst->sub_bursts.size(); b++) {
-		std::complex<short> *start = &burst->samples[burst->sub_bursts[b].start];
-
-		/*fprintf(stderr, "%u: samples = %p, start = %p, idx = %u, burst->sub_bursts[b].len = %u, len = %u\n",
-			b, burst->samples, start, burst->sub_bursts[b].start,
-			burst->sub_bursts[b].len, burst->len);*/
-
-		if (burst->sub_bursts[b].len == 0)
-			continue;
-
-		last_crossing = 0;
-		for (size_t i = 0; i < burst->sub_bursts[b].len - 1; i++) {
-			//fprintf(stderr, "i = %u\n", i);
-			if ((start[i].real() > 0 && start[i + 1].real() <= 0) ||
-			    (start[i].real() < 0 && start[i + 1].real() >= 0)) {
-				if (last_crossing > 0) {
-					sum_cnt += (i - last_crossing);
-					count_cnt++;
-				}
-				last_crossing = i;
-			}
-		}
-	}
+	freq_get_avr(burst, central_freq, freq_std);
+	if (regDB.bandAtFrequencyRange(central_freq, central_freq, band))
+		band.frequencyIsInBand(central_freq, &channel);
 
 	// store the PHY parameters in a single string
 	char phy_params[150];
-	float sample_avr = sum_cnt * 1.0 / count_cnt;
-	float freq_offset = (burst->phy.sample_rate / sample_avr) / 2;
 	snprintf(phy_params, sizeof(phy_params),
-		"OOK, ON(%u bps) = { %.01f (p=%.02f), %.01f (p=%.02f) }, OFF(%u bps) = { %.01f (p=%.02f), %.01f (p=%.02f) }, freq = %.03f MHz or %.03f MHz",
+		"OOK, ON(%u bps) = { %.01f (p=%.02f), %.01f (p=%.02f) }, OFF(%u bps) = { %.01f (p=%.02f), %.01f (p=%.02f) }, freq = %.03f MHz (chan = %u)",
 		_on.bps, _on.points[0].pos, _on.points[0].proba, _on.points[1].pos, _on.points[1].proba,
 		_off.bps, _off.points[0].pos, _off.points[0].proba, _off.points[1].pos, _off.points[1].proba,
-		(burst->phy.central_freq + freq_offset) / 1000000.0,
-		(burst->phy.central_freq - freq_offset) / 1000000.0);
+		central_freq, channel);
 	_phy_params = phy_params;
 
 	return score;
