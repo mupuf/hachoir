@@ -125,7 +125,7 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	// calculate the score
 	score = ((score_on > score_off) ? score_on : score_off) / 2;
 	if (burst->sub_bursts.size() > 30)
-		score += 127;
+		score += 128;
 
 	freq_get_avr(burst, central_freq, freq_std);
 	if (regDB.bandAtFrequencyRange(central_freq, central_freq, band))

@@ -134,7 +134,7 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 
 	/* compute the symbol time */
 	float phase_avr = phase_sum * 1.0 / diff_phase.size();
-	std::cout << "phase_avr = " << phase_avr << std::endl;
+	//std::cout << "phase_avr = " << phase_avr << std::endl;
 	size_t last_crossing = 0;
 	for (size_t i = 0; i < diff_phase.size() - 1; i++) {
 		if ((diff_phase[i] > phase_avr && diff_phase[i + 1] <= phase_avr) ||
@@ -148,9 +148,12 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 		}
 	}
 
+	if (cTS.histValCount() < 30)
+		return 0;
+
 	cTS.clusterize();
 
-	std::cout << cTS.histogram() << std::endl;
+	std::cerr << cTS.histogram() << std::endl;
 
 	int i = 0;
 	ConstellationPoint cp;
