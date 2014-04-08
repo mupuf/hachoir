@@ -30,23 +30,19 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st)
 	st.points.push_back(c[0]);
 	st.points.push_back(c[1]);
 
-	// make sure most the two symbols are really common and that the least likely bit is as least 20% probable
-	if (c[0].proba + c[1].proba > 0.7 && c[1].proba >= 0.1 * (c[0].proba + c[1].proba)) {
-		score = 128;
-	}
-
 	// make sure the positions are multiple
 	float min = st.points[0].pos < st.points[1].pos ? st.points[0].pos : st.points[1].pos;
 	float max = st.points[0].pos > st.points[1].pos ? st.points[0].pos : st.points[1].pos;
-	if (max >= min * 1.9) {
-		score += 127;
-	}
 
-	if (score > 128) {
+	// make	sure the 2 most important peaks account for 80%
+	if (c[0].proba + c[1].proba >= 0.7 && c[1].proba >= 0.1 * (c[0].proba + c[1].proba) && max >= (min * 1.9)) {
+			score = 255;
+			st.bps = 1;
+	} else if (c[0].proba + c[1].proba >= 0.85 && max >= (min * 1.9) && max <= (min * 2.1)) {
+		score = 255;
 		st.bps = 1;
-	} else {
+	} else
 		st.bps = 0;
-	}
 
 	return score;
 }
@@ -65,7 +61,7 @@ bool OOK::mapSymbol(Message &m, state &st, size_t len)
 		else
 			return false;
 	} else if (st.bps == 0) {
-		if (fabs(len - min) > dist_max && fabs(len - max) > dist_max)
+		if (len > st.points[0].posMax * 1.5)
 			return false;
 	}
 
@@ -112,7 +108,7 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 
 	// calculate the score
 	score = ((score_on > score_off) ? score_on : score_off) / 2;
-	if (burst->sub_bursts.size() > 30)
+	if (burst->sub_bursts.size() > 20)
 		score += 128;
 
 	freq_get_avr(burst, central_freq, freq_std);
@@ -136,7 +132,6 @@ std::vector<Message> OOK::demod(const burst_sc16_t * const burst)
 	std::vector<Message> msgs;
 	Message m(_phy_params);
 
-	// TODO: Detect the end of the message to start another one!
 	for (size_t i = 0; i < _on.data.size() - 1; i++) {
 		if (!mapSymbol(m, _on, _on.data[i])) {
 			std::cerr << "OOK: Unknown ON symbol " << _on.data[i] << std::endl;
@@ -160,4 +155,9 @@ std::vector<Message> OOK::demod(const burst_sc16_t * const burst)
 		msgs.push_back(m);
 
 	return msgs;
+}
+
+std::string OOK::modulationString() const
+{
+	return _phy_params;
 }

@@ -99,10 +99,12 @@ void process_burst_sc16(burst_sc16_t *burst)
 			bestScore = score;
 			fittest = d;
 		}
+		if (score == 255)
+			break;
 	}
 
 	// bail out if the score is very low!
-	if (bestScore < 128) {
+	if (!fittest || bestScore < 128) {
 		std::cerr << "Demod: burst ID "
 			  << burst->burst_id
 			  << " has an unknown modulation. Len = "
@@ -115,7 +117,8 @@ void process_burst_sc16(burst_sc16_t *burst)
 	}
 
 	std::vector<Message> msgs = fittest->demod(burst);
-	std::cerr << "New message: modulation = '" << msgs[0].modulation()
+
+	std::cerr << "New message: modulation = '" << fittest->modulationString()
 		  << "', sub messages = " << msgs.size() << std::endl;
 	for (size_t i = 0; i < msgs.size(); i++) {
 		std::cerr << "Sub msg " << i << ": len = " << msgs[i].size() << ": " << std::endl
@@ -128,7 +131,7 @@ void process_burst_sc16(burst_sc16_t *burst)
 				  << "BIN: " << man.toString(Message::BINARY) << std::endl
 				  << "HEX: " << man.toString(Message::HEX) << std::endl;
 		}
-
-		std::cerr << std::endl;
 	}
+
+	std::cerr << std::endl;
 }

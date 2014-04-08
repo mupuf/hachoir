@@ -39,13 +39,18 @@ public:
 		bool isValid() { return _bitPerSymbol == _value.size(); }
 	};
 
+	class SymbolOOKEnd {
+		size_t value;
+
+	}
+
 private:
 	SymbolOOK _ON_Symbol;
 	SymbolOOK _OFF_Symbol;
 
 public:
 
-	ModulationOOK(size_t bauds, SymbolOOK ON_Symbol, SymbolOOK OFF_Symbol);
+	ModulationOOK(SymbolOOK ON_Symbol, SymbolOOK OFF_Symbol, SymbolOOK);
 	std::string toString() const;
 };*/
 

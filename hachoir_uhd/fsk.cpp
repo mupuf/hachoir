@@ -195,3 +195,8 @@ std::vector<Message> FSK::demod(const burst_sc16_t * const burst)
 
 	return msg;
 }
+
+std::string FSK::modulationString() const
+{
+	return _phy_params;
+}
