@@ -139,14 +139,14 @@ std::vector<Message> OOK::demod(const burst_sc16_t * const burst)
 	// TODO: Detect the end of the message to start another one!
 	for (size_t i = 0; i < _on.data.size() - 1; i++) {
 		if (!mapSymbol(m, _on, _on.data[i])) {
-			std::cout << "OOK: Unknown ON symbol " << _on.data[i] << std::endl;
+			std::cerr << "OOK: Unknown ON symbol " << _on.data[i] << std::endl;
 			if (m.size() > 0) {
 				msgs.push_back(m);
 				m.clear();
 			}
 		}
 		if (!mapSymbol(m, _off, _off.data[i])) {
-			std::cout << "OOK: Unknown OFF symbol " << _off.data[i] << std::endl;
+			std::cerr << "OOK: Unknown OFF symbol " << _off.data[i] << std::endl;
 			if (m.size() > 0) {
 				msgs.push_back(m);
 				m.clear();
@@ -154,9 +154,10 @@ std::vector<Message> OOK::demod(const burst_sc16_t * const burst)
 		}
 	}
 	if (!mapSymbol(m, _on, _on.data[_on.data.size() - 1]))
-			std::cout << "OOK: Unknown ON symbol " << _on.data[_on.data.size() - 1] << std::endl;
+			std::cerr << "OOK: Unknown ON symbol " << _on.data[_on.data.size() - 1] << std::endl;
 
-	msgs.push_back(m);
+	if (m.size() > 0)
+		msgs.push_back(m);
 
 	return msgs;
 }
