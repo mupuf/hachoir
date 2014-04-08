@@ -99,7 +99,9 @@ void Constellation::addPoint(int32_t position)
 
 bool Constellation::clusterize(float sampleDistMax, float ignoreProbaUnder)
 {
-	size_t sampleDistMaxReal = sampleDistMax * (pos_max - pos_min);
+	size_t sampleDistMaxRealAbs = sampleDistMax * pos_min;
+	size_t sampleDistMaxRealRange = sampleDistMax * (pos_max - pos_min);
+	size_t sampleDistMaxReal = sampleDistMaxRealAbs > sampleDistMaxRealRange ? sampleDistMaxRealAbs : sampleDistMaxRealRange;
 	size_t cluster_pos_avr = 0, cluster_sum = 0;
 	int32_t cluster_start = -1, cluster_end = -1;
 	size_t val_at_zero_count = 0;

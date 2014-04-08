@@ -43,7 +43,7 @@ public:
 	int32_t histValCount() const;
 	std::string histogram() const;
 
-	bool clusterize(float sampleDistMax = 0.01, float ignoreValuesUnder = 0.01);
+	bool clusterize(float sampleDistMax = 0.1, float ignoreValuesUnder = 0.01);
 	ConstellationPoint mostProbabilisticPoint(size_t n) const;
 };
 
