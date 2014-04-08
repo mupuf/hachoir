@@ -32,16 +32,17 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st)
 
 	// make sure most the two symbols are really common and that the least likely bit is as least 20% probable
 	if (c[0].proba + c[1].proba > 0.7 && c[1].proba >= 0.1 * (c[0].proba + c[1].proba)) {
-		score = 255;
+		score = 128;
 	}
 
 	// make sure the positions are multiple
-	/*if ((c[0].pos * 1.9 < c[1].pos && c[0].pos * 2.1 > c[1].pos) ||
-	    (c[1].pos * 1.9 < c[0].pos && c[1].pos * 2.1 > c[0].pos)) {
+	float min = st.points[0].pos < st.points[1].pos ? st.points[0].pos : st.points[1].pos;
+	float max = st.points[0].pos > st.points[1].pos ? st.points[0].pos : st.points[1].pos;
+	if (max >= min * 1.9) {
 		score += 127;
-	}*/
+	}
 
-	if (score >= 128) {
+	if (score > 128) {
 		st.bps = 1;
 	} else {
 		st.bps = 0;
@@ -52,36 +53,21 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st)
 
 bool OOK::mapSymbol(Message &m, state &st, size_t len)
 {
+	float min = st.points[0].pos < st.points[1].pos ? st.points[0].pos : st.points[1].pos;
+	float max = st.points[0].pos > st.points[1].pos ? st.points[0].pos : st.points[1].pos;
+	float dist_max = (max - min) / 2;
+
 	if (st.bps == 1) {
-		float min = st.points[0].pos < st.points[1].pos ? st.points[0].pos : st.points[1].pos;
-		float max = st.points[0].pos > st.points[1].pos ? st.points[0].pos : st.points[1].pos;
-		float dist_max = (max - min) / 2;
 		if (fabs(len - min) < dist_max)
 			m.addBit(false);
 		else if (fabs(len - max) < dist_max)
 			m.addBit(true);
 		else
 			return false;
-	} /*else if (st.bps == 2) {
-		size_t thrs0 = st.time_min + 1 * ((st.time_max - st.time_min) / 4);
-		size_t thrs1 = st.time_min + 2 * ((st.time_max - st.time_min) / 4);
-		size_t thrs2 = st.time_min + 3 * ((st.time_max - st.time_min) / 4);
-
-		if (len < thrs0) {
-			m.addBit(false);
-			m.addBit(false);
-		} else if (len < thrs1) {
-			m.addBit(false);
-			m.addBit(true);
-		} else if (len < thrs2) {
-			m.addBit(true);
-			m.addBit(true);
-		} else {
-			m.addBit(true);
-			m.addBit(false);
-		}
-	} else
-		return false;*/
+	} else if (st.bps == 0) {
+		if (fabs(len - min) > dist_max && fabs(len - max) > dist_max)
+			return false;
+	}
 
 	return true;
 }
@@ -115,8 +101,10 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 		last_stop = sb.time_stop_us;
 	}
 
-	cOn.clusterize(0.1);
-	cOff.clusterize(0.1);
+	cOn.clusterize();
+	cOff.clusterize();
+
+	//std::cerr << cOn.histogram() << std::endl;
 
 	// calculate the number of bits per symbols
 	uint8_t score_on = getBPS(cOn, _on);
@@ -137,7 +125,7 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 		"OOK, ON(%u bps) = { %.01f (p=%.02f), %.01f (p=%.02f) }, OFF(%u bps) = { %.01f (p=%.02f), %.01f (p=%.02f) }, freq = %.03f MHz (chan = %u)",
 		_on.bps, _on.points[0].pos, _on.points[0].proba, _on.points[1].pos, _on.points[1].proba,
 		_off.bps, _off.points[0].pos, _off.points[0].proba, _off.points[1].pos, _off.points[1].proba,
-		central_freq, channel);
+		central_freq / 1000000.0, channel);
 	_phy_params = phy_params;
 
 	return score;
