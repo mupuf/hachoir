@@ -131,6 +131,8 @@ void process_burst_sc16(burst_sc16_t *burst)
 				  << "BIN: " << man.toString(Message::BINARY) << std::endl
 				  << "HEX: " << man.toString(Message::HEX) << std::endl;
 		}
+
+		std::cerr << std::endl;
 	}
 
 	std::cerr << std::endl;

@@ -9,8 +9,8 @@
 
 #define BURST_MIN_ALLOC_SIZE 100000
 
-#define NOISE_AVR_SAMPLE_COUNT 1000
-#define NOISE_THRESHOLD_FACTOR 10
+#define NOISE_AVR_SAMPLE_COUNT 2000
+#define NOISE_THRESHOLD_FACTOR 3.0
 
 #define COMS_DETECT_MIN_SAMPLES 150
 #define COMS_DETECT_SAMPLES_UNDER_THRS 20
@@ -64,6 +64,20 @@ burst_sc16_sub_start(burst_sc16_t *b)
 }
 
 inline void
+burst_sc16_sub_cancel_current(burst_sc16_t *b)
+{
+	if (b->sub_bursts.back().end == 0) {
+		b->sub_bursts.pop_back();
+		//fprintf(stderr, "	subcancel\n");
+	}
+	else {
+		std::cerr << "burst_sc16_sub_cancel_current: "
+			  << "Tried to cancel a finished sub-burst"
+			  << std::endl;
+	}
+}
+
+inline void
 burst_sc16_sub_stop(burst_sc16_t *b)
 {
 	struct sub_burst_sc16_t &sb = b->sub_bursts.back();
@@ -74,22 +88,11 @@ burst_sc16_sub_stop(burst_sc16_t *b)
 
 	sb.len = sb.end - sb.start;
 
+	if (sb.len == 0 || sb.end < sb.start)
+		burst_sc16_sub_cancel_current(b);
+
 	/*fprintf(stderr, "	subend: len = %u (time = %u µs)\n", sb.len,
 		sb.time_stop_us - sb.time_start_us);*/
-}
-
-inline void
-burst_sc16_sub_cancel_current(burst_sc16_t *b)
-{
-	if (b->sub_bursts.back().end == 0) {
-		b->sub_bursts.pop_back();
-		/*fprintf(stderr, "	subcancel\n");*/
-	}
-	else {
-		std::cerr << "burst_sc16_sub_cancel_current: "
-			  << "Tried to cancel a finished sub-burst"
-			  << std::endl;
-	}
 }
 
 inline void
@@ -144,7 +147,10 @@ burst_sc16_done(burst_sc16_t *b)
 	/*fprintf(stderr, "b->sub_bursts.back().end = %p\n", b->sub_bursts.back().end);
 	fprintf(stderr, "b->sub_bursts.front().start = %p\n", b->sub_bursts.front().start);*/
 
-	b->len = b->sub_bursts.back().end - b->sub_bursts.front().start;
+	if (b->sub_bursts.back().end < b->sub_bursts.front().start)
+		b->len = 0;
+	else
+		b->len = b->sub_bursts.back().end - b->sub_bursts.front().start;
 
 	b->burst_id = burst_id++;
 	b->stop_time_us = b->start_time_us;
@@ -167,7 +173,7 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 	//static FILE* file = fopen("com_detect_output.csv", "w");
 
 	/* detection + current state */
-	static float noise_avr = -1.0, com_thrs = 100000.0, noise_mag_sum;
+	static float noise_mag_max = -1.0, com_thrs = 100000.0, noise_cur_max = 0.0;
 	static size_t detect_samples_under = 0;
 	static rx_state_t state = LISTEN;
 
@@ -187,22 +193,22 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 		//process_sc16_dump_samples(file, samples[i], mag, noise_avr, state == RX);
 
 		/* calculate the noise level and thresholds */
-		noise_mag_sum += mag;
+		if (mag > noise_cur_max)
+			noise_cur_max = mag;
 		if (i % NOISE_AVR_SAMPLE_COUNT == NOISE_AVR_SAMPLE_COUNT -1) {
-			float avr = noise_mag_sum / NOISE_AVR_SAMPLE_COUNT;
-
-			if (noise_avr < 0 || avr < noise_avr) {
-				noise_avr = avr;
-				com_thrs = noise_avr * NOISE_THRESHOLD_FACTOR;
+			if (noise_mag_max < 0 || noise_cur_max < noise_mag_max) {
+				noise_mag_max = noise_cur_max;
+				com_thrs = noise_mag_max * NOISE_THRESHOLD_FACTOR;
 			}
-			noise_mag_sum = 0;
+			//fprintf(stderr, "noise_mag_max = %f, noise_cur_max = %f\n", noise_mag_max, noise_cur_max);
+			noise_cur_max = 0.0;
 		}
 
 		/* detect the beginning of new transmissions */
 		if (mag >= com_thrs) {
 			if (state == LISTEN) {
 				state = RX;
-				burst_sc16_start(&burst, phy, noise_avr, time_us, i);
+				burst_sc16_start(&burst, phy, noise_mag_max, time_us, i);
 				burst_sc16_sub_start(&burst);
 				com_mag_sum = 0.0;
 				com_sample = 0;
@@ -267,8 +273,8 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 							  << (com_mag_sum / com_sample) * 100 / com_thrs
 							  << "% above threshold ("
 							  << com_mag_sum / com_sample
-							  << " vs noise avr "
-							  << noise_avr
+							  << " vs noise mag max "
+							  << noise_mag_max
 							  << ")"
 							  << std::endl;
 
