@@ -8,7 +8,7 @@ OOK::OOK()
 {
 }
 
-uint8_t OOK::getBPS(const Constellation &constellation, state &st)
+uint8_t OOK::getBPS(const Constellation &constellation, state &st, float sample_rate)
 {
 	ConstellationPoint c[2];
 	uint8_t score = 0;
@@ -44,6 +44,12 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st)
 	} else
 		st.bps = 0;
 
+	if (st.bps == 0)
+		st.symbol = ModulationOOK::SymbolOOK(st.points[0].pos * 1000000.0 / sample_rate);
+	else if (st.bps == 1)
+		st.symbol = ModulationOOK::SymbolOOK(min * 1000000.0 / sample_rate,
+						     max * 1000000.0 / sample_rate);
+
 	return score;
 }
 
@@ -73,10 +79,6 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	Constellation cOn, cOff;
 	uint8_t score = 0;
 
-	float central_freq, freq_std;
-	RegulationBand band;
-	size_t channel;
-
 	/* reset the parameters */
 	_on.data.clear();
 	_off.data.clear();
@@ -103,13 +105,25 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	//std::cerr << cOn.histogram() << std::endl;
 
 	// calculate the number of bits per symbols
-	uint8_t score_on = getBPS(cOn, _on);
-	uint8_t score_off = getBPS(cOff, _off);
+	uint8_t score_on = getBPS(cOn, _on, burst->phy.sample_rate);
+	uint8_t score_off = getBPS(cOff, _off, burst->phy.sample_rate);
 
 	// calculate the score
 	score = ((score_on > score_off) ? score_on : score_off) / 2;
 	if (burst->sub_bursts.size() > 20)
 		score += 128;
+
+	return score;
+}
+
+std::vector<Message> OOK::demod(const burst_sc16_t * const burst)
+{
+	std::shared_ptr<Modulation> mod;
+	std::vector<Message> msgs;
+	float central_freq, freq_std;
+	RegulationBand band;
+	size_t channel;
+	Message m;
 
 	freq_get_avr(burst, central_freq, freq_std);
 	if (regDB.bandAtFrequencyRange(central_freq, central_freq, band))
@@ -124,18 +138,13 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 		central_freq / 1000000.0, channel);
 	_phy_params = phy_params;
 
-	return score;
-}
-
-std::vector<Message> OOK::demod(const burst_sc16_t * const burst)
-{
-	std::vector<Message> msgs;
-	Message m(_phy_params);
-
 	for (size_t i = 0; i < _on.data.size() - 1; i++) {
 		if (!mapSymbol(m, _on, _on.data[i])) {
 			std::cerr << "OOK: Unknown ON symbol " << _on.data[i] << std::endl;
 			if (m.size() > 0) {
+				ModulationOOK::SymbolOOK stopSymbol(_on.data[i] * 1000000.0 / burst->phy.sample_rate);
+				mod.reset(new ModulationOOK(central_freq, _on.symbol, _off.symbol, stopSymbol));
+				m.setModulation(mod);
 				msgs.push_back(m);
 				m.clear();
 			}
@@ -143,6 +152,9 @@ std::vector<Message> OOK::demod(const burst_sc16_t * const burst)
 		if (!mapSymbol(m, _off, _off.data[i])) {
 			std::cerr << "OOK: Unknown OFF symbol " << _off.data[i] << std::endl;
 			if (m.size() > 0) {
+				ModulationOOK::SymbolOOK stopSymbol(_off.data[i] * 1000000.0 / burst->phy.sample_rate);
+				mod.reset(new ModulationOOK(central_freq, _on.symbol, _off.symbol, stopSymbol));
+				m.setModulation(mod);
 				msgs.push_back(m);
 				m.clear();
 			}
@@ -151,8 +163,12 @@ std::vector<Message> OOK::demod(const burst_sc16_t * const burst)
 	if (!mapSymbol(m, _on, _on.data[_on.data.size() - 1]))
 			std::cerr << "OOK: Unknown ON symbol " << _on.data[_on.data.size() - 1] << std::endl;
 
-	if (m.size() > 0)
+	if (m.size() > 0) {
+		ModulationOOK::SymbolOOK stopSymbol;
+		mod.reset(new ModulationOOK(central_freq, _on.symbol, _off.symbol, stopSymbol));
+		m.setModulation(mod);
 		msgs.push_back(m);
+	}
 
 	return msgs;
 }

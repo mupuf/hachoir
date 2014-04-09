@@ -3,6 +3,7 @@
 
 #include "demodulator.h"
 #include "utils/constellation.h"
+#include "modulations/modulationOOK.h"
 
 class OOK : public Demodulator
 {
@@ -10,11 +11,12 @@ class OOK : public Demodulator
 		std::vector <uint64_t> data;
 		std::vector<ConstellationPoint> points;
 		size_t bps;
+		ModulationOOK::SymbolOOK symbol;
 	} _on, _off;
 
 	std::string _phy_params;
 
-	uint8_t getBPS(const Constellation &constellation, state &st);
+	uint8_t getBPS(const Constellation &constellation, state &st, float sample_rate);
 	bool mapSymbol(Message &m, state &st, size_t len);
 public:
 	OOK();

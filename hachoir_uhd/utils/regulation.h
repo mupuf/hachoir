@@ -1,7 +1,7 @@
 #ifndef REGULATION_H
 #define REGULATION_H
 
-#include "modulation.h"
+#include "modulations/modulation.h"
 #include <vector>
 
 class RegulationBand

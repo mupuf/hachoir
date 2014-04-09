@@ -121,7 +121,10 @@ void process_burst_sc16(burst_sc16_t *burst)
 	std::cerr << "New message: modulation = '" << fittest->modulationString()
 		  << "', sub messages = " << msgs.size() << std::endl;
 	for (size_t i = 0; i < msgs.size(); i++) {
-		std::cerr << "Sub msg " << i << ": len = " << msgs[i].size() << ": " << std::endl
+		std::cerr << "Sub msg " << i;
+		if (msgs[i].modulation())
+			std::cerr << ", " << msgs[i].modulation()->toString();
+		std::cerr << ": len = " << msgs[i].size() << ": " << std::endl
 		<< "BIN: " << msgs[i].toString(Message::BINARY) << std::endl
 		<< "HEX: " << msgs[i].toString(Message::HEX) << std::endl;
 

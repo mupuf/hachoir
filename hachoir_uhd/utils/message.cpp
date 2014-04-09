@@ -50,7 +50,7 @@ std::string Message::toStringHex() const
 	return ss.str();
 }
 
-Message::Message (const std::string &modulation) : _modulation(modulation)
+Message::Message ()
 {
 }
 
@@ -69,9 +69,14 @@ void Message::clear()
 	data.clear();
 }
 
-std::string Message::modulation() const
+std::shared_ptr<Modulation> Message::modulation() const
 {
 	return _modulation;
+}
+
+void Message::setModulation(std::shared_ptr<Modulation> mod)
+{
+	_modulation = mod;
 }
 
 std::string Message::toString(MessagePrintStyle style) const

@@ -176,7 +176,7 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 std::vector<Message> FSK::demod(const burst_sc16_t * const burst)
 {
 	std::vector<Message> msg;
-	Message m(_phy_params);
+	Message m;
 
 	char filename[100];
 	sprintf(filename, "burst_%u_fsk_freq.csv", burst->burst_id);
