@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "com_decode.h"
-#include "message.h"
+#include "utils/com_decode.h"
+#include "utils/message.h"
 
 class Demodulator
 {

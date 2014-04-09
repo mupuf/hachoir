@@ -4,9 +4,9 @@
 
 #include <iostream>
 
-#include "ook.h"
-#include "fsk.h"
-#include "manchester.h"
+#include "demodulations/ook.h"
+#include "demodulations/fsk.h"
+#include "utils/manchester.h"
 
 static void burst_dump_samples(burst_sc16_t *burst)
 {

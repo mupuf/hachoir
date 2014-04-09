@@ -1,8 +1,8 @@
 #include "ook.h"
 #include <iostream>
 
-#include "com_decode.h"
-#include "regulation.h"
+#include "utils/com_decode.h"
+#include "utils/regulation.h"
 
 OOK::OOK()
 {

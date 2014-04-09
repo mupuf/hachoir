@@ -3,6 +3,8 @@ project (Hachoir_UHD)
 
 INCLUDE(FindPkgConfig)
 
+include_directories(${CMAKE_SOURCE_DIR})
+
 # Enable C++'11
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
@@ -22,7 +24,9 @@ include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
 # Find all the common files
-file(GLOB common_src "*.cpp" "*.h")
+file(GLOB_RECURSE common_src "demodulations/*.cpp" "demodulations/*.h"
+			     "modulations/*.cpp" "modulations/*.h"
+			     "utils/*.cpp" "utils/*.h")
 
 pkg_search_module(libuhd uhd)
 option(APPS_UHD_ENABLE "Enable applications depending on the libuhd" ON)
@@ -30,13 +34,13 @@ if(libuhd_FOUND AND APPS_UHD_ENABLE)
 	include_directories(${libuhd_INCLUDE_DIRS})
 	link_directories(${libuhd_LIBRARY_DIRS})
 
-	add_executable(hachoir_uhd ${common_src} "uhd/hachoir_uhd.cpp")
+	add_executable(hachoir_uhd ${common_src} "drivers/uhd/hachoir_uhd.cpp")
 	target_link_libraries(hachoir_uhd ${Boost_LIBRARIES} ${libuhd_LIBRARIES})
 
-	add_executable(tx_samples_from_file "uhd/tx_samples_from_file.cpp")
+	add_executable(tx_samples_from_file ${common_src} "drivers/uhd/tx_samples_from_file.cpp")
 	target_link_libraries(tx_samples_from_file ${Boost_LIBRARIES} ${libuhd_LIBRARIES})
 
-	add_executable(rx_samples_to_file "uhd/rx_samples_to_file.cpp")
+	add_executable(rx_samples_to_file ${common_src} "drivers/uhd/rx_samples_to_file.cpp")
 	target_link_libraries(rx_samples_to_file ${Boost_LIBRARIES} ${libuhd_LIBRARIES})
 else()
 	set(APPS_UHD_ENABLE "OFF")
@@ -48,7 +52,7 @@ if(librtl_FOUND AND APPS_RTL_ENABLE)
 	include_directories(${librtl_INCLUDE_DIRS})
 	link_directories(${librtl_LIBRARY_DIRS})
 
-	add_executable(hachoir_rtl ${common_src} "rtl/hachoir_rtl.cpp")
+	add_executable(hachoir_rtl ${common_src} "drivers/rtl/hachoir_rtl.cpp")
 	target_link_libraries(hachoir_rtl ${Boost_LIBRARIES} ${librtl_LIBRARIES})
 else()
 	set(APPS_RTL_ENABLE "OFF")
@@ -56,7 +60,7 @@ endif()
 
 option(APPS_TEST_ENABLE "Enable test applications" ON)
 if(APPS_TEST_ENABLE)
-	add_executable(replay_samples ${common_src} "tests/replay_samples.cpp")
+	add_executable(replay_samples ${common_src} "drivers/tests/replay_samples.cpp")
 	target_link_libraries(replay_samples ${Boost_LIBRARIES})
 endif()
 

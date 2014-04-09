@@ -2,7 +2,7 @@
 #define OOK_H
 
 #include "demodulator.h"
-#include "constellation.h"
+#include "utils/constellation.h"
 
 class OOK : public Demodulator
 {

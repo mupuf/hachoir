@@ -1,6 +1,6 @@
 #include "fsk.h"
 
-#include "constellation.h"
+#include "utils/constellation.h"
 
 FSK::FSK()
 {
