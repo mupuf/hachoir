@@ -176,7 +176,7 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 	/* detection + current state */
 	static float noise_mag_max = -1.0, com_thrs = 100000.0, noise_cur_max = 0.0;
 	static float I_avr = 0.0, Q_avr = 0.0, I_sum = 0.0, Q_sum = 0.0;
-	static size_t IQ_count = 0.0, detect_samples_under = 0;
+	static size_t IQ_count = 0, noise_mag_count = 0, detect_samples_under = 0;
 	static rx_state_t state = LISTEN;
 
 	/* communication */
@@ -207,13 +207,14 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 		/* calculate the noise level and thresholds */
 		if (mag > noise_cur_max)
 			noise_cur_max = mag;
-		if (i % NOISE_AVR_SAMPLE_COUNT == NOISE_AVR_SAMPLE_COUNT -1) {
+		if (noise_mag_count++ % NOISE_AVR_SAMPLE_COUNT == NOISE_AVR_SAMPLE_COUNT -1) {
 			if (noise_mag_max < 0 || noise_cur_max < noise_mag_max) {
 				noise_mag_max = noise_cur_max;
 				com_thrs = noise_mag_max * NOISE_THRESHOLD_FACTOR;
 			}
 			//fprintf(stderr, "noise_mag_max = %f, noise_cur_max = %f\n", noise_mag_max, noise_cur_max);
 			noise_cur_max = 0.0;
+			noise_mag_count = 0;
 		}
 
 		/* detect the beginning of new transmissions */
