@@ -99,8 +99,8 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 		last_stop = sb.time_stop_us;
 	}
 
-	cOn.clusterize();
-	cOff.clusterize();
+	cOn.clusterize(0.01);
+	cOff.clusterize(0.01);
 
 	//std::cerr << cOn.histogram() << std::endl;
 
@@ -110,7 +110,7 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 
 	// calculate the score
 	score = ((score_on > score_off) ? score_on : score_off) / 2;
-	if (burst->sub_bursts.size() > 20)
+	if (burst->sub_bursts.size() > 10)
 		score += 128;
 
 	return score;
