@@ -2,9 +2,11 @@
 #define MESSAGE_H
 
 #include <boost/dynamic_bitset.hpp>
+#include <initializer_list>
 #include <stdint.h>
 #include <ostream>
 #include <memory>
+
 
 #include "modulations/modulation.h"
 
@@ -24,8 +26,12 @@ public:
 	};
 
 	Message();
+	Message(std::initializer_list<uint8_t> bytes);
 
 	void addBit(bool b);
+	void addByte(uint8_t byte);
+	void addBytes(std::initializer_list<uint8_t> bytes);
+	void addBytes(const uint8_t *bytes, size_t len);
 	size_t size() const;
 	void clear();
 
@@ -36,6 +42,8 @@ public:
 	void print(std::ostream &stream, MessagePrintStyle style) const;
 
 	Message &operator<< (bool bit);
+	Message &operator<< (uint8_t byte);
+	Message &operator<< (std::initializer_list<uint8_t> bytes);
 	bool operator[](size_t i) const;
 };
 

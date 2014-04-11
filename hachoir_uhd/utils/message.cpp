@@ -54,9 +54,32 @@ Message::Message ()
 {
 }
 
+Message::Message(std::initializer_list<uint8_t> bytes)
+{
+	addBytes(bytes);
+}
+
 void Message::addBit(bool b)
 {
 	data.push_back(b);
+}
+
+void Message::addByte(uint8_t byte)
+{
+	for (int i = 7; i >= 0; i--)
+		data.push_back((byte >> i) & 1);
+}
+
+void Message::addBytes(std::initializer_list<uint8_t> bytes)
+{
+	for (auto it = bytes.begin(); it != bytes.end(); ++it)
+		addByte(*it);
+}
+
+void Message::addBytes(const uint8_t *bytes, size_t len)
+{
+	for (size_t i = 0; i < len; i++)
+		addByte(bytes[i]);
 }
 
 size_t Message::size() const
@@ -106,9 +129,21 @@ void Message::print(std::ostream &stream, MessagePrintStyle style) const
 	}
 }
 
-Message &Message::operator<< (bool bit)
+Message& Message::operator<< (bool bit)
 {
 	addBit(bit);
+	return *this;
+}
+
+Message& Message::operator<< (uint8_t byte)
+{
+	addByte(byte);
+	return *this;
+}
+
+Message& Message::operator<< (std::initializer_list<uint8_t> bytes)
+{
+	addBytes(bytes);
 	return *this;
 }
 
