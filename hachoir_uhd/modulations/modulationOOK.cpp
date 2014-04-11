@@ -27,3 +27,24 @@ std::string ModulationOOK::toString() const
 
 	return std::string(phy_params);
 }
+
+bool ModulationOOK::genSamples(std::complex<short> **samples, size_t *len, float carrier_freq, float sample_rate)
+{
+	float diff_freq = centralFrequency() - carrier_freq;
+
+	*len = 81920;
+	*samples = new std::complex<short>[*len];
+
+	//FILE *f = fopen("samples.csv", "w");
+	for (size_t i = 0; i < *len; i++) {
+		short I, Q;
+		I = 2048 * cos(i * sample_rate / diff_freq);
+		Q = 2048 * sin(i * sample_rate / diff_freq);
+		//fprintf(f, "%i, %i\n", I, Q);
+		(*samples)[i] = std::complex<short>(I, Q);
+	}
+
+	//fclose(f);
+
+	return true;
+}

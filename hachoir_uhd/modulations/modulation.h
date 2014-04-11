@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <complex>
 
 class Modulation
 {
@@ -24,6 +25,8 @@ public:
 	float centralFrequency() const;
 
 	virtual std::string toString() const = 0;
+
+	virtual bool genSamples(std::complex<short> **samples, size_t *len, float carrier_freq, float sample_rate) = 0;
 };
 
 #endif // MODULATION_H

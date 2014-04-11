@@ -2,6 +2,7 @@
 #define MODULATIONOOK_H
 
 #include "modulation.h"
+#include <complex>
 
 class ModulationOOK : public Modulation
 {
@@ -28,11 +29,12 @@ private:
 	SymbolOOK _ON_Symbol;
 	SymbolOOK _OFF_Symbol;
 	SymbolOOK _STOP_Symbol;
-
 public:
 	ModulationOOK(float centralFreq, const SymbolOOK &ON_Symbol,
 		      const SymbolOOK &OFF_Symbol, const SymbolOOK &STOP_Symbol);
 	std::string toString() const;
+
+	bool genSamples(std::complex<short> **samples, size_t *len, float carrier_freq, float sample_rate);
 };
 
 #endif // MODULATIONOOK_H

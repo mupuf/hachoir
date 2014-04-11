@@ -65,7 +65,7 @@ uint64_t time_us()
 
 bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy, const std::string &file)
 {
-	std::complex<unsigned short> samples[4096];
+	std::complex<short> samples[4096];
 	std::ofstream outfile;
 	uint8_t buf[8192];
 	uint64_t sample_count = 0;

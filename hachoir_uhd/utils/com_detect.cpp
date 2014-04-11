@@ -10,7 +10,7 @@
 #define BURST_MIN_ALLOC_SIZE 100000
 
 #define DC_OFFSET_SAMPLE_COUNT 32768
-#define NOISE_AVR_SAMPLE_COUNT 2000
+#define NOISE_AVR_SAMPLE_COUNT 8192
 #define NOISE_THRESHOLD_FACTOR 3.0
 
 #define COMS_DETECT_MIN_SAMPLES 150
@@ -197,9 +197,10 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 		Q_sum += samples[i].imag();
 		if (IQ_count++ % DC_OFFSET_SAMPLE_COUNT == DC_OFFSET_SAMPLE_COUNT - 1) {
 			I_avr = I_sum / IQ_count;
-			Q_sum = Q_sum / IQ_count;
+			Q_avr = Q_sum / IQ_count;
 			IQ_count = 0;
 			I_sum = Q_sum = 0.0;
+			//fprintf(stderr, "I_avr = %f, Q_avr = %f\n", I_avr, Q_avr);
 		}
 
 		//process_sc16_dump_samples(file, samples[i], mag, noise_avr, state == RX);

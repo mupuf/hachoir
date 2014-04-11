@@ -102,7 +102,7 @@ void sample_send(struct bladerf *dev, std::complex<short> *samples, size_t len)
 
 	// enable the sync TX mode
 	ret = bladerf_sync_config(dev, BLADERF_MODULE_TX, BLADERF_FORMAT_SC16_Q11,
-				  64, burst_len, 16, 0);
+				  64, 1024, 16, 0);
 	if (ret)
 		std::cerr << "bladerf_sync_config: " << bladerf_strerror(ret) << std::endl;
 
@@ -111,13 +111,22 @@ void sample_send(struct bladerf *dev, std::complex<short> *samples, size_t len)
 	if (ret)
 		std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
 
-	ret = bladerf_sync_tx(dev, samples, len, NULL, 1000);
-	if (ret)
-		std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
+	for (int i = 0; i < 1; i++) {
+		ret = bladerf_sync_tx(dev, padding, 1024, NULL, 1000);
+		if (ret)
+			std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
+	}
+	for (int i = 0; i < 250; i++) {
+		ret = bladerf_sync_tx(dev, samples, len, NULL, 1000);
+		if (ret)
+			std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
+	}
 
-	ret = bladerf_sync_tx(dev, padding, burst_len - len, NULL, 1000);
-	if (ret)
-		std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
+	for (int i = 0; i < 1; i++) {
+		ret = bladerf_sync_tx(dev, padding, 1024, NULL, 1000);
+		if (ret)
+			std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
+	}
 }
 
 int main(int argc, char *argv[])
@@ -159,8 +168,8 @@ int main(int argc, char *argv[])
 	std::signal(SIGINT, &sig_int_handler);
 	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
-	/*if (!brf_set_phy(dev, phy))
-		return 1;*/
+	if (!brf_set_phy(dev, phy))
+		return 1;
 
 	Message m({0x55, 0x2a, 0xca});
 	m.addBit(true);
@@ -168,12 +177,17 @@ int main(int argc, char *argv[])
 	ModulationOOK::SymbolOOK sOn(258, 525);
 	ModulationOOK::SymbolOOK sOff(273, 538);
 	ModulationOOK::SymbolOOK sStop(9300);
-	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(433.934e6, sOn, sOff, sStop)));
+	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(436e6, sOn, sOff, sStop)));
 
 	std::cout << m.toString(Message::HEX);
 
+	std::complex<short> *samples;
+	size_t len_samples;
+	m.modulation()->genSamples(&samples, &len_samples, phy.central_freq, phy.sample_rate);
 
-	//sample_send(dev, samples, len_samples);
+	sample_send(dev, samples, len_samples);
+
+	bladerf_enable_module(dev, BLADERF_MODULE_TX, false);
 
 	bladerf_close(dev);
 

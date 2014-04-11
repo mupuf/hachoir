@@ -122,7 +122,7 @@ std::vector<Message> OOK::demod(const burst_sc16_t * const burst)
 	std::vector<Message> msgs;
 	float central_freq, freq_std;
 	RegulationBand band;
-	size_t channel;
+	size_t channel = 0;
 	Message m;
 
 	freq_get_avr(burst, central_freq, freq_std);

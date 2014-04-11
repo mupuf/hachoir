@@ -74,6 +74,14 @@ bool brf_set_phy(struct bladerf *dev, const phy_parameters_t &phy)
 		std::cout << boost::format("Actual RX VGA2 Gain: %f dB...") % (rxvga2) << std::endl << std::endl;
 	}
 
+	// reset the I/Q coff
+	ret = bladerf_set_correction(dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_I, 0);
+	if (ret)
+		std::cerr << "bladerf_set_correction: " << bladerf_strerror(ret) << std::endl;
+	ret = bladerf_set_correction(dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_Q, 0);
+	if (ret)
+		std::cerr << "bladerf_set_correction: " << bladerf_strerror(ret) << std::endl;
+
 	// enable the sync RX mode
 	ret = bladerf_sync_config(dev, BLADERF_MODULE_RX, BLADERF_FORMAT_SC16_Q11,
 				  64, 16384, 16, 0);
@@ -100,14 +108,55 @@ uint64_t time_us()
 	return (time.tv_sec * 1000000 + time.tv_usec) - (time_start.tv_sec * 1000000 + time_start.tv_usec);
 }
 
+bool correctIQ(struct bladerf *dev)
+{
+	std::complex<short> samples[4096];
+	size_t len = 4096;
+	int64_t I_sum = 0, Q_sum = 0;
+	size_t sum = 0;
+	int ret;
+
+	for(size_t i = 0; i < 100; i++) {
+		ret = bladerf_sync_rx(dev, samples, len, NULL, 1000);
+		if (ret) {
+			std::cerr << "bladerf_sync_rx: " << bladerf_strerror(ret) << std::endl;
+			//return false;
+		}
+
+		for (size_t e = 0; e < len; e++) {
+			I_sum += samples[e].real();
+			Q_sum += samples[e].imag();
+		}
+		sum += len;
+	}
+
+	float I_avr = 1.0 * I_sum / sum;
+	float Q_avr = 1.0 * Q_sum / sum;
+
+	short I_coff = I_avr / 2.0, Q_coff = Q_avr / 2.0;
+
+	fprintf(stderr, "Found DC-Offset: I = %f, Q = %f\n", I_avr, Q_avr);
+	ret = bladerf_set_correction(dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_I, I_coff);
+	if (ret)
+		std::cerr << "bladerf_set_correction: " << bladerf_strerror(ret) << std::endl;
+
+	ret = bladerf_set_correction(dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_Q, Q_coff);
+	if (ret)
+		std::cerr << "bladerf_set_correction: " << bladerf_strerror(ret) << std::endl;
+
+	return true;
+}
+
 bool samples_read(struct bladerf *dev, phy_parameters_t &phy, const std::string &file)
 {
-	std::complex<unsigned short> samples[4096];
+	std::complex<short> samples[4096];
 	struct bladerf_metadata meta;
 	std::ofstream outfile;
 	uint64_t sample_count = 0;
 	int ret, len = 4096;
 	bool exit = false;
+
+	correctIQ(dev);
 
 	if (file != std::string()) {
 		char filename[100];
@@ -153,6 +202,7 @@ int main(int argc, char *argv[])
 	phy_parameters_t phy;
 	struct bladerf *dev;
 	std::string file;
+	short I_coff = 0, Q_coff = 0;
 
 	//setup the program options
 	po::options_description desc("Allowed options");
