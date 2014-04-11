@@ -78,12 +78,12 @@ bool brf_set_phy(struct bladerf *dev, const phy_parameters_t &phy)
 	ret = bladerf_sync_config(dev, BLADERF_MODULE_RX, BLADERF_FORMAT_SC16_Q11,
 				  64, 16384, 16, 0);
 	if (ret)
-		std::cerr << "bladerf_set_frequency: " << bladerf_strerror(ret) << std::endl;
+		std::cerr << "bladerf_sync_config: " << bladerf_strerror(ret) << std::endl;
 
 	// enable the RX module
 	ret = bladerf_enable_module(dev, BLADERF_MODULE_RX, true);
 	if (ret)
-		std::cerr << "bladerf_set_frequency: " << bladerf_strerror(ret) << std::endl;
+		std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
 
 	return true;
 }
