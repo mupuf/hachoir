@@ -7,8 +7,7 @@
 #include <ostream>
 #include <memory>
 
-
-#include "modulations/modulation.h"
+class Modulation;
 
 class Message
 {

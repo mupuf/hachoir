@@ -160,22 +160,22 @@ int main(int argc, char *argv[])
 
 
 	// find one device
-	if(bladerf_open(&dev, NULL)) {
+	/*if(bladerf_open(&dev, NULL)) {
 		std::cerr << "bladerf_open: couldn't open the bladeRF device" << std::endl;
 		return -1;
-	}
+	}*/
 
 	std::signal(SIGINT, &sig_int_handler);
 	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
-	if (!brf_set_phy(dev, phy))
-		return 1;
+	/*if (!brf_set_phy(dev, phy))
+		return 1;*/
 
-	Message m({0x55, 0x2a, 0xca});
+	Message m({0x35, 0x2a, 0xb2});
 	m.addBit(true);
 
-	ModulationOOK::SymbolOOK sOn(258, 525);
-	ModulationOOK::SymbolOOK sOff(273, 538);
+	ModulationOOK::SymbolOOK sOn(261.2, 527.2);
+	ModulationOOK::SymbolOOK sOff(270.8, 536.3);
 	ModulationOOK::SymbolOOK sStop(9300);
 	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(436e6, sOn, sOff, sStop)));
 
@@ -183,13 +183,14 @@ int main(int argc, char *argv[])
 
 	std::complex<short> *samples;
 	size_t len_samples;
-	m.modulation()->genSamples(&samples, &len_samples, phy.central_freq, phy.sample_rate);
+	m.modulation()->genSamples(&samples, &len_samples, m, phy.central_freq,
+				   phy.sample_rate, 2048.0);
 
-	sample_send(dev, samples, len_samples);
+	/*sample_send(dev, samples, len_samples);
 
 	bladerf_enable_module(dev, BLADERF_MODULE_TX, false);
 
-	bladerf_close(dev);
+	bladerf_close(dev);*/
 
 	return EXIT_SUCCESS;
 }

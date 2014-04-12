@@ -28,23 +28,37 @@ std::string ModulationOOK::toString() const
 	return std::string(phy_params);
 }
 
-bool ModulationOOK::genSamples(std::complex<short> **samples, size_t *len, float carrier_freq, float sample_rate)
+bool ModulationOOK::genSamples(std::complex<short> **samples, size_t *len, const Message &m,
+			       float carrier_freq, float sample_rate, float amp)
 {
-	float diff_freq = centralFrequency() - carrier_freq;
+	setCarrierFrequency(carrier_freq);
+	setSampleRate(sample_rate);
+	setPhase(-M_PI / 2.0); // start with I = 0
 
-	*len = 81920;
-	*samples = new std::complex<short>[*len];
+	size_t allocated_len = 81920, offset = 0;
+	*samples = new std::complex<short>[allocated_len];
 
-	//FILE *f = fopen("samples.csv", "w");
-	for (size_t i = 0; i < *len; i++) {
-		short I, Q;
-		I = 2048 * cos(i * sample_rate / diff_freq);
-		Q = 2048 * sin(i * sample_rate / diff_freq);
-		//fprintf(f, "%i, %i\n", I, Q);
-		(*samples)[i] = std::complex<short>(I, Q);
+	bool isOn = true;
+	for (size_t i = 0; i < m.size(); i++) {
+		size_t symbol_us;
+
+		if (isOn)
+			_ON_Symbol.symbol(m[i], symbol_us);
+		else
+			_OFF_Symbol.symbol(m[i], symbol_us);
+
+		setAmp(amp * isOn);
+
+		size_t symbol_len = symbol_us * sample_rate / 1000000;
+		modulate((*samples) + offset, symbol_len);
+		offset += symbol_len;
+
+		isOn = !isOn;
 	}
 
-	//fclose(f);
+	setAmp(amp);
+
+	//FILE *f = fopen("samples.csv", "w");
 
 	return true;
 }

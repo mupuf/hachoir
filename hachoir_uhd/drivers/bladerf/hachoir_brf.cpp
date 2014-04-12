@@ -202,7 +202,6 @@ int main(int argc, char *argv[])
 	phy_parameters_t phy;
 	struct bladerf *dev;
 	std::string file;
-	short I_coff = 0, Q_coff = 0;
 
 	//setup the program options
 	po::options_description desc("Allowed options");

@@ -18,11 +18,17 @@ public:
 		SymbolOOK(float time_us) : _bps(0), _bit_0(time_us), _bit_1(-1.0) {}
 		SymbolOOK(float bit0_us, float bit1_us) : _bps(1), _bit_0(bit0_us), _bit_1(bit1_us) {}
 		SymbolOOK(const SymbolOOK &sOOK) : _bps(sOOK._bps), _bit_0(sOOK._bit_0), _bit_1(sOOK._bit_1) {}
-
 		size_t bitsPerSymbol() const { return _bps; }
 
 		float bit0_us() const { return _bit_0; }
 		float bit1_us() const { return _bit_1; }
+
+		void symbol(bool bit, size_t &time) {
+			if (bit)
+				time = bit1_us();
+			else
+				time = bit0_us();
+		}
 	};
 
 private:
@@ -34,7 +40,9 @@ public:
 		      const SymbolOOK &OFF_Symbol, const SymbolOOK &STOP_Symbol);
 	std::string toString() const;
 
-	bool genSamples(std::complex<short> **samples, size_t *len, float carrier_freq, float sample_rate);
+	bool genSamples(std::complex<short> **samples, size_t *len,
+			const Message &m, float carrier_freq, float sample_rate,
+			float amp);
 };
 
 #endif // MODULATIONOOK_H
