@@ -33,9 +33,9 @@ bool ModulationOOK::genSamples(std::complex<short> **samples, size_t *len, const
 {
 	setCarrierFrequency(carrier_freq);
 	setSampleRate(sample_rate);
-	setPhase(-M_PI / 2.0); // start with I = 0
+	setPhase(0);
 
-	size_t allocated_len = 81920, offset = 0;
+	size_t allocated_len = 819200, offset = 0;
 	*samples = new std::complex<short>[allocated_len];
 
 	bool isOn = true;
@@ -56,9 +56,13 @@ bool ModulationOOK::genSamples(std::complex<short> **samples, size_t *len, const
 		isOn = !isOn;
 	}
 
-	setAmp(amp);
+	// stop bit
+	size_t symbol_len = _STOP_Symbol.bit0_us() * sample_rate / 1000000;
+	setAmp(amp * isOn);
+	modulate((*samples) + offset, symbol_len);
+	offset += symbol_len;
 
-	//FILE *f = fopen("samples.csv", "w");
+	*len = offset;
 
 	return true;
 }

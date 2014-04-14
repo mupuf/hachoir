@@ -58,6 +58,7 @@ bool brf_set_phy(struct bladerf *dev, const phy_parameters_t &phy)
 	} else {
 		int rxvga1 = BLADERF_RXVGA1_GAIN_MIN + (BLADERF_RXVGA1_GAIN_MAX - BLADERF_RXVGA1_GAIN_MIN) / 2;
 		int rxvga2 = BLADERF_RXVGA2_GAIN_MIN + (BLADERF_RXVGA2_GAIN_MAX - BLADERF_RXVGA2_GAIN_MIN) / 2;
+		bladerf_lna_gain lna_gain = BLADERF_LNA_GAIN_MID;
 
 		std::cout << boost::format("Setting RX VGA1 Gain: %i dB ...") % (rxvga1) << std::endl;
 		ret = bladerf_set_rxvga1(dev, rxvga1);
@@ -72,6 +73,13 @@ bool brf_set_phy(struct bladerf *dev, const phy_parameters_t &phy)
 			std::cerr << "bladerf_set_rxvga2: " << bladerf_strerror(ret) << std::endl;
 		bladerf_get_rxvga2(dev, &rxvga2);
 		std::cout << boost::format("Actual RX VGA2 Gain: %f dB...") % (rxvga2) << std::endl << std::endl;
+
+		std::cout << boost::format("Setting LNA Gain: %i dB ...") % (lna_gain) << std::endl;
+		ret = bladerf_set_lna_gain(dev, BLADERF_LNA_GAIN_MID);
+		if (ret)
+			std::cerr << "bladerf_get_lna_gain: " << bladerf_strerror(ret) << std::endl;
+		bladerf_get_lna_gain(dev, &lna_gain);
+		std::cout << boost::format("Actual LNA Gain: %f dB...") % (lna_gain) << std::endl << std::endl;
 	}
 
 	// reset the I/Q coff

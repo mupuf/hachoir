@@ -36,7 +36,7 @@ void freq_get_avr(const burst_sc16_t *burst, float &freq, float &freq_std)
 {
 	// get the frequency of the signal
 	uint64_t sum_cnt = 0, sum_cnt_sq = 0, count_cnt = 0;
-	size_t last_crossing = 0;
+	size_t last_crossing = 0, samples_count = 0;
 	float diff_phase_sum = 0.0;
 
 	for (size_t b = 0; b < burst->sub_bursts.size(); b++) {
@@ -62,7 +62,8 @@ void freq_get_avr(const burst_sc16_t *burst, float &freq, float &freq_std)
 			if (df < 0)
 				df = 2*M_PI + df;
 			df = fmod(df+M_PI,2*M_PI);
-			diff_phase_sum += df;
+			diff_phase_sum += arg(f1) - arg(f2); //df;
+			samples_count++;
 		}
 	}
 
@@ -71,6 +72,8 @@ void freq_get_avr(const burst_sc16_t *burst, float &freq, float &freq_std)
 	float freq_offset = (burst->phy.sample_rate / sample_avr) / 2;
 	if (diff_phase_sum < 0)
 		freq_offset *= -1.0;
+	//float diff_phase_avr = diff_phase_sum / samples_count;
+	//float freq_offset = (diff_phase_avr * burst->phy.sample_rate) / (2 * M_PI);
 	freq = (burst->phy.central_freq + freq_offset);
 	freq_std = sqrtf(sample_avr_sq - (sample_avr * sample_avr));
 }
@@ -105,12 +108,17 @@ void process_burst_sc16(burst_sc16_t *burst)
 
 	// bail out if the score is very low!
 	if (!fittest || bestScore < 128) {
+		float freq, freq_std;
+		freq_get_avr(burst, freq, freq_std);
 		std::cerr << "Demod: burst ID "
 			  << burst->burst_id
 			  << " has an unknown modulation. Len = "
 			  << burst->stop_time_us - burst->start_time_us
 			  << " µs, sub-burst count = "
 			  << burst->sub_bursts.size()
+			  << ", freq = "
+			  << freq / 1000000.0
+			  << " Mhz"
 			  << std::endl << std::endl;
 
 		return;
