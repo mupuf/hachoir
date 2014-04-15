@@ -6,6 +6,7 @@
 #include <complex>
 
 #include "utils/message.h"
+#include "utils/phy_parameters.h"
 
 class Modulation
 {
@@ -24,7 +25,7 @@ protected:
 	void setCarrierFrequency(float freq) { _carrier_freq = freq; }
 	void setSampleRate(float sample_rate) { _sample_rate = sample_rate; }
 	void setAmp(float amp) { _amp = amp; }
-	void modulate(std::complex<short> *samples, size_t len);
+	bool modulate(std::complex<short> *samples, size_t len);
 
 public:
 	enum ModulationType {
@@ -42,7 +43,7 @@ public:
 	virtual std::string toString() const = 0;
 
 	virtual bool genSamples(std::complex<short> **samples, size_t *len,
-				const Message &m, float carrier_freq, float sample_rate,
+				const Message &m, const phy_parameters_t &phy,
 				float amp) = 0;
 };
 

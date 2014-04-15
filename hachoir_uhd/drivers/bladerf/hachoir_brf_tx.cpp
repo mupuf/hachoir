@@ -233,8 +233,7 @@ int main(int argc, char *argv[])
 
 			std::complex<short> *samples;
 			size_t len_samples;
-			m.modulation()->genSamples(&samples, &len_samples, m, phy.central_freq,
-						   phy.sample_rate, 2000.0);
+			m.modulation()->genSamples(&samples, &len_samples, m, phy, 2000.0);
 
 			sample_send(dev, samples, len_samples);
 

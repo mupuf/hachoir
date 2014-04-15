@@ -5,12 +5,7 @@
 #include <complex>
 #include <string>
 
-struct phy_parameters_t {
-	float central_freq;
-	float sample_rate;
-	float IF_bw;
-	float gain;
-};
+#include "phy_parameters.h"
 
 enum process_return_val_t {
 	RET_NOP = 0,

@@ -41,7 +41,7 @@ public:
 	std::string toString() const;
 
 	bool genSamples(std::complex<short> **samples, size_t *len,
-			const Message &m, float carrier_freq, float sample_rate,
+			const Message &m, const phy_parameters_t &phy,
 			float amp);
 };
 

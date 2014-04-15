@@ -29,19 +29,19 @@ std::string ModulationOOK::toString() const
 }
 
 bool ModulationOOK::genSamples(std::complex<short> **samples, size_t *len, const Message &m,
-			       float carrier_freq, float sample_rate, float amp)
+			       const phy_parameters_t &phy, float amp)
 {
-	setCarrierFrequency(carrier_freq);
-	setSampleRate(sample_rate);
-	setPhase(0);
-
-	size_t allocated_len = 819200, offset = 0;
+	size_t allocated_len = 819200, offset = 0, symbol_us = 0, symbol_len = 0;
 	*samples = new std::complex<short>[allocated_len];
+	if (!*samples)
+		return false;
+
+	setCarrierFrequency(phy.central_freq);
+	setSampleRate(phy.sample_rate);
+	setPhase(0);
 
 	bool isOn = true;
 	for (size_t i = 0; i < m.size(); i++) {
-		size_t symbol_us;
-
 		if (isOn)
 			_ON_Symbol.symbol(m[i], symbol_us);
 		else
@@ -49,15 +49,16 @@ bool ModulationOOK::genSamples(std::complex<short> **samples, size_t *len, const
 
 		setAmp(amp * isOn);
 
-		size_t symbol_len = symbol_us * sample_rate / 1000000;
-		modulate((*samples) + offset, symbol_len);
+		symbol_len = symbol_us * phy.sample_rate / 1000000;
+		if (!modulate((*samples) + offset, symbol_len))
+			goto error;
 		offset += symbol_len;
 
 		isOn = !isOn;
 	}
 
 	// stop bit
-	size_t symbol_len = _STOP_Symbol.bit0_us() * sample_rate / 1000000;
+	symbol_len = _STOP_Symbol.bit0_us() * phy.sample_rate / 1000000;
 	setAmp(amp * isOn);
 	modulate((*samples) + offset, symbol_len);
 	offset += symbol_len;
@@ -65,4 +66,8 @@ bool ModulationOOK::genSamples(std::complex<short> **samples, size_t *len, const
 	*len = offset;
 
 	return true;
+
+error:
+	delete[] *samples;
+	return false;
 }
