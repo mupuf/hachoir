@@ -17,15 +17,35 @@ private:
 	float _carrier_freq;
 	float _sample_rate;
 
-	void calc_step();
+	struct command {
+		enum action_t {
+			SET_FREQ, // in Hz
+			SET_PHASE, // In radians
+			SET_AMP, // scaling factor
+			SET_CARRIER_FREQ, // in Hz
+			SET_SAMPLE_RATE, // in samples per seconds
+			GEN_SYMBOL, // in µs
+			STOP
+		} action;
+
+		float value;
+	};
+
+	std::vector<command> _cmds;
+	uint64_t _remaining_samples;
+	size_t _cur_index;
+
+	void modulate(std::complex<short> *samples, size_t len);
 
 protected:
-	void setPhase(float phase) { _phase = phase; }
-	void setFrequency(float freq) { _freq = freq; }
-	void setCarrierFrequency(float freq) { _carrier_freq = freq; }
-	void setSampleRate(float sample_rate) { _sample_rate = sample_rate; }
-	void setAmp(float amp) { _amp = amp; }
-	bool modulate(std::complex<short> *samples, size_t len);
+	void resetState();
+	void setFrequency(float freq);
+	void setPhase(float phase);
+	void setAmp(float amp);
+	void setCarrierFrequency(float freq);
+	void setSampleRate(float sample_rate);
+	void genSymbol(float len_us);
+	void endMessage();
 
 public:
 	enum ModulationType {
@@ -37,14 +57,13 @@ public:
 		QAM	= 16
 	};
 
-	Modulation(float centralFreq);
+	Modulation();
 
-	float centralFrequency() const { return _freq; }
 	virtual std::string toString() const = 0;
 
-	virtual bool genSamples(std::complex<short> **samples, size_t *len,
-				const Message &m, const phy_parameters_t &phy,
+	virtual bool prepareMessage(const Message &m, const phy_parameters_t &phy,
 				float amp) = 0;
+	void getNextSamples(std::complex<short> *samples, size_t *len);
 };
 
 #endif // MODULATION_H

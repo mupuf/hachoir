@@ -32,17 +32,19 @@ public:
 	};
 
 private:
+	float _centralFreq;
+
 	SymbolOOK _ON_Symbol;
 	SymbolOOK _OFF_Symbol;
 	SymbolOOK _STOP_Symbol;
+
 public:
 	ModulationOOK(float centralFreq, const SymbolOOK &ON_Symbol,
 		      const SymbolOOK &OFF_Symbol, const SymbolOOK &STOP_Symbol);
 	std::string toString() const;
 
-	bool genSamples(std::complex<short> **samples, size_t *len,
-			const Message &m, const phy_parameters_t &phy,
-			float amp);
+	bool prepareMessage(const Message &m, const phy_parameters_t &phy,
+			     float amp);
 };
 
 #endif // MODULATIONOOK_H

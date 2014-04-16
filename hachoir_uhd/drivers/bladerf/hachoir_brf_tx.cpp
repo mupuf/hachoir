@@ -99,14 +99,12 @@ uint64_t time_us()
 	return (time.tv_sec * 1000000 + time.tv_usec) - (time_start.tv_sec * 1000000 + time_start.tv_usec);
 }
 
-void sample_send(struct bladerf *dev, std::complex<short> *samples, size_t len)
+void sample_send(struct bladerf *dev, const phy_parameters_t &phy, const Message &m)
 {
 	std::complex<short> padding[4096] = { std::complex<short>(0, 0) };
-	size_t padding_len = 0;
+	std::complex<short> samples[4096];
+	size_t len, padding_len = 0;
 	int ret;
-
-	if (len % 4096)
-		padding_len = len - ((len / 4096) * 4096);
 
 	// enable the sync TX mode
 	ret = bladerf_sync_config(dev, BLADERF_MODULE_TX, BLADERF_FORMAT_SC16_Q11,
@@ -120,18 +118,26 @@ void sample_send(struct bladerf *dev, std::complex<short> *samples, size_t len)
 		std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
 
 	for (int i = 0; i < 10; i++) {
+		m.modulation()->prepareMessage(m, phy, 2000.0);
 
-		ret = bladerf_sync_tx(dev, samples, len, NULL, 1000);
-		if (ret)
-			std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
-		usleep(20000);
+		do {
+			len = 4096;
+			m.modulation()->getNextSamples(samples, &len);
+
+			ret = bladerf_sync_tx(dev, samples, len, NULL, 1000);
+			if (ret)
+				std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
+			usleep(1000);
+
+			padding_len = 4096 - len;
+		} while (len == 4096);
 	}
 
 	ret = bladerf_sync_tx(dev, padding, padding_len, NULL, 1000);
 	if (ret)
 		std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
 
-	usleep(5000);
+	usleep(10000);
 	bladerf_enable_module(dev, BLADERF_MODULE_TX, false);
 }
 
@@ -231,13 +237,7 @@ int main(int argc, char *argv[])
 
 			std::cout << freq / 1e6 << " Mhz: " << m.toString(Message::HEX) << std::endl;
 
-			std::complex<short> *samples;
-			size_t len_samples;
-			m.modulation()->genSamples(&samples, &len_samples, m, phy, 2000.0);
-
-			sample_send(dev, samples, len_samples);
-
-			delete[] samples;
+			sample_send(dev, phy, m);
 		//}
 	}
 
