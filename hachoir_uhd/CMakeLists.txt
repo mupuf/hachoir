@@ -64,10 +64,14 @@ if(libbladerf_FOUND AND APPS_BRF_ENABLE)
 	include_directories(${libbladerf_INCLUDE_DIRS})
 	link_directories(${libbladerf_LIBRARY_DIRS})
 
-	add_executable(hachoir_brf ${common_src} "drivers/bladerf/hachoir_brf.cpp")
+	add_executable(hachoir_brf ${common_src}
+				   "drivers/bladerf/common.cpp"
+				   "drivers/bladerf/hachoir_brf.cpp")
 	target_link_libraries(hachoir_brf ${Boost_LIBRARIES} ${libbladerf_LIBRARIES})
 
-	add_executable(hachoir_brf_tx ${common_src} "drivers/bladerf/hachoir_brf_tx.cpp")
+	add_executable(hachoir_brf_tx ${common_src}
+				   "drivers/bladerf/common.cpp"
+				   "drivers/bladerf/hachoir_brf_tx.cpp")
 	target_link_libraries(hachoir_brf_tx ${Boost_LIBRARIES} ${libbladerf_LIBRARIES})
 else()
 	set(APPS_BRF_ENABLE "OFF")

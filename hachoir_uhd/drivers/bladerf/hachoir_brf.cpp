@@ -10,99 +10,12 @@
 
 #include "utils/com_detect.h"
 
+#include "common.h"
+
 namespace po = boost::program_options;
 
 static volatile bool stop_signal_called = false;
 void sig_int_handler(int){stop_signal_called = true;}
-
-bool brf_set_phy(struct bladerf *dev, const phy_parameters_t &phy)
-{
-	unsigned int actual;
-	int ret;
-
-	//set the center frequency
-	std::cout << boost::format("Setting RX Freq: %u MHz...") % (phy.central_freq/1e6) << std::endl;
-	ret = bladerf_set_frequency(dev, BLADERF_MODULE_RX, phy.central_freq);
-	if (ret)
-		std::cerr << "bladerf_set_frequency: " << bladerf_strerror(ret) << std::endl;
-	bladerf_get_frequency(dev, BLADERF_MODULE_RX, &actual);
-	std::cout << boost::format("Actual RX Freq: %u MHz...") % (actual / 1.0e6) << std::endl << std::endl;
-
-	//set the sample rate
-	if (phy.sample_rate <= 0.0){
-		std::cerr << "Please specify a valid sample rate" << std::endl;
-		return false;
-	}
-	std::cout << boost::format("Setting RX Rate: %f Msps...") % (phy.sample_rate/1e6) << std::endl;
-	ret = bladerf_set_sample_rate(dev, BLADERF_MODULE_RX, phy.sample_rate, &actual);
-	if (ret)
-		std::cerr << "bladerf_set_sample_rate: " << bladerf_strerror(ret) << std::endl;
-	std::cout << boost::format("Actual RX Rate: %f Msps...") % (actual/1.0e6) << std::endl << std::endl;
-
-	// set the bandwidth
-	std::cout << boost::format("Setting RX Bandwidth: %f MHz...") % (phy.sample_rate/1e6) << std::endl;
-	ret = bladerf_set_bandwidth(dev, BLADERF_MODULE_RX, phy.sample_rate, &actual);
-	if (ret)
-		std::cerr << "bladerf_set_bandwidth: " << bladerf_strerror(ret) << std::endl;
-	std::cout << boost::format("Actual RX Bandwidth: %f MHz...") % (actual/1.0e6) << std::endl << std::endl;
-
-	//set the rf gain
-	if (phy.gain >= 0.0) {
-		/*std::cout << boost::format("Setting RX Gain Mode: Manual...") << std::endl;
-		rtlsdr_set_tuner_gain_mode(dev, false);
-
-		std::cout << boost::format("Setting RX Gain: %f dB...") % phy.gain << std::endl;
-		rtlsdr_set_tuner_gain(dev, phy.gain * 10);
-		// TODO: IF gain
-		std::cout << boost::format("Actual RX Gain: %f dB...") % rtlsdr_get_tuner_gain(dev) << std::endl << std::endl;*/
-	} else {
-		int rxvga1 = BLADERF_RXVGA1_GAIN_MIN + (BLADERF_RXVGA1_GAIN_MAX - BLADERF_RXVGA1_GAIN_MIN) / 2;
-		int rxvga2 = BLADERF_RXVGA2_GAIN_MIN + (BLADERF_RXVGA2_GAIN_MAX - BLADERF_RXVGA2_GAIN_MIN) / 2;
-		bladerf_lna_gain lna_gain = BLADERF_LNA_GAIN_MID;
-
-		std::cout << boost::format("Setting RX VGA1 Gain: %i dB ...") % (rxvga1) << std::endl;
-		ret = bladerf_set_rxvga1(dev, rxvga1);
-		if (ret)
-			std::cerr << "bladerf_set_rxvga1: " << bladerf_strerror(ret) << std::endl;
-		bladerf_get_rxvga1(dev, &rxvga1);
-		std::cout << boost::format("Actual RX VGA1 Gain: %f dB...") % (rxvga1) << std::endl << std::endl;
-
-		std::cout << boost::format("Setting RX VGA2 Gain: %i dB ...") % (rxvga2) << std::endl;
-		ret = bladerf_set_rxvga2(dev, rxvga2);
-		if (ret)
-			std::cerr << "bladerf_set_rxvga2: " << bladerf_strerror(ret) << std::endl;
-		bladerf_get_rxvga2(dev, &rxvga2);
-		std::cout << boost::format("Actual RX VGA2 Gain: %f dB...") % (rxvga2) << std::endl << std::endl;
-
-		std::cout << boost::format("Setting LNA Gain: %i dB ...") % (lna_gain) << std::endl;
-		ret = bladerf_set_lna_gain(dev, BLADERF_LNA_GAIN_MID);
-		if (ret)
-			std::cerr << "bladerf_get_lna_gain: " << bladerf_strerror(ret) << std::endl;
-		bladerf_get_lna_gain(dev, &lna_gain);
-		std::cout << boost::format("Actual LNA Gain: %f dB...") % (lna_gain) << std::endl << std::endl;
-	}
-
-	// reset the I/Q coff
-	ret = bladerf_set_correction(dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_I, 0);
-	if (ret)
-		std::cerr << "bladerf_set_correction: " << bladerf_strerror(ret) << std::endl;
-	ret = bladerf_set_correction(dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_Q, 0);
-	if (ret)
-		std::cerr << "bladerf_set_correction: " << bladerf_strerror(ret) << std::endl;
-
-	// enable the sync RX mode
-	ret = bladerf_sync_config(dev, BLADERF_MODULE_RX, BLADERF_FORMAT_SC16_Q11,
-				  64, 16384, 16, 0);
-	if (ret)
-		std::cerr << "bladerf_sync_config: " << bladerf_strerror(ret) << std::endl;
-
-	// enable the RX module
-	ret = bladerf_enable_module(dev, BLADERF_MODULE_RX, true);
-	if (ret)
-		std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
-
-	return true;
-}
 
 uint64_t time_us()
 {
@@ -116,45 +29,6 @@ uint64_t time_us()
 	return (time.tv_sec * 1000000 + time.tv_usec) - (time_start.tv_sec * 1000000 + time_start.tv_usec);
 }
 
-bool correctIQ(struct bladerf *dev)
-{
-	std::complex<short> samples[4096];
-	size_t len = 4096;
-	int64_t I_sum = 0, Q_sum = 0;
-	size_t sum = 0;
-	int ret;
-
-	for(size_t i = 0; i < 100; i++) {
-		ret = bladerf_sync_rx(dev, samples, len, NULL, 1000);
-		if (ret) {
-			std::cerr << "bladerf_sync_rx: " << bladerf_strerror(ret) << std::endl;
-			//return false;
-		}
-
-		for (size_t e = 0; e < len; e++) {
-			I_sum += samples[e].real();
-			Q_sum += samples[e].imag();
-		}
-		sum += len;
-	}
-
-	float I_avr = 1.0 * I_sum / sum;
-	float Q_avr = 1.0 * Q_sum / sum;
-
-	short I_coff = I_avr / 2.0, Q_coff = Q_avr / 2.0;
-
-	fprintf(stderr, "Found DC-Offset: I = %f, Q = %f\n", I_avr, Q_avr);
-	ret = bladerf_set_correction(dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_I, I_coff);
-	if (ret)
-		std::cerr << "bladerf_set_correction: " << bladerf_strerror(ret) << std::endl;
-
-	ret = bladerf_set_correction(dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_Q, Q_coff);
-	if (ret)
-		std::cerr << "bladerf_set_correction: " << bladerf_strerror(ret) << std::endl;
-
-	return true;
-}
-
 bool samples_read(struct bladerf *dev, phy_parameters_t &phy, const std::string &file)
 {
 	std::complex<short> samples[4096];
@@ -164,7 +38,12 @@ bool samples_read(struct bladerf *dev, phy_parameters_t &phy, const std::string 
 	int ret, len = 4096;
 	bool exit = false;
 
-	correctIQ(dev);
+	// enable the sync RX mode
+	BLADERF_CALL(bladerf_sync_config(dev, BLADERF_MODULE_RX, BLADERF_FORMAT_SC16_Q11,
+				  64, 16384, 16, 0));
+
+	// enable the RX module
+	BLADERF_CALL(bladerf_enable_module(dev, BLADERF_MODULE_RX, true));
 
 	if (file != std::string()) {
 		char filename[100];
@@ -236,17 +115,14 @@ int main(int argc, char *argv[])
 
 
 	// find one device
-	if(bladerf_open(&dev, NULL)) {
-		std::cerr << "bladerf_open: couldn't open the bladeRF device" << std::endl;
-		return -1;
-	}
+	dev = brf_open_and_init(NULL);
 
 	std::signal(SIGINT, &sig_int_handler);
 	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
 	bool phy_ok, start_over;
 	do {
-		phy_ok = brf_set_phy(dev, phy);
+		phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
 		if (!phy_ok)
 			continue;
 
