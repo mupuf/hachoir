@@ -192,10 +192,27 @@ struct stream_data {
 	unsigned int buf_idx;
 	int exit_in;
 
+	bladerf_module module;
 	phy_parameters_t phy;
 	brf_stream_cb user_cb;
 	void *user_data;
 };
+
+static void* bladerf_RX_cb(struct bladerf *dev, struct bladerf_stream *stream,
+		    struct bladerf_metadata *meta, void *samples,
+		    size_t num_samples, void *user_data)
+{
+	struct stream_data *data = (struct stream_data *)user_data;
+
+	if (!data->user_cb(dev, stream, meta, (std::complex<short> *)samples,
+			   num_samples, data->phy, data->user_data))
+		return NULL;
+
+	std::complex<short> *buf = (std::complex<short> *)data->buffers[data->buf_idx];
+	data->buf_idx = (data->buf_idx + 1) % data->buffers_count;
+
+	return buf;
+}
 
 static void* bladerf_TX_cb(struct bladerf *dev, struct bladerf_stream *stream,
 		    struct bladerf_metadata *meta, void *samples,
@@ -215,7 +232,6 @@ static void* bladerf_TX_cb(struct bladerf *dev, struct bladerf_stream *stream,
 	} else if (data->exit_in == 0)
 		return NULL;
 
-
 	/* we need to change frequency, send enough samples for the radio
 	 * to get all the good samples before stopping the stream
 	 */
@@ -234,18 +250,28 @@ bool brf_start_stream(struct bladerf *dev, bladerf_module module,
 		      brf_stream_cb cb, void *user)
 {
 	struct bladerf_stream *stream;
+	bladerf_stream_cb internal_cb;
 	struct stream_data data;
 
-	data.buffers_count = phy.sample_rate * buffering_min / data.block_size;
-	if (data.buffers_count < 2) data.buffers_count = 2;
+	if (module == BLADERF_MODULE_TX) {
+		internal_cb = bladerf_TX_cb;
+		data.buffers_count = phy.sample_rate * buffering_min / data.block_size;
+		if (data.buffers_count < 2)
+			data.buffers_count = 2;
+	} else {
+		internal_cb = bladerf_RX_cb;
+		data.buffers_count = 2;
+	}
+
 	data.block_size = block_size;
 	data.buf_idx = 0;
+	data.module = module;
 	data.phy = phy;
 	data.exit_in = -1;
 	data.user_cb = cb;
 	data.user_data = user;
 
-	BLADERF_CALL(bladerf_init_stream(&stream, dev, bladerf_TX_cb, &data.buffers,
+	BLADERF_CALL(bladerf_init_stream(&stream, dev, internal_cb, &data.buffers,
 			    data.buffers_count, BLADERF_FORMAT_SC16_Q11,
 			    data.block_size, data.buffers_count, &data));
 

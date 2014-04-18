@@ -62,9 +62,9 @@ struct tx_data {
 };
 
 bool brf_TX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
-				struct bladerf_metadata *meta,
-				std::complex<short> *samples_next, size_t len,
-				phy_parameters_t &phy, void *user_data)
+			struct bladerf_metadata *meta,
+			std::complex<short> *samples_next, size_t len,
+			phy_parameters_t &phy, void *user_data)
 {
 	struct tx_data *data = (struct tx_data *)user_data;
 

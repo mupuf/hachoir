@@ -87,10 +87,34 @@ bool samples_read(struct bladerf *dev, phy_parameters_t &phy, const std::string 
 	return exit;
 }
 
+struct rx_data {
+	std::ofstream outfile;
+	uint64_t sample_count;
+};
+
+bool brf_RX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
+				struct bladerf_metadata *meta,
+				std::complex<short> *samples, size_t len,
+				phy_parameters_t &phy, void *user_data)
+{
+	struct rx_data *data = (struct rx_data *)user_data;
+
+	if (data->outfile.is_open()) {
+		data->outfile.write((const char*)&samples, len * sizeof(std::complex<unsigned short>));
+		data->sample_count += len;
+	}
+
+	if (stop_signal_called)
+		return false;
+
+	return !process_samples(phy, time_us(), "sc16", samples, len);
+}
+
 int main(int argc, char *argv[])
 {
 	phy_parameters_t phy;
 	struct bladerf *dev;
+	struct rx_data data;
 	std::string file;
 
 	//setup the program options
@@ -122,18 +146,32 @@ int main(int argc, char *argv[])
 	std::signal(SIGINT, &sig_int_handler);
 	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
-	bool phy_ok, start_over;
+	if (file != std::string()) {
+		char filename[100];
+		snprintf(filename, sizeof(filename), "%s-%.0fkHz-%.0fkSPS.dat",
+			file.c_str(), phy.central_freq / 1000, phy.sample_rate / 1000);
+
+		data.outfile.open(filename, std::ofstream::binary);
+		if (data.outfile.is_open())
+			std::cout << "Recording samples to '" << filename << "'." << std::endl;
+		else
+			std::cerr << "Failed to open '" << filename << "'." << std::endl;
+		data.sample_count = 0;
+	}
+
+	bool phy_ok;
 	do {
 		phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
 		if (!phy_ok)
 			continue;
 
-		/* Process samples */
-		start_over = samples_read(dev, phy, file);
+		brf_start_stream(dev, BLADERF_MODULE_RX, 0.05, 4096, phy, brf_RX_stream_cb, &data);
+	} while (phy_ok && !stop_signal_called);
 
-		//finished
-		std::cout << std::endl << "Done!" << std::endl << std::endl;
-	} while (phy_ok && start_over);
+	if (data.outfile.is_open()) {
+		data.outfile.close();
+		std::cout << "Wrote " << data.sample_count << " samples to the disk" << std::endl;
+	}
 
 	bladerf_close(dev);
 
