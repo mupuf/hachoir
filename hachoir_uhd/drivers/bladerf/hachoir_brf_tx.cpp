@@ -19,7 +19,7 @@ namespace po = boost::program_options;
 static volatile bool stop_signal_called = false;
 void sig_int_handler(int){stop_signal_called = true;}
 
-bool brf_set_phy(struct bladerf *dev, const phy_parameters_t &phy)
+bool brf_set_phy(struct bladerf *dev, phy_parameters_t &phy)
 {
 	unsigned int actual;
 	int ret;
@@ -30,6 +30,7 @@ bool brf_set_phy(struct bladerf *dev, const phy_parameters_t &phy)
 	if (ret)
 		std::cerr << "bladerf_set_frequency: " << bladerf_strerror(ret) << std::endl;
 	bladerf_get_frequency(dev, BLADERF_MODULE_TX, &actual);
+	phy.central_freq = actual;
 	std::cout << boost::format("Actual RX Freq: %u MHz...") % (actual / 1.0e6) << std::endl << std::endl;
 
 	//set the sample rate
@@ -41,6 +42,7 @@ bool brf_set_phy(struct bladerf *dev, const phy_parameters_t &phy)
 	ret = bladerf_set_sample_rate(dev, BLADERF_MODULE_TX, phy.sample_rate, &actual);
 	if (ret)
 		std::cerr << "bladerf_set_sample_rate: " << bladerf_strerror(ret) << std::endl;
+	phy.sample_rate = actual;
 	std::cout << boost::format("Actual TX Rate: %f Msps...") % (actual/1.0e6) << std::endl << std::endl;
 
 	// set the bandwidth
@@ -48,6 +50,7 @@ bool brf_set_phy(struct bladerf *dev, const phy_parameters_t &phy)
 	ret = bladerf_set_bandwidth(dev, BLADERF_MODULE_TX, phy.sample_rate, &actual);
 	if (ret)
 		std::cerr << "bladerf_set_bandwidth: " << bladerf_strerror(ret) << std::endl;
+	phy.IF_bw = actual;
 	std::cout << boost::format("Actual TX Bandwidth: %f MHz...") % (actual/1.0e6) << std::endl << std::endl;
 
 	//set the rf gain
@@ -167,9 +170,11 @@ void* bladerf_TX_cb(struct bladerf *dev, struct bladerf_stream *stream,
 	std::complex<short> *buf = (std::complex<short> *)data->buffers[data->buf_idx];
 	data->buf_idx = (data->buf_idx + 1) % data->buffers_count;
 
-	data->txRT->next_block(buf, num_samples, data->phy);
-
-	return buf;
+	EmissionRunTime::Command ret = data->txRT->next_block(buf, num_samples, data->phy);
+	if (ret == EmissionRunTime::OK)
+		return buf;
+	else
+		return NULL;
 }
 
 
@@ -207,11 +212,11 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	std::signal(SIGINT, &sig_int_handler);
-	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
-
 	if (!brf_set_phy(dev, phy))
 		return 1;
+
+	std::signal(SIGINT, &sig_int_handler);
+	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
 	struct tx_data data;
 	data.block_size = 4096;
@@ -232,8 +237,9 @@ int main(int argc, char *argv[])
 	data.txRT->addMessage(m);
 
 	struct bladerf_stream *stream;
-	float timeout = 0.005; // 50 ms
+	float timeout = 0.02; // 20 ms
 	data.buffers_count = phy.sample_rate * timeout / data.block_size;
+	if (data.buffers_count < 2) data.buffers_count = 2;
 
 	int ret = bladerf_init_stream(&stream, dev, bladerf_TX_cb, &data.buffers,
 			    data.buffers_count, BLADERF_FORMAT_SC16_Q11,
@@ -241,24 +247,29 @@ int main(int argc, char *argv[])
 	if (ret)
 		std::cerr << "bladerf_init_stream: " << bladerf_strerror(ret) << std::endl;
 
-	ret = bladerf_set_stream_timeout(dev, BLADERF_MODULE_TX, timeout);
-	if (ret)
-		std::cerr << "bladerf_set_stream_timeout: " << bladerf_strerror(ret) << std::endl;
+	while (1) {
 
-	ret = bladerf_enable_module(dev, BLADERF_MODULE_TX, true);
-	if (ret)
-		std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
+		ret = bladerf_set_stream_timeout(dev, BLADERF_MODULE_TX, timeout);
+		if (ret)
+			std::cerr << "bladerf_set_stream_timeout: " << bladerf_strerror(ret) << std::endl;
 
-	ret = bladerf_stream(stream, BLADERF_MODULE_TX);
-	if (ret)
-		std::cerr << "bladerf_stream: " << bladerf_strerror(ret) << std::endl;
+		ret = bladerf_enable_module(dev, BLADERF_MODULE_TX, true);
+		if (ret)
+			std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
 
-	ret = bladerf_enable_module(dev, BLADERF_MODULE_TX, false);
-	if (ret)
-		std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
+		ret = bladerf_stream(stream, BLADERF_MODULE_TX);
+		if (ret)
+			std::cerr << "bladerf_stream: " << bladerf_strerror(ret) << std::endl;
+
+		ret = bladerf_enable_module(dev, BLADERF_MODULE_TX, false);
+		if (ret)
+			std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
+
+		if (!brf_set_phy(dev, data.phy))
+			return 1;
+	}
 
 	bladerf_deinit_stream(stream);
-
 	bladerf_close(dev);
 
 	return EXIT_SUCCESS;

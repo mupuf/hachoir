@@ -28,17 +28,23 @@ std::string ModulationOOK::toString() const
 	return std::string(phy_params);
 }
 
+float ModulationOOK::centralFrequency() const
+{
+	return _centralFreq;
+}
+
+float ModulationOOK::channelWidth() const
+{
+	/* TODO: Use the len parameter to know how wide the symbol will be in
+	 * the frequency spectrum. Need to talk to Guillaume!
+	 */
+	return 20e3;
+}
+
 bool ModulationOOK::prepareMessage(const Message &m, const phy_parameters_t &phy,
 		     float amp)
 {
 	size_t symbol_us = 0;
-
-	/* TODO: Use the len parameter to know how wide the symbol will be in
-	 * the frequency spectrum. Need to talk to Guillaume!
-	 */
-	if (_centralFreq > (phy.central_freq + phy.sample_rate / 2.0) ||
-	    _centralFreq < (phy.central_freq - phy.sample_rate / 2.0))
-		return false;
 
 	resetState();
 

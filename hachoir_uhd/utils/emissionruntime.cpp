@@ -129,10 +129,17 @@ EmissionRunTime::next_block(std::complex<short> *samples,
 	memset(samples, 0, sizeof(std::complex<short>) * len);
 
 	if (!cur_mod.get() && _heap.size() > 0) {
-		Message m = _heap.extract(0);
-		cur_mod = m.modulation();
-		cur_mod->prepareMessage(m, phy, _amp);
-		// change phy if needed
+		std::shared_ptr<Modulation> mod = _heap.at(0).modulation();
+		if (mod->chechPhyParameters(phy)) {
+			Message m = _heap.extract(0);
+			cur_mod = mod;
+			cur_mod->prepareMessage(m, phy, _amp);
+		} else {
+			phy.central_freq = mod->centralFrequency();
+			if (phy.sample_rate < mod->channelWidth())
+				phy.sample_rate = mod->channelWidth() * 1.5;
+			return CHANGE_PHY;
+		}
 	}
 
 	if (!cur_mod.get())

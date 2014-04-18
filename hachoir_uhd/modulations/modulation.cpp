@@ -69,6 +69,14 @@ void Modulation::endMessage(size_t repeat_count)
 	_cmds.push_back(cmd);
 }
 
+bool Modulation::chechPhyParameters(const phy_parameters_t &phy) const
+{
+	if (centralFrequency() + channelWidth() / 2 > (phy.central_freq + phy.sample_rate / 2.0) ||
+	    centralFrequency() - channelWidth() / 2 < (phy.central_freq - phy.sample_rate / 2.0))
+		return false;
+	return true;
+}
+
 void Modulation::getNextSamples(std::complex<short> *samples, size_t *len)
 {
 	size_t offset = 0;

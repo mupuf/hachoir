@@ -43,6 +43,9 @@ public:
 		      const SymbolOOK &OFF_Symbol, const SymbolOOK &STOP_Symbol);
 	std::string toString() const;
 
+	float centralFrequency() const;
+	float channelWidth() const;
+
 	bool prepareMessage(const Message &m, const phy_parameters_t &phy,
 			     float amp);
 };
