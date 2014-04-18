@@ -64,7 +64,7 @@ bool ModulationOOK::prepareMessage(const Message &m, const phy_parameters_t &phy
 	setAmp(amp * isOn);
 	genSymbol(_STOP_Symbol.bit0_us());
 
-	endMessage();
+	endMessage(m.repeatCount());
 
 	return true;
 }

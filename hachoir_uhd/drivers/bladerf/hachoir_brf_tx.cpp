@@ -222,6 +222,7 @@ int main(int argc, char *argv[])
 
 	Message m({0x55, 0x2a, 0xb2});
 	m.addBit(true);
+	m.setRepeatCount(10);
 
 	ModulationOOK::SymbolOOK sOn(261.2, 527.2);
 	ModulationOOK::SymbolOOK sOff(270.8, 536.3);

@@ -50,11 +50,11 @@ std::string Message::toStringHex() const
 	return ss.str();
 }
 
-Message::Message ()
+Message::Message () : _repeat_count(0)
 {
 }
 
-Message::Message(std::initializer_list<uint8_t> bytes)
+Message::Message(std::initializer_list<uint8_t> bytes) : _repeat_count(0)
 {
 	addBytes(bytes);
 }
@@ -90,6 +90,16 @@ size_t Message::size() const
 void Message::clear()
 {
 	data.clear();
+}
+
+size_t Message::repeatCount() const
+{
+	return _repeat_count;
+}
+
+void Message::setRepeatCount(size_t repeat_count)
+{
+	_repeat_count = repeat_count;
 }
 
 std::shared_ptr<Modulation> Message::modulation() const

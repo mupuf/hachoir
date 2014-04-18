@@ -12,6 +12,7 @@ class Modulation;
 class Message
 {
 	boost::dynamic_bitset<> data;
+	size_t _repeat_count;
 
 	std::shared_ptr<Modulation> _modulation;
 
@@ -33,6 +34,9 @@ public:
 	void addBytes(const uint8_t *bytes, size_t len);
 	size_t size() const;
 	void clear();
+
+	size_t repeatCount() const;
+	void setRepeatCount(size_t repeat_count);
 
 	std::shared_ptr<Modulation> modulation() const;
 	void setModulation(std::shared_ptr<Modulation> mod);

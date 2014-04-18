@@ -7,7 +7,8 @@ Modulation::Modulation() :
 	_carrier_freq(0.0),
 	_sample_rate(0.0),
 	_remaining_samples(0),
-	_cur_index(0)
+	_cur_index(0),
+	_repeat_count(0)
 {
 }
 
@@ -16,6 +17,7 @@ void Modulation::resetState()
 	_remaining_samples = 0.0;
 	_cur_index = 0;
 	_cmds.clear();
+	_repeat_count = 0;
 }
 
 void Modulation::setFrequency(float freq)
@@ -54,9 +56,16 @@ void Modulation::genSymbol(float len_us)
 	_cmds.push_back(cmd);
 }
 
-void Modulation::endMessage()
+void Modulation::endMessage(size_t repeat_count)
 {
-	command cmd = { command::STOP, 0.0 };
+	command cmd;
+
+	if (repeat_count > 0) {
+		cmd = { command::REPEAT, (float) repeat_count };
+		_cmds.push_back(cmd);
+	}
+
+	cmd = { command::STOP, 0.0 };
 	_cmds.push_back(cmd);
 }
 
@@ -94,6 +103,12 @@ void Modulation::getNextSamples(std::complex<short> *samples, size_t *len)
 			case command::GEN_SYMBOL:
 				_remaining_samples = _cmds[_cur_index].value *
 						       _sample_rate / 1000000.0;
+				break;
+			case command::REPEAT:
+				if (_repeat_count < _cmds[_cur_index].value) {
+					_cur_index = 0;
+					_repeat_count++;
+				}
 				break;
 			case command::STOP:
 				*len = offset;

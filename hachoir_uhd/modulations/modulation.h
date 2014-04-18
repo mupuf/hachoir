@@ -25,7 +25,8 @@ private:
 			SET_CARRIER_FREQ, // in Hz
 			SET_SAMPLE_RATE, // in samples per seconds
 			GEN_SYMBOL, // in µs
-			STOP
+			REPEAT,
+			STOP,
 		} action;
 
 		float value;
@@ -34,6 +35,7 @@ private:
 	std::vector<command> _cmds;
 	uint64_t _remaining_samples;
 	size_t _cur_index;
+	size_t _repeat_count;
 
 	void modulate(std::complex<short> *samples, size_t len);
 
@@ -45,7 +47,7 @@ protected:
 	void setCarrierFrequency(float freq);
 	void setSampleRate(float sample_rate);
 	void genSymbol(float len_us);
-	void endMessage();
+	void endMessage(size_t repeat_count);
 
 public:
 	enum ModulationType {
