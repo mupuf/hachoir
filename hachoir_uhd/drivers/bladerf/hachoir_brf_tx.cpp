@@ -129,6 +129,23 @@ int main(int argc, char *argv[])
 
 	data.txRT->addMessage(m);
 
+
+	Message m2({0x55, 0x2a, 0xb2});
+	m2.addBit(true);
+	m2.setRepeatCount(10);
+	m2.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(869.9e6,
+									  sOn, sOff,
+									  sStop)));
+	data.txRT->addMessage(m2);
+
+	Message m3({0x55, 0x2a, 0xb2});
+	m3.addBit(true);
+	m3.setRepeatCount(10);
+	m3.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(915.9e6,
+									  sOn, sOff,
+									  sStop)));
+	data.txRT->addMessage(m3);
+
 	while (1) {
 		brf_start_stream(dev, BLADERF_MODULE_TX, 0.05, 4096, phy,
 				 brf_TX_stream_cb, &data);

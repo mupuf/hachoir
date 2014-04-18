@@ -116,7 +116,8 @@ void Modulation::getNextSamples(std::complex<short> *samples, size_t *len)
 				if (_repeat_count < _cmds[_cur_index].value) {
 					_cur_index = 0;
 					_repeat_count++;
-				}
+				} else
+					_cur_index++;
 				break;
 			case command::STOP:
 				*len = offset;

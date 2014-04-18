@@ -1,6 +1,8 @@
 #include "common.h"
-#include <string>
+
+#include <string.h>
 #include <complex>
+#include <string>
 
 #include <boost/format.hpp>
 
@@ -188,6 +190,7 @@ struct stream_data {
 	size_t buffers_count;
 	size_t block_size;
 	unsigned int buf_idx;
+	int exit_in;
 
 	phy_parameters_t phy;
 	brf_stream_cb user_cb;
@@ -203,11 +206,26 @@ static void* bladerf_TX_cb(struct bladerf *dev, struct bladerf_stream *stream,
 	std::complex<short> *buf = (std::complex<short> *)data->buffers[data->buf_idx];
 	data->buf_idx = (data->buf_idx + 1) % data->buffers_count;
 
-	if (data->user_cb(dev, stream, meta, buf, num_samples, data->phy,
-			  data->user_data))
-		return buf;
-	else
+	if (data->exit_in < 0) {
+		if (data->user_cb(dev, stream, meta, buf, num_samples,
+				  data->phy, data->user_data))
+			return buf;
+		else
+			data->exit_in = data->buffers_count + 1;
+	} else if (data->exit_in == 0)
 		return NULL;
+
+
+	/* we need to change frequency, send enough samples for the radio
+	 * to get all the good samples before stopping the stream
+	 */
+
+	// fill the buffer with 0's
+	memset(buf, 0, sizeof(std::complex<short>) * data->block_size);
+
+	data->exit_in--;
+
+	return buf;
 }
 
 bool brf_start_stream(struct bladerf *dev, bladerf_module module,
@@ -223,6 +241,7 @@ bool brf_start_stream(struct bladerf *dev, bladerf_module module,
 	data.block_size = block_size;
 	data.buf_idx = 0;
 	data.phy = phy;
+	data.exit_in = -1;
 	data.user_cb = cb;
 	data.user_data = user;
 
@@ -233,9 +252,6 @@ bool brf_start_stream(struct bladerf *dev, bladerf_module module,
 	BLADERF_CALL(bladerf_enable_module(dev, module, true));
 
 	BLADERF_CALL(bladerf_stream(stream, module));
-
-	// wait for samples to reach the radio
-	usleep(data.buffers_count * data.block_size * 1.0e6 / phy.sample_rate);
 
 	BLADERF_CALL(bladerf_enable_module(dev, module, false));
 

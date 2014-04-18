@@ -136,6 +136,8 @@ EmissionRunTime::next_block(std::complex<short> *samples,
 			cur_mod->prepareMessage(m, phy, _amp);
 		} else {
 			phy.central_freq = mod->centralFrequency();
+			std::cout << "mod->freq = "
+				  << mod->centralFrequency() << std::endl;
 			if (phy.sample_rate < mod->channelWidth())
 				phy.sample_rate = mod->channelWidth() * 1.5;
 			return CHANGE_PHY;
