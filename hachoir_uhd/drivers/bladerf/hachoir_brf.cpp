@@ -2,11 +2,14 @@
 
 #include <boost/program_options.hpp>
 #include <boost/format.hpp>
-#include <boost/thread.hpp>
+#include <sys/time.h>
 #include <iostream>
 #include <fstream>
 #include <csignal>
 #include <complex>
+#include <thread>
+#include <mutex>
+#include <time.h>
 
 #include "utils/com_detect.h"
 
@@ -112,7 +115,6 @@ int main(int argc, char *argv[])
 	phy.IF_bw = -1.0;
 	if (not vm.count("gain"))
 		phy.gain = -1.0;
-
 
 	// find one device
 	dev = brf_open_and_init(NULL);
