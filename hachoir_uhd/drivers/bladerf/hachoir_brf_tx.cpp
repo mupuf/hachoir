@@ -9,8 +9,10 @@
 #include <complex>
 
 #include "modulations/modulationOOK.h"
+#include "utils/emissionruntime.h"
 #include "utils/com_detect.h"
 #include "utils/message.h"
+
 
 namespace po = boost::program_options;
 
@@ -99,11 +101,21 @@ uint64_t time_us()
 	return (time.tv_sec * 1000000 + time.tv_usec) - (time_start.tv_sec * 1000000 + time_start.tv_usec);
 }
 
-void sample_send(struct bladerf *dev, const phy_parameters_t &phy, const Message &m)
+#include <time.h>
+int64_t clock_read_us()
+{
+	struct timespec tp;
+	if (clock_gettime(CLOCK_REALTIME, &tp))
+		return 0;
+
+	return tp.tv_sec * 1000000ULL + tp.tv_nsec / 1000;
+}
+
+/*void sample_send(struct bladerf *dev, phy_parameters_t &phy)
 {
 	std::complex<short> padding[4096] = { std::complex<short>(0, 0) };
-	std::complex<short> samples[4096];
-	size_t len, padding_len = 0;
+	std::complex<short> *samples = new std::complex<short>[81920];
+	size_t len;
 	int ret;
 
 	// enable the sync TX mode
@@ -117,36 +129,55 @@ void sample_send(struct bladerf *dev, const phy_parameters_t &phy, const Message
 	if (ret)
 		std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
 
-	for (int i = 0; i < 10; i++) {
-		m.modulation()->prepareMessage(m, phy, 2000.0);
+	ret = bladerf_sync_tx(dev, padding, 4096, NULL, 1000);
+	if (ret)
+		std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
 
+	for (int i = 0; i < 10; i++) {
 		do {
 			len = 4096;
-			m.modulation()->getNextSamples(samples, &len);
+
+			txRT->next_block(&samples, &len, phy);
 
 			ret = bladerf_sync_tx(dev, samples, len, NULL, 1000);
 			if (ret)
 				std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
-			usleep(1000);
-
-			padding_len = 4096 - len;
+			usleep(1500);
 		} while (len == 4096);
 	}
-
-	ret = bladerf_sync_tx(dev, padding, padding_len, NULL, 1000);
-	if (ret)
-		std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
-
-	usleep(10000);
 	bladerf_enable_module(dev, BLADERF_MODULE_TX, false);
+}*/
+
+struct tx_data {
+	void **buffers;
+	size_t buffers_count;
+	size_t block_size;
+	unsigned int buf_idx;
+
+	EmissionRunTime *txRT;
+	phy_parameters_t phy;
+};
+
+void* bladerf_TX_cb(struct bladerf *dev, struct bladerf_stream *stream,
+		    struct bladerf_metadata *meta, void *samples,
+		    size_t num_samples, void *user_data)
+{
+	struct tx_data *data = (struct tx_data *)user_data;
+
+	std::complex<short> *buf = (std::complex<short> *)data->buffers[data->buf_idx];
+	data->buf_idx = (data->buf_idx + 1) % data->buffers_count;
+
+	data->txRT->next_block(buf, num_samples, data->phy);
+
+	return buf;
 }
+
 
 int main(int argc, char *argv[])
 {
 	phy_parameters_t phy;
 	struct bladerf *dev;
 	std::string file;
-	FILE *f = NULL;
 
 	//setup the program options
 	po::options_description desc("Allowed options");
@@ -155,7 +186,6 @@ int main(int argc, char *argv[])
 		("rate", po::value<float>(&phy.sample_rate)->default_value(1e6), "rate of incoming samples")
 		("freq", po::value<float>(&phy.central_freq)->default_value(0.0), "RF center frequency in Hz")
 		("gain", po::value<float>(&phy.gain), "gain for the RF chain")
-		("file", po::value<std::string>(&file), "input all the samples from this file")
 	;
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -171,16 +201,6 @@ int main(int argc, char *argv[])
 	if (not vm.count("gain"))
 		phy.gain = -1.0;
 
-	if (file.size() > 0) {
-		f = fopen(file.c_str(), "rb");
-		if (!f) {
-			std::cerr << "Couldn't open file " << file << "! Bailing out..." << std::endl;
-			return 1;
-		}
-		std::cout << "Replaying file " << file << "..." << std::endl;
-	}
-
-
 	// find one device
 	if(bladerf_open(&dev, NULL)) {
 		std::cerr << "bladerf_open: couldn't open the bladeRF device" << std::endl;
@@ -193,53 +213,50 @@ int main(int argc, char *argv[])
 	if (!brf_set_phy(dev, phy))
 		return 1;
 
-	if (f) {
-		std::complex<short> samples[4096];
-		int ret;
+	struct tx_data data;
+	data.block_size = 4096;
+	data.buffers_count = 0;
+	data.buf_idx = 0;
+	data.txRT = new EmissionRunTime(10, 4096, phy, 2040);
+	data.phy = phy;
 
-		// enable the sync TX mode
-		ret = bladerf_sync_config(dev, BLADERF_MODULE_TX, BLADERF_FORMAT_SC16_Q11,
-					  64, 1024, 16, 0);
-		if (ret)
-			std::cerr << "bladerf_sync_config: " << bladerf_strerror(ret) << std::endl;
+	Message m({0x55, 0x2a, 0xb2});
+	m.addBit(true);
 
-		// enable the TX module
-		ret = bladerf_enable_module(dev, BLADERF_MODULE_TX, true);
-		if (ret)
-			std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
+	ModulationOOK::SymbolOOK sOn(261.2, 527.2);
+	ModulationOOK::SymbolOOK sOff(270.8, 536.3);
+	ModulationOOK::SymbolOOK sStop(9300);
+	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(433.9e6, sOn, sOff, sStop)));
 
-		size_t len;
+	data.txRT->addMessage(m);
 
-		do {
-			len = fread(samples, sizeof(std::complex<short>), 4096, f);
+	struct bladerf_stream *stream;
+	float timeout = 0.005; // 50 ms
+	data.buffers_count = phy.sample_rate * timeout / data.block_size;
 
-			ret = bladerf_sync_tx(dev, samples, len, NULL, 1000);
-			if (ret)
-				std::cerr << "bladerf_sync_tx: " << bladerf_strerror(ret) << std::endl;
-		} while(len == 4096);
+	int ret = bladerf_init_stream(&stream, dev, bladerf_TX_cb, &data.buffers,
+			    data.buffers_count, BLADERF_FORMAT_SC16_Q11,
+			    data.block_size, data.buffers_count, &data);
+	if (ret)
+		std::cerr << "bladerf_init_stream: " << bladerf_strerror(ret) << std::endl;
 
-		// disable the TX module
-		ret = bladerf_enable_module(dev, BLADERF_MODULE_TX, false);
-		if (ret)
-			std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
+	ret = bladerf_set_stream_timeout(dev, BLADERF_MODULE_TX, timeout);
+	if (ret)
+		std::cerr << "bladerf_set_stream_timeout: " << bladerf_strerror(ret) << std::endl;
 
-	} else {
-		Message m({0x55, 0x2a, 0xb2});
-		m.addBit(true);
+	ret = bladerf_enable_module(dev, BLADERF_MODULE_TX, true);
+	if (ret)
+		std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
 
-		//for (float freq = 433.80e6; freq < 434.10e6; freq += 0.01e6) {
-		//for (float freq = 868.60e6; freq < 868.90e6; freq += 0.01e6) {
-		float freq = 433.90e6;
-			ModulationOOK::SymbolOOK sOn(261.2, 527.2);
-			ModulationOOK::SymbolOOK sOff(270.8, 536.3);
-			ModulationOOK::SymbolOOK sStop(9300);
-			m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(freq, sOn, sOff, sStop)));
+	ret = bladerf_stream(stream, BLADERF_MODULE_TX);
+	if (ret)
+		std::cerr << "bladerf_stream: " << bladerf_strerror(ret) << std::endl;
 
-			std::cout << freq / 1e6 << " Mhz: " << m.toString(Message::HEX) << std::endl;
+	ret = bladerf_enable_module(dev, BLADERF_MODULE_TX, false);
+	if (ret)
+		std::cerr << "bladerf_enable_module: " << bladerf_strerror(ret) << std::endl;
 
-			sample_send(dev, phy, m);
-		//}
-	}
+	bladerf_deinit_stream(stream);
 
 	bladerf_close(dev);
 

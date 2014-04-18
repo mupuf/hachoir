@@ -65,7 +65,10 @@ void Modulation::getNextSamples(std::complex<short> *samples, size_t *len)
 	size_t offset = 0;
 
 	while (offset < *len) {
-		if (_remaining_samples == 0) {
+		if (_cur_index >= _cmds.size()) {
+			*len = 0;
+			return;
+		} else if (_remaining_samples == 0) {
 			// Execute the selected command
 			switch(_cmds[_cur_index].action) {
 			case command::SET_FREQ:
