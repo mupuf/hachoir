@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
 	struct tx_data data;
-	data.txRT = new EmissionRunTime(10, 4096, phy, 2040);
+	data.txRT = new EmissionRunTime(10, 4096, 2040);
 
 	Message m({0x55, 0x2a, 0xb2});
 	m.addBit(true);

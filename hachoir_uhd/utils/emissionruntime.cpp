@@ -5,13 +5,12 @@
 
 #include "modulations/modulation.h"
 
-EmissionRunTime::EmissionRunTime(size_t messageCountMax, size_t block_size,
-				 phy_parameters_t phy, float amp) :
-	_thread(worker, this), _phy(phy), _amp(amp), _heap(messageCountMax),
-	_block_size(block_size), _cacheBlocks(0), _quit(false), _nextBuf(NULL)
+EmissionRunTime::EmissionRunTime(size_t messageCountMax, size_t block_size, float amp) :
+	_thread(worker, this), _amp(amp), _heap(messageCountMax),
+	_block_size(block_size)
 {
-	samples[0] = new std::complex<short>[_block_size];
-	samples[1] = new std::complex<short>[_block_size];
+	/*samples[0] = new std::complex<short>[_block_size];
+	samples[1] = new std::complex<short>[_block_size];*/
 }
 
 bool EmissionRunTime::addMessage(const Message& msg)

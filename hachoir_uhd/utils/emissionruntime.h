@@ -13,7 +13,7 @@ class EmissionRunTime
 {
 	std::thread _thread;
 
-	phy_parameters_t _phy;
+	//phy_parameters_t _phy;
 	float _amp;
 
 	MessageHeap _heap;
@@ -21,11 +21,10 @@ class EmissionRunTime
 
 	std::condition_variable _cv;
 	std::mutex _cv_m;
-	size_t _cacheBlocks;
+	/*size_t _cacheBlocks;
 	bool _quit;
 
-	std::complex<short> *samples[2], *_nextBuf;
-
+	std::complex<short> *samples[2], *_nextBuf;*/
 
 	static void worker(EmissionRunTime *_this);
 
@@ -39,8 +38,7 @@ public:
 		CHANGE_PHY = 8
 	};
 
-	EmissionRunTime(size_t messageCountMax, size_t block_size,
-			phy_parameters_t phy, float amp);
+	EmissionRunTime(size_t messageCountMax, size_t block_size, float amp);
 
 	bool addMessage(const Message& msg);
 

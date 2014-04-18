@@ -95,7 +95,7 @@ struct bladerf *brf_open_and_init(const char *device_identifier)
 }
 
 bool brf_set_phy(struct bladerf *dev, bladerf_module module,
-		 const phy_parameters_t &phy, bool resetIQ)
+		 phy_parameters_t &phy, bool resetIQ)
 {
 	const char *mod = (module == BLADERF_MODULE_RX ? "RX":"TX");
 	bladerf_lna_gain lna_gain = BLADERF_LNA_GAIN_MID;
@@ -124,6 +124,7 @@ bool brf_set_phy(struct bladerf *dev, bladerf_module module,
 	std::cout << boost::format("Setting %s Bandwidth: %f MHz...") % mod
 		     % (phy.sample_rate/1e6) << std::endl;
 	BLADERF_CALL(bladerf_set_bandwidth(dev, module, phy.sample_rate, &actual));
+	phy.IF_bw = 1.0 * actual;
 	std::cout << boost::format("Actual %s Bandwidth: %f MHz...") % mod
 		     % (actual/1.0e6) << std::endl << std::endl;
 
