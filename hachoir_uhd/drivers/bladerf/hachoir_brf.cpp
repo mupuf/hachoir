@@ -12,6 +12,8 @@
 #include <time.h>
 
 #include "utils/com_detect.h"
+#include "utils/emissionruntime.h"
+#include "modulations/modulationOOK.h"
 
 #include "common.h"
 
@@ -32,61 +34,6 @@ uint64_t time_us()
 	return (time.tv_sec * 1000000 + time.tv_usec) - (time_start.tv_sec * 1000000 + time_start.tv_usec);
 }
 
-bool samples_read(struct bladerf *dev, phy_parameters_t &phy, const std::string &file)
-{
-	std::complex<short> samples[4096];
-	struct bladerf_metadata meta;
-	std::ofstream outfile;
-	uint64_t sample_count = 0;
-	int ret, len = 4096;
-	bool exit = false;
-
-	// enable the sync RX mode
-	BLADERF_CALL(bladerf_sync_config(dev, BLADERF_MODULE_RX, BLADERF_FORMAT_SC16_Q11,
-				  64, 16384, 16, 0));
-
-	// enable the RX module
-	BLADERF_CALL(bladerf_enable_module(dev, BLADERF_MODULE_RX, true));
-
-	if (file != std::string()) {
-		char filename[100];
-		snprintf(filename, sizeof(filename), "%s-%.0fkHz-%.0fkSPS.dat",
-			file.c_str(), phy.central_freq / 1000, phy.sample_rate / 1000);
-
-		outfile.open(filename, std::ofstream::binary);
-		if (outfile.is_open())
-			std::cout << "Recording samples to '" << filename << "'." << std::endl;
-		else
-			std::cerr << "Failed to open '" << filename << "'." << std::endl;
-	}
-
-	do {
-		ret = bladerf_sync_rx(dev, samples, len, &meta, 1000);
-		if (ret) {
-			std::cerr << "bladerf_sync_rx: " << bladerf_strerror(ret) << std::endl;
-			exit = false;
-			break;
-		}
-
-		if (process_samples(phy, time_us(), "sc16", samples, len)) {
-			exit = true;
-			break;
-		}
-
-		if (outfile.is_open()) {
-			outfile.write((const char*)&samples, len * sizeof(std::complex<unsigned short>));
-			sample_count += len;
-		}
-	} while (!stop_signal_called || exit);
-
-	if (outfile.is_open()) {
-		outfile.close();
-		std::cout << "Wrote " << sample_count << " samples to the disk" << std::endl;
-	}
-
-	return exit;
-}
-
 struct rx_data {
 	std::ofstream outfile;
 	uint64_t sample_count;
@@ -100,7 +47,8 @@ bool brf_RX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
 	struct rx_data *data = (struct rx_data *)user_data;
 
 	if (data->outfile.is_open()) {
-		data->outfile.write((const char*)&samples, len * sizeof(std::complex<unsigned short>));
+		data->outfile.write((const char*)&samples,
+				    len * sizeof(std::complex<unsigned short>));
 		data->sample_count += len;
 	}
 
@@ -110,12 +58,124 @@ bool brf_RX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
 	return !process_samples(phy, time_us(), "sc16", samples, len);
 }
 
+void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy,
+	       const std::string &file = std::string())
+{
+	struct rx_data data;
+
+	if (file != std::string()) {
+		char filename[100];
+		snprintf(filename, sizeof(filename), "%s-%.0fkHz-%.0fkSPS.dat",
+			file.c_str(), phy.central_freq / 1000, phy.sample_rate / 1000);
+
+		data.outfile.open(filename, std::ofstream::binary);
+		if (data.outfile.is_open())
+			std::cout << "Recording samples to '" << filename << "'." << std::endl;
+		else
+			std::cerr << "Failed to open '" << filename << "'." << std::endl;
+		data.sample_count = 0;
+	}
+
+	bool phy_ok;
+	do {
+		mutex_conf->lock();
+		sleep(1);
+		phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
+		mutex_conf->unlock();
+		if (!phy_ok)
+			continue;
+
+		brf_start_stream(dev, BLADERF_MODULE_RX, 0.05, 4096, phy,
+				 brf_RX_stream_cb, &data);
+	} while (phy_ok && !stop_signal_called);
+
+	if (data.outfile.is_open()) {
+		data.outfile.close();
+		std::cout << "Wrote " << data.sample_count << " samples to the disk" << std::endl;
+	}
+}
+
+struct tx_data {
+	EmissionRunTime *txRT;
+};
+
+bool brf_TX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
+			struct bladerf_metadata *meta,
+			std::complex<short> *samples_next, size_t len,
+			phy_parameters_t &phy, void *user_data)
+{
+	struct tx_data *data = (struct tx_data *)user_data;
+
+	EmissionRunTime::Command ret = data->txRT->next_block(samples_next, len,
+							      phy);
+	return ret == EmissionRunTime::OK;
+}
+
+void thread_tx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy,
+	       EmissionRunTime *txRT)
+{
+	struct tx_data data;
+	data.txRT = txRT;
+
+	bool phy_ok;
+	do {
+		mutex_conf->lock();
+		phy_ok = brf_set_phy(dev, BLADERF_MODULE_TX, phy);
+		mutex_conf->unlock();
+		if (!phy_ok)
+			continue;
+
+		brf_start_stream(dev, BLADERF_MODULE_TX, 0.05, 4096, phy,
+				 brf_TX_stream_cb, &data);
+	} while (phy_ok && !stop_signal_called);
+}
+
+void sendMessage(EmissionRunTime *txRT, size_t channel, size_t music)
+{
+	uint8_t channels[][2] = {
+		{ 0x2a, 0xaa },
+		{ 0x52, 0xaa },
+		{ 0x32, 0xaa },
+		{ 0x55, 0x2a },
+		{ 0x35, 0x2a },
+		{ 0x4d, 0x2a },
+		{ 0x2d, 0x2a },
+		{ 0x4c, 0xaa },
+		{ 0x2c, 0xaa },
+		{ 0x54, 0xaa },
+		{ 0x34, 0xaa },
+		{ 0x53, 0x2a },
+		{ 0x33, 0x2a },
+		{ 0x4b, 0x2a },
+		{ 0x2b, 0x2a },
+		{ 0x4a, 0xaa },
+	};
+	uint8_t musics[] = { 0xb2, 0xcc, 0xca };
+
+	Message m;
+	m.addByte(channels[channel][0]);
+	m.addByte(channels[channel][1]);
+	m.addByte(musics[music]);
+	m.addBit(true);
+	m.setRepeatCount(5);
+
+	ModulationOOK::SymbolOOK sOn(261.2, 527.2);
+	ModulationOOK::SymbolOOK sOff(270.8, 536.3);
+	ModulationOOK::SymbolOOK sStop(4000);
+	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(433.9e6,
+									 sOn, sOff,
+									 sStop)));
+	txRT->addMessage(m);
+}
+
 int main(int argc, char *argv[])
 {
 	phy_parameters_t phy;
 	struct bladerf *dev;
-	struct rx_data data;
 	std::string file;
+	std::thread tRx, tTx;
+	std::mutex mutex_conf;
+	EmissionRunTime *txRT = NULL;
 
 	//setup the program options
 	po::options_description desc("Allowed options");
@@ -146,32 +206,23 @@ int main(int argc, char *argv[])
 	std::signal(SIGINT, &sig_int_handler);
 	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
-	if (file != std::string()) {
-		char filename[100];
-		snprintf(filename, sizeof(filename), "%s-%.0fkHz-%.0fkSPS.dat",
-			file.c_str(), phy.central_freq / 1000, phy.sample_rate / 1000);
+	txRT = new EmissionRunTime(30, 4096, 2040);
 
-		data.outfile.open(filename, std::ofstream::binary);
-		if (data.outfile.is_open())
-			std::cout << "Recording samples to '" << filename << "'." << std::endl;
-		else
-			std::cerr << "Failed to open '" << filename << "'." << std::endl;
-		data.sample_count = 0;
-	}
+	tRx = std::thread(thread_rx, dev, &mutex_conf, phy, file);
+	tTx = std::thread(thread_tx, dev, &mutex_conf, phy, txRT);
 
-	bool phy_ok;
 	do {
-		phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
-		if (!phy_ok)
-			continue;
+		sleep(1 + rand() % 20);
 
-		brf_start_stream(dev, BLADERF_MODULE_RX, 0.05, 4096, phy, brf_RX_stream_cb, &data);
-	} while (phy_ok && !stop_signal_called);
+		size_t music = (rand() % 300) / 100;
+		std::cout << "DING DONG (music " << music << ")" << std::endl;
+		for (size_t i = 0; i < 16; i++)
+			sendMessage(txRT, i, music);
 
-	if (data.outfile.is_open()) {
-		data.outfile.close();
-		std::cout << "Wrote " << data.sample_count << " samples to the disk" << std::endl;
-	}
+	} while (!stop_signal_called);
+
+	tRx.join();
+	tTx.join();
 
 	bladerf_close(dev);
 

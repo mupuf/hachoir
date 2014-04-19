@@ -41,22 +41,6 @@ int64_t clock_read_us()
 	return tp.tv_sec * 1000000ULL + tp.tv_nsec / 1000;
 }
 
-void* bladerf_TX_cb(struct bladerf *dev, struct bladerf_stream *stream,
-		    struct bladerf_metadata *meta, void *samples,
-		    size_t num_samples, void *user_data)
-{
-/*	struct tx_data *data = (struct tx_data *)user_data;
-
-	std::complex<short> *buf = (std::complex<short> *)data->buffers[data->buf_idx];
-	data->buf_idx = (data->buf_idx + 1) % data->buffers_count;
-
-	EmissionRunTime::Command ret = data->txRT->next_block(buf, num_samples, data->phy);
-	if (ret == EmissionRunTime::OK)
-		return buf;
-	else*/
-		return NULL;
-}
-
 struct tx_data {
 	EmissionRunTime *txRT;
 };
@@ -102,10 +86,7 @@ int main(int argc, char *argv[])
 		phy.gain = -1.0;
 
 	// find one device
-	if(bladerf_open(&dev, NULL)) {
-		std::cerr << "bladerf_open: couldn't open the bladeRF device" << std::endl;
-		return -1;
-	}
+	dev = brf_open_and_init(NULL);
 
 	if (!brf_set_phy(dev, BLADERF_MODULE_TX, phy))
 		return 1;
@@ -116,7 +97,7 @@ int main(int argc, char *argv[])
 	struct tx_data data;
 	data.txRT = new EmissionRunTime(10, 4096, 2040);
 
-	Message m({0x55, 0x2a, 0xb2});
+	Message m({0x4a, 0xaa, 0xb2});
 	m.addBit(true);
 	m.setRepeatCount(10);
 
@@ -126,7 +107,6 @@ int main(int argc, char *argv[])
 	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(433.9e6,
 									 sOn, sOff,
 									 sStop)));
-
 	data.txRT->addMessage(m);
 
 
@@ -138,6 +118,7 @@ int main(int argc, char *argv[])
 									  sStop)));
 	data.txRT->addMessage(m2);
 
+
 	Message m3({0x55, 0x2a, 0xb2});
 	m3.addBit(true);
 	m3.setRepeatCount(10);
@@ -145,6 +126,7 @@ int main(int argc, char *argv[])
 									  sOn, sOff,
 									  sStop)));
 	data.txRT->addMessage(m3);
+
 
 	while (1) {
 		brf_start_stream(dev, BLADERF_MODULE_TX, 0.05, 4096, phy,
