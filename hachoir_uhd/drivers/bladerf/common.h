@@ -10,7 +10,7 @@
 #define BLADERF_CALL_EXIT(call) do { \
 		int ret = call; \
 		if (ret < 0) { \
-			std::cerr << "call failed: " << bladerf_strerror(ret) << std::endl; \
+			std::cerr << __FILE__ << "(" << __LINE__ << "): " << #call << " failed: " << bladerf_strerror(ret) << std::endl; \
 			exit(1); \
 		} \
 	} while(0)
@@ -18,7 +18,7 @@
 #define BLADERF_CALL(call) do { \
 		int ret = call; \
 		if (ret < 0) \
-			std::cerr << "call failed: " << bladerf_strerror(ret) << std::endl; \
+			std::cerr << __FILE__ << ", " << __LINE__ << ": " << #call << " failed: " << bladerf_strerror(ret) << std::endl; \
 	} while(0)
 
 struct bladerf *

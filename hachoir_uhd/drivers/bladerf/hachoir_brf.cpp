@@ -79,7 +79,6 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 	bool phy_ok;
 	do {
 		mutex_conf->lock();
-		sleep(1);
 		phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
 		mutex_conf->unlock();
 		if (!phy_ok)
