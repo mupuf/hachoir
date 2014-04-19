@@ -315,8 +315,11 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 	if (vm.count("ant")) usrp->set_rx_antenna(ant);
 
 	if (total_num_samps == 0){
-	std::signal(SIGINT, &sig_int_handler);
-	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
+		std::signal(SIGINT, &sig_int_handler);
+		std::signal(SIGTERM, &sig_int_handler);
+		std::signal(SIGQUIT, &sig_int_handler);
+		std::signal(SIGABRT, &sig_int_handler);
+		std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 	}
 
 #define recv_to_file_args(format) \

@@ -20,7 +20,10 @@
 namespace po = boost::program_options;
 
 static volatile bool stop_signal_called = false;
-void sig_int_handler(int){stop_signal_called = true;}
+void sig_int_handler(int){
+	stop_signal_called = true;
+	std::cout << "Exiting..." << std::endl;
+}
 
 uint64_t time_us()
 {
@@ -104,6 +107,9 @@ bool brf_TX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
 			phy_parameters_t &phy, void *user_data)
 {
 	struct tx_data *data = (struct tx_data *)user_data;
+
+	if (stop_signal_called)
+		return false;
 
 	EmissionRunTime::Command ret = data->txRT->next_block(samples_next, len,
 							      phy);
@@ -206,6 +212,9 @@ int main(int argc, char *argv[])
 	dev = brf_open_and_init(NULL);
 
 	std::signal(SIGINT, &sig_int_handler);
+	std::signal(SIGTERM, &sig_int_handler);
+	std::signal(SIGQUIT, &sig_int_handler);
+	std::signal(SIGABRT, &sig_int_handler);
 	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
 	txRT = new EmissionRunTime(30, 4096, 2040);
@@ -227,6 +236,8 @@ int main(int argc, char *argv[])
 	tTx.join();
 
 	bladerf_close(dev);
+
+	std::cout << "Done!" << std::endl;
 
 	return EXIT_SUCCESS;
 }

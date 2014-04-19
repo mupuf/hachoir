@@ -49,7 +49,7 @@ void samples_read(std::string file, phy_parameters_t &phy)
 		process_samples(phy, sample_count * 1000000 / phy.sample_rate,
 				    "sc16", samples, num_tx_samps);
 		sample_count += num_tx_samps;
-	} while (!stop);
+	} while (!stop && !stop_signal_called);
 }
 
 int main(int argc, char *argv[])
@@ -86,6 +86,9 @@ int main(int argc, char *argv[])
 		phy.gain = -1.0;
 
 	std::signal(SIGINT, &sig_int_handler);
+	std::signal(SIGTERM, &sig_int_handler);
+	std::signal(SIGQUIT, &sig_int_handler);
+	std::signal(SIGABRT, &sig_int_handler);
 	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
 	/* Process samples */

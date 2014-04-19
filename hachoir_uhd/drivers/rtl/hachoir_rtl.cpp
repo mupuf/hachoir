@@ -151,6 +151,9 @@ int main(int argc, char *argv[])
 	}
 
 	std::signal(SIGINT, &sig_int_handler);
+	std::signal(SIGTERM, &sig_int_handler);
+	std::signal(SIGQUIT, &sig_int_handler);
+	std::signal(SIGABRT, &sig_int_handler);
 	std::cout << "Press Ctrl + C to stop streaming..." << std::endl << std::endl;
 
 	bool phy_ok, start_over;
