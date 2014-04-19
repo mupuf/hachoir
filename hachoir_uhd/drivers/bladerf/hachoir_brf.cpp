@@ -12,6 +12,7 @@
 #include <time.h>
 
 #include "utils/com_detect.h"
+#include "utils/tapinterface.h"
 #include "utils/emissionruntime.h"
 #include "modulations/modulationOOK.h"
 
@@ -135,7 +136,7 @@ void thread_tx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 	} while (phy_ok && !stop_signal_called);
 }
 
-void sendMessage(EmissionRunTime *txRT, size_t channel, size_t music)
+void ringBell(EmissionRunTime *txRT, size_t channel, size_t music)
 {
 	uint8_t channels[][2] = {
 		{ 0x2a, 0xaa },
@@ -176,11 +177,25 @@ void sendMessage(EmissionRunTime *txRT, size_t channel, size_t music)
 	txRT->addMessage(m);
 }
 
+bool sendMessage(EmissionRunTime *txRT, Message &m)
+{
+	ModulationOOK::SymbolOOK sOn(100, 200);
+	ModulationOOK::SymbolOOK sOff(100, 200);
+	ModulationOOK::SymbolOOK sStop(500);
+	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(433.9e6,
+									 sOn, sOff,
+									 sStop)));
+
+	return txRT->addMessage(m);
+}
+
 int main(int argc, char *argv[])
 {
 	phy_parameters_t phy;
 	struct bladerf *dev;
 	std::string file;
+
+	TapInterface tapInterface("tap_brf");
 	std::thread tRx, tTx;
 	std::mutex mutex_conf;
 	EmissionRunTime *txRT = NULL;
@@ -223,12 +238,16 @@ int main(int argc, char *argv[])
 	tTx = std::thread(thread_tx, dev, &mutex_conf, phy, txRT);
 
 	do {
-		sleep(1 + rand() % 20);
+		/*sleep(2 + rand() % 20);
 
 		size_t music = (rand() % 300) / 100;
 		std::cout << "DING DONG (music " << music << ")" << std::endl;
 		for (size_t i = 0; i < 16; i++)
-			sendMessage(txRT, i, music);
+			ringBell(txRT, i, music);*/
+
+		Message m = tapInterface.readNextMessage();
+		std::cout << m.toString(Message::HEX) << std::endl;
+		sendMessage(txRT, m);
 
 	} while (!stop_signal_called);
 

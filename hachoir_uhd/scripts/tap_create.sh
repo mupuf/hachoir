@@ -7,4 +7,5 @@ fi
 
 sudo ip tuntap add mode tap dev $1
 sudo ip addr add $2 dev $1
+sudo ip link set $1 up
 sudo ip addr show $1
