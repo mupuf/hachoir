@@ -35,10 +35,12 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st, float sample_
 	float max = st.points[0].pos > st.points[1].pos ? st.points[0].pos : st.points[1].pos;
 
 	// make	sure the 2 most important peaks account for 80%
-	if (c[0].proba + c[1].proba >= 0.7 && c[1].proba >= 0.1 * (c[0].proba + c[1].proba) && max >= (min * 1.9)) {
+	if ((c[0].proba + c[1].proba) >= 0.7 &&
+	     c[1].proba >= (0.1 * (c[0].proba + c[1].proba)) &&
+	     max >= (min * 1.5)) {
 			score = 255;
 			st.bps = 1;
-	} else if (c[0].proba + c[1].proba >= 0.85 && max >= (min * 1.9) && max <= (min * 2.1)) {
+	} else if (c[0].proba + c[1].proba >= 0.85 && max >= (min * 1.8) && max <= (min * 2.2)) {
 		score = 255;
 		st.bps = 1;
 	} else
