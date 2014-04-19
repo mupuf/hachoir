@@ -151,6 +151,9 @@ void sendMessage(EmissionRunTime *txRT, size_t channel, size_t music)
 	};
 	uint8_t musics[] = { 0xb2, 0xcc, 0xca };
 
+	if (channel > 15 || music > 2)
+		return;
+
 	Message m;
 	m.addByte(channels[channel][0]);
 	m.addByte(channels[channel][1]);
@@ -191,7 +194,7 @@ int main(int argc, char *argv[])
 
 	//print the help message
 	if (vm.count("help")){
-		std::cout << boost::format("Hachoir RTL %s") % desc << std::endl;
+		std::cout << boost::format("Hachoir BRF %s") % desc << std::endl;
 		return ~0;
 	}
 
