@@ -168,7 +168,7 @@ process_sc16_dump_samples(FILE* file, std::complex<short> IQ, float mag,
 
 process_return_val_t
 process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
-				      std::complex<short> *samples, size_t count)
+		     std::complex<short> *samples, size_t count)
 {
 	/* output */
 	//static FILE* file = fopen("com_detect_output.csv", "w");

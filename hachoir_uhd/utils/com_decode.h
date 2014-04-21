@@ -5,7 +5,7 @@
 #include <complex>
 #include <vector>
 
-#include "com_detect.h"
+#include "phy_parameters.h"
 
 struct sub_burst_sc16_t {
 	size_t start;

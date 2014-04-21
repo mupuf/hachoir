@@ -5,8 +5,14 @@
 
 class FSK : public Demodulator
 {
-	std::vector<size_t> _cnt_table;
-	size_t _threshold;
+	struct symbolFSK {
+		float diff_phase;
+		float len;
+	};
+
+	std::vector<symbolFSK> _cnt_table;
+	float _TS;
+	float _threshold;
 
 	std::string _phy_params;
 public:

@@ -28,6 +28,8 @@ public:
 	Message();
 	Message(std::initializer_list<uint8_t> bytes);
 
+	/* MISSING: Start / Stop time */
+
 	void addBit(bool b);
 	void addByte(uint8_t byte);
 	void addBytes(std::initializer_list<uint8_t> bytes);

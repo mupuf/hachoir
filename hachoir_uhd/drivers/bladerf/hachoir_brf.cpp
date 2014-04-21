@@ -15,6 +15,7 @@
 #include "utils/tapinterface.h"
 #include "utils/emissionruntime.h"
 #include "modulations/modulationOOK.h"
+#include "modulations/modulationFSK.h"
 
 #include "common.h"
 
@@ -179,12 +180,15 @@ void ringBell(EmissionRunTime *txRT, size_t channel, size_t music)
 
 bool sendMessage(EmissionRunTime *txRT, Message &m)
 {
-	ModulationOOK::SymbolOOK sOn(100, 200);
+	/*ModulationOOK::SymbolOOK sOn(100, 200);
 	ModulationOOK::SymbolOOK sOff(100, 200);
 	ModulationOOK::SymbolOOK sStop(500);
 	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(433.9e6,
 									 sOn, sOff,
-									 sStop)));
+									 sStop)));*/
+	m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(433.6e6,
+								      200.0e3,
+								      100e3, 1)));
 
 	return txRT->addMessage(m);
 }
@@ -234,8 +238,13 @@ int main(int argc, char *argv[])
 
 	txRT = new EmissionRunTime(30, 4096, 2040);
 
-	tRx = std::thread(thread_rx, dev, &mutex_conf, phy, file);
+	//tRx = std::thread(thread_rx, dev, &mutex_conf, phy, file);
 	tTx = std::thread(thread_tx, dev, &mutex_conf, phy, txRT);
+
+	system("rm samples.csv");
+	/*Message m({0xaa, 0x00, 0xff});
+	m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(433.6e6, 250.0e3, 50e3, 1)));
+	txRT->addMessage(m);*/
 
 	do {
 		/*sleep(2 + rand() % 20);
@@ -251,7 +260,7 @@ int main(int argc, char *argv[])
 
 	} while (!stop_signal_called);
 
-	tRx.join();
+	//tRx.join();
 	tTx.join();
 
 	bladerf_close(dev);

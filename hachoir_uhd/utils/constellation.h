@@ -32,6 +32,8 @@ class Constellation
 	int32_t pos_min, pos_max;
 	size_t pos_count;
 
+	void createClusters(float sampleDistMax, float ignoreProbaUnder);
+
 public:
 	Constellation();
 
@@ -43,8 +45,11 @@ public:
 	int32_t histValCount() const;
 	std::string histogram() const;
 
-	bool clusterize(float sampleDistMax = 0.1, float ignoreValuesUnder = 0.01);
+	bool clusterize(float sampleDistMax = 0.01, float ignoreValuesUnder = 0.01);
+	ConstellationPoint findGreatestCommonDivisor();
 	ConstellationPoint mostProbabilisticPoint(size_t n) const;
+
+
 };
 
 #endif // CONSTELLATION_H

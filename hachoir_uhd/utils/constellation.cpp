@@ -97,7 +97,7 @@ void Constellation::addPoint(int32_t position)
 	pos_count++;
 }
 
-bool Constellation::clusterize(float sampleDistMax, float ignoreProbaUnder)
+void Constellation::createClusters(float sampleDistMax, float ignoreProbaUnder)
 {
 	size_t sampleDistMaxRealAbs = sampleDistMax * pos_min;
 	size_t sampleDistMaxRealRange = sampleDistMax * (pos_max - pos_min);
@@ -136,10 +136,62 @@ bool Constellation::clusterize(float sampleDistMax, float ignoreProbaUnder)
 						  cluster_start, cluster_end,
 						  1.0 * cluster_sum / pos_count));
 	}
+}
+
+bool Constellation::clusterize(float sampleDistMax, float ignoreProbaUnder)
+{
+	createClusters(sampleDistMax, ignoreProbaUnder);
 
 	std::sort(prio.begin(), prio.end(), std::greater<ConstellationPoint>());
 
 	return true;
+}
+
+ConstellationPoint Constellation::findGreatestCommonDivisor()
+{
+	std::vector<ConstellationPoint> clusters;
+	Constellation cStride;
+
+	createClusters(0.0, 0.0);
+
+	clusters = prio;
+
+	// sort from bigger to smaller
+	std::sort(clusters.begin(), clusters.end(), [](ConstellationPoint a, ConstellationPoint b) {
+		return a.pos > b.pos;
+	});
+
+	for (size_t i = 1; i < clusters.size(); i++) {
+		float diff = clusters[i - 1].pos - clusters[i].pos;
+		cStride.addPoint(diff);
+	}
+
+	cStride.clusterize(0, 0);
+
+	//std::cout << cStride.histogram() << std::endl;
+
+	int i = 0;
+	//std::cout << std::endl;
+	ConstellationPoint cpFinal = { 0.0, 0.0 }, cp;
+	do {
+		cp = cStride.mostProbabilisticPoint(i);
+		if (cp.proba > 0.0) {
+			if (cpFinal.proba == 0) {
+				cpFinal.proba = cp.proba;
+				cpFinal.pos = cp.pos;
+			} else if (cp.pos > cpFinal.pos){
+				float factor = cpFinal.proba / cp.proba;
+				float val = cp.pos / roundf(cp.pos / cpFinal.pos);
+				cpFinal.pos = ((cpFinal.pos * factor) + val) / (factor + 1);
+				cpFinal.proba += cp.proba;
+			}
+			std::cout << cp.toString() << " ";
+		}
+		i++;
+	} while (cp.proba > 0.0);
+	std::cout << std::endl; // << std::endl;
+
+	return cpFinal;
 }
 
 ConstellationPoint Constellation::mostProbabilisticPoint(size_t n) const

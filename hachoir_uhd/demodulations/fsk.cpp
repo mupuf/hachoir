@@ -103,14 +103,18 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 }
 #endif
 
+#include <fstream>
+#define SIG_AVR 1
 uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 {
 	std::vector<float> diff_phase;
 	float phase_sum = 0;
+	float lastN[SIG_AVR] = { 0.0 };
+	size_t lastNpos = 0;
+	Constellation cSymb, cTS;
+	ConstellationPoint cpTS, cp;
 
 	diff_phase.reserve(10000);
-
-	Constellation cTS;
 
 	FILE *f = fopen("Diff_phase", "w");
 
@@ -124,51 +128,84 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 			df = 2*M_PI + df;
 		df = fmod(df+M_PI,2*M_PI);
 
-		fprintf(f, "%f\n", df);
+		lastN[lastNpos] = df;
+		lastNpos = (lastNpos + 1) % SIG_AVR;
 
-		diff_phase.push_back(df);
+		float avg = 0.0;
+		size_t avg_len = (i + 1) < SIG_AVR ? (i + 1) : SIG_AVR;
+		for(size_t i = 0; i < avg_len; i++)
+			avg += lastN[i];
+		avg /= avg_len;
+
+		fprintf(f, "%f\n", avg);
+		diff_phase.push_back(avg);
+
+		if (i >= SIG_AVR)
+			cSymb.addPoint(avg * 1000.0);
 		phase_sum += df;
 	}
 
 	fclose(f);
 
-	/* compute the symbol time */
-	float phase_avr = phase_sum * 1.0 / diff_phase.size();
-	//std::cout << "phase_avr = " << phase_avr << std::endl;
-	size_t last_crossing = 0;
-	for (size_t i = 0; i < diff_phase.size() - 1; i++) {
-		if ((diff_phase[i] > phase_avr && diff_phase[i + 1] <= phase_avr) ||
-		    (diff_phase[i] < phase_avr && diff_phase[i + 1] >= phase_avr)) {
-			if (last_crossing > 0) {
-				size_t cnt = i - last_crossing;
-				if (cnt > 10)
-					cTS.addPoint(cnt);
-			}
-			last_crossing = i;
-		}
-	}
+	/* learn the different symbols */
+	cSymb.clusterize(0.01, 0.0);
 
-	if (cTS.histValCount() < 30)
-		return 0;
+	//std::cerr << cSymb.histogram() << std::endl;
 
-	cTS.clusterize();
-
-	//std::cerr << cTS.histogram() << std::endl;
-
+	// get the 0 / 1 symbols and the threshold
+	float min = cSymb.histMaxVal(), max = cSymb.histMinVal();
 	int i = 0;
-	ConstellationPoint cp;
 	do {
-		cp = cTS.mostProbabilisticPoint(i);
-		if (cp.proba > 0.0)
+		cp = cSymb.mostProbabilisticPoint(i);
+		if (cp.proba > 0.0) {
+			if (cp.pos > max && cp.proba > 0.1)
+				max = cp.pos;
+			if (cp.pos < min && cp.proba > 0.1)
+				min = cp.pos;
 			std::cout << cp.toString() << " ";
+		}
 		i++;
 	} while (cp.proba > 0.0);
 	std::cout << std::endl;
 
-	/*char phy_params[150];
-	snprintf(phy_params, sizeof(phy_params), "2-FSK: [low = %f (p=%.2f), threshold = %u, high = %f (p=%.2f)], freq_diff = %.2f kHz",
-		 min->pos, min->proba, _threshold, max->pos, max->proba, freq_diff / 1000);*/
-	_phy_params = "FSK-2";
+	min /= 1000.0;
+	max /= 1000.0;
+	_threshold = min + (max - min) / 2.0;
+
+	/* compute the symbol time */
+	size_t last_crossing = 0;
+	float diff_phase_avr = 0.0;
+	for (size_t i = 0; i < diff_phase.size() - 1; i++) {
+		if ((diff_phase[i] > _threshold && diff_phase[i + 1] <= _threshold) ||
+		    (diff_phase[i] < _threshold && diff_phase[i + 1] >= _threshold)) {
+			size_t cnt = i - last_crossing;
+			cTS.addPoint(cnt);
+
+			symbolFSK s = { diff_phase_avr / cnt, (float)cnt};
+			_cnt_table.push_back(s);
+			last_crossing = i;
+			diff_phase_avr = 0.0;
+		}
+		diff_phase_avr += diff_phase[i];
+	}
+
+	// add the last point
+	size_t cnt = diff_phase.size() - last_crossing;
+	cTS.addPoint(cnt);
+	diff_phase_avr += diff_phase[diff_phase.size() - 1];
+	symbolFSK s = { diff_phase_avr / cnt, (float)cnt};
+	_cnt_table.push_back(s);
+
+	/*if (cTS.histValCount() < 30)
+		return 0;*/
+
+	cpTS = cTS.findGreatestCommonDivisor();
+	_TS = roundf(cpTS.pos);
+
+	char phy_params[150];
+	snprintf(phy_params, sizeof(phy_params), "2-FSK: [low = %f (p=%.2f), threshold = %f, high = %f (p=%.2f), symbol time = %f (p=%.2f)]",
+		 min, 0.0, _threshold, max, 0.0, _TS, cpTS.proba);
+	_phy_params = phy_params;
 
 	return 255;
 }
@@ -183,11 +220,14 @@ std::vector<Message> FSK::demod(const burst_sc16_t * const burst)
 	FILE *f = fopen(filename, "w");
 
 	for (size_t i = 0; i < _cnt_table.size(); i++) {
-		if (_cnt_table[i] > _threshold)
-			m.addBit(true);
-		else
-			m.addBit(false);
-		fprintf(f, "%i, %i\n", i, _cnt_table[i]);
+		bool val = _cnt_table[i].diff_phase < _threshold;
+		float bitsCount = roundf(_cnt_table[i].len / _TS);
+		//bitsCount = roundf(bitsCount);
+
+		for (size_t i = 0; i < bitsCount; i++)
+			m.addBit(val);
+
+		fprintf(f, "%i, %f, %f\n", i, _cnt_table[i].diff_phase, _cnt_table[i].len);
 	}
 	fclose(f);
 
