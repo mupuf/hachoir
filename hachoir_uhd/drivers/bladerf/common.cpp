@@ -256,7 +256,7 @@ bool brf_start_stream(struct bladerf *dev, bladerf_module module,
 
 	if (module == BLADERF_MODULE_TX) {
 		internal_cb = bladerf_TX_cb;
-		data.buffers_count = phy.sample_rate * buffering_min / data.block_size;
+		data.buffers_count = phy.sample_rate * buffering_min / block_size;
 		if (data.buffers_count < 2)
 			data.buffers_count = 2;
 	} else {
