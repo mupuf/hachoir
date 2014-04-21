@@ -39,6 +39,14 @@ uint64_t time_us()
 	return (time.tv_sec * 1000000 + time.tv_usec) - (time_start.tv_sec * 1000000 + time_start.tv_usec);
 }
 
+static uint64_t time_abs()
+{
+	struct timeval time;
+	gettimeofday(&time, NULL);
+
+	return (time.tv_sec * 1000000 + time.tv_usec);
+}
+
 struct rx_data {
 	std::ofstream outfile;
 	uint64_t sample_count;
@@ -85,11 +93,12 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 	do {
 		mutex_conf->lock();
 		phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
+		sleep(1);
 		mutex_conf->unlock();
 		if (!phy_ok)
 			continue;
 
-		brf_start_stream(dev, BLADERF_MODULE_RX, 0.05, 4096, phy,
+		brf_start_stream(dev, BLADERF_MODULE_RX, 0.01, 4096, phy,
 				 brf_RX_stream_cb, &data);
 	} while (phy_ok && !stop_signal_called);
 
@@ -128,11 +137,12 @@ void thread_tx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 	do {
 		mutex_conf->lock();
 		phy_ok = brf_set_phy(dev, BLADERF_MODULE_TX, phy);
+		sleep(1);
 		mutex_conf->unlock();
 		if (!phy_ok)
 			continue;
 
-		brf_start_stream(dev, BLADERF_MODULE_TX, 0.05, 4096, phy,
+		brf_start_stream(dev, BLADERF_MODULE_TX, 0.01, 4096, phy,
 				 brf_TX_stream_cb, &data);
 	} while (phy_ok && !stop_signal_called);
 }
@@ -238,13 +248,15 @@ int main(int argc, char *argv[])
 
 	txRT = new EmissionRunTime(30, 4096, 2040);
 
-	//tRx = std::thread(thread_rx, dev, &mutex_conf, phy, file);
+	tRx = std::thread(thread_rx, dev, &mutex_conf, phy, file);
 	tTx = std::thread(thread_tx, dev, &mutex_conf, phy, txRT);
 
 	system("rm samples.csv");
 	/*Message m({0xaa, 0x00, 0xff});
 	m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(433.6e6, 250.0e3, 50e3, 1)));
 	txRT->addMessage(m);*/
+
+	sleep(4);
 
 	do {
 		/*sleep(2 + rand() % 20);
@@ -255,12 +267,12 @@ int main(int argc, char *argv[])
 			ringBell(txRT, i, music);*/
 
 		Message m = tapInterface.readNextMessage();
-		std::cout << m.toString(Message::HEX) << std::endl;
+		std::cout << time_abs() << ": " << m.toString(Message::HEX) << std::endl;
 		sendMessage(txRT, m);
 
 	} while (!stop_signal_called);
 
-	//tRx.join();
+	tRx.join();
 	tTx.join();
 
 	bladerf_close(dev);

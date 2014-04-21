@@ -78,6 +78,15 @@ void freq_get_avr(const burst_sc16_t *burst, float &freq, float &freq_std)
 	freq_std = sqrtf(sample_avr_sq - (sample_avr * sample_avr));
 }
 
+#include <sys/time.h>
+static uint64_t time_abs()
+{
+	struct timeval time;
+	gettimeofday(&time, NULL);
+
+	return (time.tv_sec * 1000000 + time.tv_usec);
+}
+
 void process_burst_sc16(burst_sc16_t *burst)
 {
 	// List of available demodulators
@@ -129,7 +138,7 @@ void process_burst_sc16(burst_sc16_t *burst)
 	std::cerr << "New message: modulation = '" << fittest->modulationString()
 		  << "', sub messages = " << msgs.size() << std::endl;
 	for (size_t i = 0; i < msgs.size(); i++) {
-		std::cerr << "Sub msg " << i;
+		std::cerr << time_abs() << ", Sub msg " << i;
 		if (msgs[i].modulation())
 			std::cerr << ", " << msgs[i].modulation()->toString();
 		std::cerr << ": len = " << msgs[i].size() << ": " << std::endl
