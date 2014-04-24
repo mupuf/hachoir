@@ -8,7 +8,7 @@
 #include "demodulations/fsk.h"
 #include "utils/manchester.h"
 
-static void burst_dump_samples(burst_sc16_t *burst)
+static void burst_dump_samples(burst_t *burst)
 {
 	char filename[100];
 	sprintf(filename, "burst_%i.dat", burst->burst_id);
@@ -32,7 +32,7 @@ static void burst_dump_samples(burst_sc16_t *burst)
 	fclose(f);
 }
 
-void freq_get_avr(const burst_sc16_t *burst, float &freq, float &freq_std)
+void freq_get_avr(const burst_t *burst, float &freq, float &freq_std)
 {
 	// get the frequency of the signal
 	uint64_t sum_cnt = 0, sum_cnt_sq = 0, count_cnt = 0;
@@ -87,7 +87,7 @@ static uint64_t time_abs()
 	return (time.tv_sec * 1000000 + time.tv_usec);
 }
 
-void process_burst_sc16(burst_sc16_t *burst)
+void process_burst(burst_t *burst)
 {
 	// List of available demodulators
 	OOK ook;

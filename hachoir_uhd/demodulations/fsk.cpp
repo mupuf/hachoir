@@ -104,8 +104,8 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 #endif
 
 #include <fstream>
-#define SIG_AVR 1
-uint8_t FSK::likeliness(const burst_sc16_t * const burst)
+#define SIG_AVR 5
+uint8_t FSK::likeliness(const burst_t * const burst)
 {
 	std::vector<float> diff_phase;
 	float phase_sum = 0;
@@ -210,7 +210,7 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 	return 255;
 }
 
-std::vector<Message> FSK::demod(const burst_sc16_t * const burst)
+std::vector<Message> FSK::demod(const burst_t * const burst)
 {
 	std::vector<Message> msg;
 	Message m;

@@ -126,7 +126,7 @@ template<typename samp_type> bool recv_to_file(
 		if (outfile.is_open())
 			outfile.write((const char*)&buff.front(), num_rx_samps*sizeof(samp_type));
 
-		if (process_samples(phy, md.time_spec.to_ticks(1000000), cpu_format, buff.data(), num_rx_samps) == RET_CH_PHY) {
+		if (process_samples(phy, md.time_spec.to_ticks(1000000), buff.data(), num_rx_samps) == RET_CH_PHY) {
 			//tear-down streaming
 			uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
 			stream_cmd.stream_now = true;
@@ -243,7 +243,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 	phy_parameters_t phy;
 
 	//variables to be set by po
-	std::string args, file, type, ant, subdev, ref, wirefmt;
+	std::string args, file, ant, subdev, ref, wirefmt;
 	size_t total_num_samps, spb;
 	double total_time, setup_time;
 
@@ -253,7 +253,6 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 		("help", "help message")
 		("args", po::value<std::string>(&args)->default_value(""), "multi uhd device address args")
 		("file", po::value<std::string>(&file)->default_value(""), "name of the file to write binary samples to")
-		("type", po::value<std::string>(&type)->default_value("short"), "sample type: double, float, or short")
 		("nsamps", po::value<size_t>(&total_num_samps)->default_value(0), "total number of samples to receive")
 		("time", po::value<double>(&total_time)->default_value(0), "total number of seconds to receive")
 		("spb", po::value<size_t>(&spb)->default_value(1000), "samples per buffer")
@@ -333,14 +332,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
 			continue;
 
 		//recv to file
-		if (type == "double")
-			start_over = recv_to_file<std::complex<double> >recv_to_file_args("fc64");
-		else if (type == "float")
-			start_over = recv_to_file<std::complex<float> >recv_to_file_args("fc32");
-		else if (type == "short")
-			start_over = recv_to_file<std::complex<short> >recv_to_file_args("sc16");
-		else
-			throw std::runtime_error("Unknown type " + type);
+		start_over = recv_to_file<std::complex<short> >recv_to_file_args("sc16");
 
 		//finished
 		std::cout << std::endl << "Done!" << std::endl << std::endl;

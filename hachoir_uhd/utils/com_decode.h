@@ -7,7 +7,7 @@
 
 #include "phy_parameters.h"
 
-struct sub_burst_sc16_t {
+struct sub_burst_t {
 	size_t start;
 	size_t end;
 	size_t len;
@@ -16,12 +16,12 @@ struct sub_burst_sc16_t {
 	uint64_t time_stop_us;
 };
 
-struct burst_sc16_t {
+struct burst_t {
 	std::complex<short> *samples;
 	size_t allocated_len;
 	size_t len;
 
-	std::vector<sub_burst_sc16_t> sub_bursts;
+	std::vector<sub_burst_t> sub_bursts;
 
 	uint64_t burst_id;
 	uint64_t start_time_us;
@@ -30,7 +30,7 @@ struct burst_sc16_t {
 	phy_parameters_t phy;
 };
 
-void process_burst_sc16(burst_sc16_t *burst);
-void freq_get_avr(const burst_sc16_t *burst, float &freq, float &freq_std);
+void process_burst(burst_t *burst);
+void freq_get_avr(const burst_t *burst, float &freq, float &freq_std);
 
 #endif // COM_DECODE_H

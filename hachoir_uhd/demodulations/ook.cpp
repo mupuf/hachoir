@@ -76,7 +76,7 @@ bool OOK::mapSymbol(Message &m, state &st, size_t len)
 	return true;
 }
 
-uint8_t OOK::likeliness(const burst_sc16_t * const burst)
+uint8_t OOK::likeliness(const burst_t * const burst)
 {
 	Constellation cOn, cOff;
 	uint8_t score = 0;
@@ -87,7 +87,7 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 
 	// put all the on and off times in two vectors
 	uint64_t last_stop = 0;
-	for (sub_burst_sc16_t sb : burst->sub_bursts) {
+	for (sub_burst_t sb : burst->sub_bursts) {
 		if (last_stop > 0) {
 			size_t off_time = sb.time_start_us - last_stop;
 			cOff.addPoint(off_time);
@@ -118,7 +118,7 @@ uint8_t OOK::likeliness(const burst_sc16_t * const burst)
 	return score;
 }
 
-std::vector<Message> OOK::demod(const burst_sc16_t * const burst)
+std::vector<Message> OOK::demod(const burst_t * const burst)
 {
 	std::shared_ptr<Modulation> mod;
 	std::vector<Message> msgs;

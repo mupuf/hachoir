@@ -21,8 +21,8 @@ class OOK : public Demodulator
 public:
 	OOK();
 
-	uint8_t likeliness(const burst_sc16_t * const burst);
-	std::vector<Message> demod(const burst_sc16_t * const burst);
+	uint8_t likeliness(const burst_t * const burst);
+	std::vector<Message> demod(const burst_t * const burst);
 	std::string modulationString() const;
 };
 

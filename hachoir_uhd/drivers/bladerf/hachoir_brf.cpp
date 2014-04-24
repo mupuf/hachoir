@@ -68,7 +68,7 @@ bool brf_RX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
 	if (stop_signal_called)
 		return false;
 
-	return !process_samples(phy, time_us(), "sc16", samples, len);
+	return !process_samples(phy, time_us(), samples, len);
 }
 
 void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy,

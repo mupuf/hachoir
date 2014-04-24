@@ -35,17 +35,17 @@ uint64_t sample_count_from_time(float sample_rate, uint64_t time_us)
 	return time_us * sample_rate / 1000000;
 }
 
-burst_sc16_t
-burst_sc16_init()
+burst_t
+burst_init()
 {
-	burst_sc16_t b = {NULL, 0, 0, std::vector<sub_burst_sc16_t>(), 0, 0, 0, 0.0 };
+	burst_t b = {NULL, 0, 0, std::vector<sub_burst_t>(), 0, 0, 0, 0.0 };
 	return b;
 }
 
 inline void
-burst_sc16_sub_start(burst_sc16_t *b)
+burst_sub_start(burst_t *b)
 {
-	struct sub_burst_sc16_t sb;
+	struct sub_burst_t sb;
 
 	sb.start = b->len;
 	sb.end = 0;
@@ -65,23 +65,23 @@ burst_sc16_sub_start(burst_sc16_t *b)
 }
 
 inline void
-burst_sc16_sub_cancel_current(burst_sc16_t *b)
+burst_sub_cancel_current(burst_t *b)
 {
 	if (b->sub_bursts.back().end == 0) {
 		b->sub_bursts.pop_back();
 		//fprintf(stderr, "	subcancel\n");
 	}
 	else {
-		std::cerr << "burst_sc16_sub_cancel_current: "
+		std::cerr << "burst_sub_cancel_current: "
 			  << "Tried to cancel a finished sub-burst"
 			  << std::endl;
 	}
 }
 
 inline void
-burst_sc16_sub_stop(burst_sc16_t *b)
+burst_sub_stop(burst_t *b)
 {
-	struct sub_burst_sc16_t &sb = b->sub_bursts.back();
+	struct sub_burst_t &sb = b->sub_bursts.back();
 
 	sb.end = b->len - COMS_DETECT_SAMPLES_UNDER_THRS;
 	sb.time_stop_us = b->start_time_us;
@@ -90,14 +90,14 @@ burst_sc16_sub_stop(burst_sc16_t *b)
 	sb.len = sb.end - sb.start;
 
 	if (sb.len == 0 || sb.end < sb.start)
-		burst_sc16_sub_cancel_current(b);
+		burst_sub_cancel_current(b);
 
 	/*fprintf(stderr, "	subend: len = %u (time = %u µs)\n", sb.len,
 		sb.time_stop_us - sb.time_start_us);*/
 }
 
 inline void
-burst_sc16_start(burst_sc16_t *b, const phy_parameters_t &phy,
+burst_start(burst_t *b, const phy_parameters_t &phy,
 		 float noise_mag_avr, uint64_t time_us, size_t blk_off)
 {
 	b->len = 0;
@@ -115,7 +115,7 @@ burst_sc16_start(burst_sc16_t *b, const phy_parameters_t &phy,
 }
 
 inline void
-burst_sc16_append(burst_sc16_t *b, std::complex<short> *src, size_t src_len)
+burst_append(burst_t *b, std::complex<short> *src, size_t src_len)
 {
 	if (b->allocated_len < b->len + src_len) {
 		b->allocated_len = (b->len + src_len) * 2;
@@ -127,7 +127,7 @@ burst_sc16_append(burst_sc16_t *b, std::complex<short> *src, size_t src_len)
 	b->samples = (std::complex<short> *) realloc(b->samples,
 				 b->allocated_len * sizeof(std::complex<short>));
 	if (!b->samples) {
-		std::cerr << "burst_sc16_append: cannot allocate space for "
+		std::cerr << "burst_append: cannot allocate space for "
 			  << b->allocated_len << " samples."
 			  << std::endl;
 		exit(1);
@@ -139,7 +139,7 @@ burst_sc16_append(burst_sc16_t *b, std::complex<short> *src, size_t src_len)
 }
 
 inline void
-burst_sc16_done(burst_sc16_t *b)
+burst_done(burst_t *b)
 {
 	static uint64_t burst_id = 0;
 
@@ -167,7 +167,7 @@ process_sc16_dump_samples(FILE* file, std::complex<short> IQ, float mag,
 }
 
 process_return_val_t
-process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
+process_samples(phy_parameters_t &phy, uint64_t time_us,
 		     std::complex<short> *samples, size_t count)
 {
 	/* output */
@@ -180,7 +180,7 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 	static rx_state_t state = LISTEN;
 
 	/* communication */
-	static burst_sc16_t burst = burst_sc16_init();
+	static burst_t burst = burst_init();
 	static size_t com_sample = 0, com_sub_sample = 0;
 	static float com_mag_sum = 0.0;
 	size_t com_blk_start = 0;
@@ -222,17 +222,17 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 		if (mag >= com_thrs) {
 			if (state == LISTEN) {
 				state = RX;
-				burst_sc16_start(&burst, phy, noise_mag_max, time_us, i);
-				burst_sc16_sub_start(&burst);
+				burst_start(&burst, phy, noise_mag_max, time_us, i);
+				burst_sub_start(&burst);
 				com_mag_sum = 0.0;
 				com_sample = 0;
 				com_sub_sample = 0;
 				com_blk_start = i;
 			} else if(state == COALESCING) {
 				size_t com_blk_len = i - com_blk_start;
-				burst_sc16_append(&burst, samples + com_blk_start,
+				burst_append(&burst, samples + com_blk_start,
 								  com_blk_len);
-				burst_sc16_sub_start(&burst);
+				burst_sub_start(&burst);
 				com_sub_sample = 0;
 
 				state = RX;
@@ -253,15 +253,15 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 				/* detect the end of the transmission */
 				if (detect_samples_under >= COMS_DETECT_SAMPLES_UNDER_THRS) {
 					size_t com_blk_len = i - com_blk_start;
-					burst_sc16_append(&burst, samples + com_blk_start,
+					burst_append(&burst, samples + com_blk_start,
 							  com_blk_len);
 					com_blk_start = i;
 
 					if (com_sub_sample >= COMS_DETECT_MIN_SAMPLES) {
-						burst_sc16_sub_stop(&burst);
+						burst_sub_stop(&burst);
 						detect_samples_under = 0;
 					} else {
-						burst_sc16_sub_cancel_current(&burst);
+						burst_sub_cancel_current(&burst);
 					}
 					state = COALESCING;
 				}
@@ -272,7 +272,7 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 				if (com_sample >= COMS_DETECT_MIN_SAMPLES) {
 					if (burst.sub_bursts.size() > 0) {
 
-						burst_sc16_done(&burst);
+						burst_done(&burst);
 
 						std::cerr << burst.burst_id
 							  << ": new communication, time = "
@@ -292,7 +292,7 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 							  << ")"
 							  << std::endl;
 
-						process_burst_sc16(&burst);
+						process_burst(&burst);
 
 						/* change the phy parameters, if wanted */
 						/*phy.central_freq = 869.5e6;
@@ -312,23 +312,9 @@ process_samples_sc16(phy_parameters_t &phy, uint64_t time_us,
 	 * going on. Let's copy the data so as we don't loose it!
 	*/
 	if (state > LISTEN) {
-		burst_sc16_append(&burst, samples + com_blk_start,
+		burst_append(&burst, samples + com_blk_start,
 				  count - com_blk_start - 1);
 	}
 
 	return RET_NOP;
 }
-
-
-process_return_val_t process_samples_fc32(phy_parameters_t &phy, uint64_t time_us, std::complex<float> *samples, size_t count)
-{
-	std::cout << "fc32: received " << count << " samples!" << std::endl;
-	return RET_NOP;
-}
-
-process_return_val_t process_samples_fc64(phy_parameters_t &phy, uint64_t time_us, std::complex<double> *samples, size_t count)
-{
-	std::cout << "fc64: received " << count << " samples!" << std::endl;
-	return RET_NOP;
-}
-

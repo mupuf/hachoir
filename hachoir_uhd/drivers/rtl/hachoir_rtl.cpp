@@ -95,7 +95,7 @@ bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy, const std::string &f
 			samples[i] = std::complex<short>(buf[i * 2] - 127, buf[(i * 2) + 1] - 127);
 		}
 
-		if (process_samples(phy, time_us(), "sc16", samples, len / 2)) {
+		if (process_samples(phy, time_us(), samples, len / 2)) {
 			ret = true;
 			break;
 		}

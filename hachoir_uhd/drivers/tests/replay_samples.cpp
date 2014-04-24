@@ -27,7 +27,7 @@ uint64_t time_us()
 
 void samples_read(std::string file, phy_parameters_t &phy)
 {
-	std::complex<unsigned short> samples[4096];
+	std::complex<short> samples[4096];
 	bool stop = false;
 	uint64_t sample_count = 0;
 
@@ -38,8 +38,8 @@ void samples_read(std::string file, phy_parameters_t &phy)
 	}
 
 	do {
-		infile.read((char*)&samples, 4096 * sizeof(std::complex<unsigned short>));
-		size_t num_tx_samps = infile.gcount()/sizeof(std::complex<unsigned short>);
+		infile.read((char*)&samples, 4096 * sizeof(std::complex<short>));
+		size_t num_tx_samps = infile.gcount()/sizeof(std::complex<short>);
 
 		if (num_tx_samps == 0) {
 			std::cout << "Replayed " << sample_count << " samples. Exiting..." << std::endl;
@@ -47,7 +47,7 @@ void samples_read(std::string file, phy_parameters_t &phy)
 		}
 
 		process_samples(phy, sample_count * 1000000 / phy.sample_rate,
-				    "sc16", samples, num_tx_samps);
+				samples, num_tx_samps);
 		sample_count += num_tx_samps;
 	} while (!stop && !stop_signal_called);
 }
