@@ -22,7 +22,7 @@
 	} while(0)
 
 struct bladerf *
-brf_open_and_init(const char *device_identifier);
+brf_open_and_init(const char *device_identifier, bladerf_backend backend = BLADERF_BACKEND_ANY);
 
 bool
 brf_set_phy(struct bladerf *dev, bladerf_module module,

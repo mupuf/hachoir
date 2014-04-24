@@ -62,17 +62,30 @@ static bool correctRXIQ(struct bladerf *dev)
 	return true;
 }
 
-struct bladerf *brf_open_and_init(const char *device_identifier)
+static void brf_init(struct bladerf *dev)
 {
-	struct bladerf *dev;
 	char serial[BLADERF_SERIAL_LENGTH];
+	const char *usbSpeed;
 	int ret;
 
-	BLADERF_CALL_EXIT(bladerf_open(&dev, device_identifier));
 	BLADERF_CALL_EXIT(bladerf_get_serial(dev, serial));
 
+	bladerf_dev_speed speed = bladerf_device_speed(dev);
+	switch (speed) {
+	case BLADERF_DEVICE_SPEED_UNKNOWN:
+		usbSpeed = "Unknown";
+		break;
+	case BLADERF_DEVICE_SPEED_HIGH:
+		usbSpeed = "high (USB 2.0)";
+		break;
+	case BLADERF_DEVICE_SPEED_SUPER:
+		usbSpeed = "super (USB 3.0)";
+		break;
+	}
+
 	std::cout << "BladeRF opened: " << std::endl
-		  << "	Serial = " << serial << std::endl
+		  << "	Serial:	" << serial << std::endl
+		  << "	USB speed:	" << usbSpeed << std::endl
 		  << std::endl;
 
 	ret = bladerf_is_fpga_configured(dev);
@@ -90,6 +103,43 @@ struct bladerf *brf_open_and_init(const char *device_identifier)
 	}
 
 	correctRXIQ(dev);
+}
+
+struct bladerf *brf_open_and_init(const char *device_identifier, bladerf_backend backend)
+{
+	struct bladerf *dev = NULL;
+	struct bladerf_devinfo *devices;
+	int device_count, ret;
+
+	// List devices
+	device_count = bladerf_get_device_list(&devices);
+	std::cout << "Found " << device_count << " bladeRF:" << std::endl;
+	for (int i = 0; i < device_count; i++) {
+		std::cout << "	" << devices[i].instance
+			  << ": serial = " << devices[i].serial << std::endl;
+	}
+	std::cout << std::endl;
+
+	if (device_identifier)
+		BLADERF_CALL_EXIT(bladerf_open(&dev, device_identifier));
+	else {
+		for (int i = 0; i < device_count; i++) {
+			devices[i].backend = backend;
+			ret = bladerf_open_with_devinfo(&dev, &devices[i]);
+			if (ret) {
+				std::cerr << "Cannot open bladeRF " << i
+					  << " (err = '" << bladerf_strerror(ret)
+					  << "). Trying the next one..."
+					  << std::endl;
+				dev = NULL;
+			}
+		}
+	}
+
+	if (dev)
+		brf_init(dev);
+	else
+		std::cerr << std::endl << "Failed to open any bladeRF device" << std::endl;
 
 	return dev;
 }
