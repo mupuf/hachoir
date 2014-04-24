@@ -28,7 +28,7 @@ static bool correctRXIQ(struct bladerf *dev)
 	// enable the RX module
 	BLADERF_CALL(bladerf_enable_module(dev, BLADERF_MODULE_RX, true));
 
-	for(size_t i = 0; i < 100; i++) {
+	for(size_t i = 0; i < 1000; i++) {
 		ret = bladerf_sync_rx(dev, samples, len, NULL, 1000);
 		if (ret) {
 			std::cerr << "bladerf_sync_rx: " << bladerf_strerror(ret) << std::endl;
@@ -95,85 +95,90 @@ struct bladerf *brf_open_and_init(const char *device_identifier)
 }
 
 bool brf_set_phy(struct bladerf *dev, bladerf_module module,
-		 phy_parameters_t &phy, bool resetIQ)
+		 phy_parameters_t &phy, bool defaultGain, bool resetIQ)
 {
 	const char *mod = (module == BLADERF_MODULE_RX ? "RX":"TX");
-	bladerf_lna_gain lna_gain = BLADERF_LNA_GAIN_MID;
 	unsigned int actual;
+	int gainMin, gainMax;
+
+	std::cout << boost::format("%s PHY change: %.3f MHz, %.2f MS/s, BW %.2f MHz")
+		     % mod % (phy.central_freq / 1e6)
+		     % (phy.sample_rate / 1e6)
+		     % (phy.IF_bw / 1e6);
+
+	if (defaultGain)
+		std::cout << ", default gain" << std::endl;
+	else
+		std::cout << boost::format(", gain %.02f dB") % phy.gain << std::endl;
 
 	//set the center frequency
-	std::cout << boost::format("Setting %s Freq: %u MHz...") % mod
-		     % (phy.central_freq / 1e6) << std::endl;
 	BLADERF_CALL(bladerf_set_frequency(dev, module, phy.central_freq));
 	BLADERF_CALL(bladerf_get_frequency(dev, module, &actual));
-	std::cout << boost::format("Actual %s Freq: %u MHz...") % mod
-		     % (actual / 1.0e6) << std::endl << std::endl;
+	phy.central_freq = 1.0 * actual;
 
 	//set the sample rate
 	if (phy.sample_rate <= 0.0){
 		std::cerr << "Please specify a valid sample rate" << std::endl;
 		return false;
 	}
-	std::cout << boost::format("Setting %s Rate: %f Msps...") % mod
-		     % (phy.sample_rate/1e6) << std::endl;
 	BLADERF_CALL(bladerf_set_sample_rate(dev, module, phy.sample_rate, &actual));
-	std::cout << boost::format("Actual %s Rate: %f Msps...") % mod
-		     % (actual/1.0e6) << std::endl << std::endl;
+	phy.sample_rate = 1.0 * actual;
 
 	// set the bandwidth
-	std::cout << boost::format("Setting %s Bandwidth: %f MHz...") % mod
-		     % (phy.sample_rate/1e6) << std::endl;
-	BLADERF_CALL(bladerf_set_bandwidth(dev, module, phy.sample_rate, &actual));
+	BLADERF_CALL(bladerf_set_bandwidth(dev, module, phy.IF_bw, &actual));
 	phy.IF_bw = 1.0 * actual;
-	std::cout << boost::format("Actual %s Bandwidth: %f MHz...") % mod
-		     % (actual/1.0e6) << std::endl << std::endl;
 
 	//set the rf gain
+	BLADERF_CALL(bladerf_set_lna_gain(dev, BLADERF_LNA_GAIN_MID));
 	if (module == BLADERF_MODULE_RX) {
-		int rxvga1 = BLADERF_RXVGA1_GAIN_MIN + (BLADERF_RXVGA1_GAIN_MAX - BLADERF_RXVGA1_GAIN_MIN) / 2;
-		int rxvga2 = BLADERF_RXVGA2_GAIN_MIN + (BLADERF_RXVGA2_GAIN_MAX - BLADERF_RXVGA2_GAIN_MIN) / 2;
+		int rxvga1, rxvga2;
 
-		std::cout << boost::format("Setting RX VGA1 Gain: %i dB [%i, %i]...")
-			     % rxvga1 % BLADERF_RXVGA1_GAIN_MIN
-			     % BLADERF_RXVGA1_GAIN_MAX << std::endl;
+		if (defaultGain) {
+			rxvga1 = BLADERF_RXVGA1_GAIN_MIN + (BLADERF_RXVGA1_GAIN_MAX - BLADERF_RXVGA1_GAIN_MIN) / 2;
+			rxvga2 = BLADERF_RXVGA2_GAIN_MIN + (BLADERF_RXVGA2_GAIN_MAX - BLADERF_RXVGA2_GAIN_MIN) / 2;
+		} else {
+			rxvga1 = phy.gain / 2.0;
+			rxvga2 = phy.gain / 2.0;
+		}
+
 		BLADERF_CALL(bladerf_set_rxvga1(dev, rxvga1));
 		BLADERF_CALL(bladerf_get_rxvga1(dev, &rxvga1));
-		std::cout << boost::format("Actual RX VGA1 Gain: %f dB...")
-			     % (rxvga1) << std::endl << std::endl;
 
-		std::cout << boost::format("Setting RX VGA2 Gain: %i dB [%i, %i] ...")
-			     % rxvga2 % BLADERF_RXVGA2_GAIN_MIN
-			     % BLADERF_RXVGA2_GAIN_MAX << std::endl;
 		BLADERF_CALL(bladerf_set_rxvga2(dev, rxvga2));
 		BLADERF_CALL(bladerf_get_rxvga2(dev, &rxvga2));
-		std::cout << boost::format("Actual RX VGA2 Gain: %f dB...")
-			     % rxvga2 << std::endl << std::endl;
-	} else {
-		int txvga1 = BLADERF_TXVGA1_GAIN_MIN + (BLADERF_TXVGA1_GAIN_MAX - BLADERF_TXVGA1_GAIN_MIN) / 2;
-		int txvga2 = BLADERF_TXVGA2_GAIN_MIN + (BLADERF_TXVGA2_GAIN_MAX - BLADERF_TXVGA2_GAIN_MIN) / 2;
 
-		std::cout << boost::format("Setting TX VGA1 Gain: %i dB ...")
-			     % (txvga1) << std::endl;
+		phy.gain = rxvga1 + rxvga2;
+		gainMin = BLADERF_RXVGA1_GAIN_MIN + BLADERF_RXVGA2_GAIN_MIN;
+		gainMax = BLADERF_RXVGA1_GAIN_MAX + BLADERF_RXVGA2_GAIN_MAX;
+	} else {
+		int txvga1, txvga2;
+
+		if (defaultGain) {
+			txvga1 = BLADERF_TXVGA1_GAIN_MIN + (BLADERF_TXVGA1_GAIN_MAX - BLADERF_TXVGA1_GAIN_MIN) / 2;
+			txvga2 = BLADERF_TXVGA2_GAIN_MIN + (BLADERF_TXVGA2_GAIN_MAX - BLADERF_TXVGA2_GAIN_MIN) / 2;
+		} else {
+			txvga1 = phy.gain / 2.0;
+			txvga2 = phy.gain / 2.0;
+		}
+
 		BLADERF_CALL(bladerf_set_txvga1(dev, txvga1));
 		BLADERF_CALL(bladerf_get_txvga1(dev, &txvga1));
-		std::cout << boost::format("Actual TX VGA1 Gain: %f dB...")
-			     % (txvga1) << std::endl << std::endl;
 
-		std::cout << boost::format("Setting TX VGA2 Gain: %i dB ...")
-			     % (txvga2) << std::endl;
 		BLADERF_CALL(bladerf_set_txvga2(dev, txvga2));
 		BLADERF_CALL(bladerf_get_txvga2(dev, &txvga2));
-		std::cout << boost::format("Actual TX VGA2 Gain: %f dB...")
-			     % (txvga2) << std::endl << std::endl;
+
+		phy.gain = txvga1 + txvga2;
+		gainMin = BLADERF_TXVGA1_GAIN_MIN + BLADERF_TXVGA2_GAIN_MIN;
+		gainMax = BLADERF_TXVGA1_GAIN_MAX + BLADERF_TXVGA2_GAIN_MAX;
 	}
 
-	std::cout << boost::format("Setting LNA Gain: %i dB [%i, %i] ...")
-		     % lna_gain % BLADERF_LNA_GAIN_BYPASS
-		     % BLADERF_LNA_GAIN_MAX << std::endl;
-	BLADERF_CALL(bladerf_set_lna_gain(dev, BLADERF_LNA_GAIN_MID));
-	BLADERF_CALL(bladerf_get_lna_gain(dev, &lna_gain));
-	std::cout << boost::format("Actual LNA Gain: %f dB...")
-		     % (lna_gain) << std::endl << std::endl;
+	std::cout <<
+		boost::format("%s actual PHY: %.3f MHz, %.2f MS/s, BW %.2f MHz, gain %.0f dB [%.0f, %.0f]")
+		     % mod % (phy.central_freq / 1e6)
+		     % (phy.sample_rate / 1e6)
+		     % (phy.IF_bw / 1e6)
+		     % phy.gain % gainMin % gainMax
+		  << std::endl << std::endl;
 
 	// reset the I/Q coff
 	if (resetIQ) {

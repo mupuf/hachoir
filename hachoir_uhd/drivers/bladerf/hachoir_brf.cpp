@@ -91,15 +91,12 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 
 	bool phy_ok;
 	do {
-		mutex_conf->lock();
-		phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
-		sleep(1);
-		mutex_conf->unlock();
-		if (!phy_ok)
-			continue;
-
 		brf_start_stream(dev, BLADERF_MODULE_RX, 0.01, 4096, phy,
 				 brf_RX_stream_cb, &data);
+	mutex_conf->lock();
+	phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
+	sleep(1);
+	mutex_conf->unlock();
 	} while (phy_ok && !stop_signal_called);
 
 	if (data.outfile.is_open()) {
@@ -135,15 +132,12 @@ void thread_tx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 
 	bool phy_ok;
 	do {
-		mutex_conf->lock();
-		phy_ok = brf_set_phy(dev, BLADERF_MODULE_TX, phy);
-		sleep(1);
-		mutex_conf->unlock();
-		if (!phy_ok)
-			continue;
-
 		brf_start_stream(dev, BLADERF_MODULE_TX, 0.01, 4096, phy,
 				 brf_TX_stream_cb, &data);
+
+	mutex_conf->lock();
+	phy_ok = brf_set_phy(dev, BLADERF_MODULE_TX, phy);
+	mutex_conf->unlock();
 	} while (phy_ok && !stop_signal_called);
 }
 
@@ -205,7 +199,7 @@ bool sendMessage(EmissionRunTime *txRT, Message &m)
 
 int main(int argc, char *argv[])
 {
-	phy_parameters_t phy;
+	phy_parameters_t phyRX, phyTX;
 	struct bladerf *dev;
 	std::string file;
 
@@ -213,15 +207,21 @@ int main(int argc, char *argv[])
 	std::thread tRx, tTx;
 	std::mutex mutex_conf;
 	EmissionRunTime *txRT = NULL;
+	bool defaultRXGain = false, defaultTXGain = false;
 
 	//setup the program options
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		("help", "help message")
-		("rate", po::value<float>(&phy.sample_rate)->default_value(1e6), "rate of incoming samples")
-		("freq", po::value<float>(&phy.central_freq)->default_value(0.0), "RF center frequency in Hz")
-		("gain", po::value<float>(&phy.gain), "gain for the RF chain")
-		("file", po::value<std::string>(&file), "output all the samples to this file")
+		("rx-rate", po::value<float>(&phyRX.sample_rate)->default_value(1e6), "rate of incoming samples")
+		("rx-freq", po::value<float>(&phyRX.central_freq)->default_value(0.0), "RX RF center frequency in Hz")
+		("rx-gain", po::value<float>(&phyRX.gain), "gain for the RX RF chain")
+		("rx-bw", po::value<float>(&phyRX.gain), "bandwidth of the RF RX filter")
+		("rx-file", po::value<std::string>(&file), "output all the samples to this file")
+		("tx-rate", po::value<float>(&phyTX.sample_rate)->default_value(1e6), "rate of outgoing samples")
+		("tx-freq", po::value<float>(&phyTX.central_freq)->default_value(0.0), "TX RF center frequency in Hz")
+		("tx-gain", po::value<float>(&phyTX.gain), "gain for the TX RF chain")
+		("tx-bw", po::value<float>(&phyTX.gain), "bandwidth of the RF TX filter")
 	;
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -233,12 +233,25 @@ int main(int argc, char *argv[])
 		return ~0;
 	}
 
-	phy.IF_bw = -1.0;
-	if (not vm.count("gain"))
-		phy.gain = -1.0;
+	if (not vm.count("rx-bw"))
+		phyRX.IF_bw = phyRX.sample_rate;
+	if (not vm.count("tx-bw"))
+		phyTX.IF_bw = phyTX.sample_rate;
+
+	if (not vm.count("rx-gain")) {
+		defaultRXGain = true;
+		phyRX.gain = -999.0;
+	}
+	if (not vm.count("rx-gain")) {
+		defaultTXGain = true;
+		phyTX.gain = -999.0;
+	}
 
 	// find one device
 	dev = brf_open_and_init(NULL);
+
+	brf_set_phy(dev, BLADERF_MODULE_RX, phyRX, defaultRXGain);
+	brf_set_phy(dev, BLADERF_MODULE_TX, phyTX, defaultTXGain);
 
 	std::signal(SIGINT, &sig_int_handler);
 	std::signal(SIGTERM, &sig_int_handler);
@@ -248,8 +261,8 @@ int main(int argc, char *argv[])
 
 	txRT = new EmissionRunTime(30, 4096, 2040);
 
-	tRx = std::thread(thread_rx, dev, &mutex_conf, phy, file);
-	tTx = std::thread(thread_tx, dev, &mutex_conf, phy, txRT);
+	tRx = std::thread(thread_rx, dev, &mutex_conf, phyRX, file);
+	tTx = std::thread(thread_tx, dev, &mutex_conf, phyTX, txRT);
 
 	system("rm samples.csv");
 	/*Message m({0xaa, 0x00, 0xff});

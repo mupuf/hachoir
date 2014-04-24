@@ -26,7 +26,7 @@ brf_open_and_init(const char *device_identifier);
 
 bool
 brf_set_phy(struct bladerf *dev, bladerf_module module,
-	    phy_parameters_t &phy, bool resetIQ = false);
+	    phy_parameters_t &phy, bool defaultGain = false, bool resetIQ = false);
 
 typedef bool(*brf_stream_cb )(struct bladerf *dev, struct bladerf_stream *stream,
 				struct bladerf_metadata *meta,
