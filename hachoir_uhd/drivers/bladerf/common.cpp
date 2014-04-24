@@ -65,8 +65,9 @@ static bool correctRXIQ(struct bladerf *dev)
 static void brf_init(struct bladerf *dev)
 {
 	char serial[BLADERF_SERIAL_LENGTH];
+	bladerf_fpga_size size;
 	const char *usbSpeed;
-	int ret;
+	int fpga_loaded;
 
 	BLADERF_CALL_EXIT(bladerf_get_serial(dev, serial));
 
@@ -83,23 +84,23 @@ static void brf_init(struct bladerf *dev)
 		break;
 	}
 
+	fpga_loaded = bladerf_is_fpga_configured(dev);
+
+	BLADERF_CALL_EXIT(bladerf_get_fpga_size(dev, &size));
+
 	std::cout << "BladeRF opened: " << std::endl
-		  << "	Serial:	" << serial << std::endl
-		  << "	USB speed:	" << usbSpeed << std::endl
+		  << "	Serial:		" << serial << std::endl
+		  << "	USB speed:		" << usbSpeed << std::endl
+		  << "	FPGA size:		" << size << " KLE" << std::endl
+		  << "	FPGA loaded:	" << (fpga_loaded ? "Yes" : "No") << std::endl
 		  << std::endl;
 
-	ret = bladerf_is_fpga_configured(dev);
-	if (!ret) {
-		bladerf_fpga_size size;
-		BLADERF_CALL_EXIT(bladerf_get_fpga_size(dev, &size));
-
+	if (!fpga_loaded) {
 		std::string path = boost::str(boost::format("/usr/share/bladerf/fpga/hostedx%i.rbf") % size);
-		BLADERF_CALL_EXIT(bladerf_load_fpga(dev, path.c_str()));
 
-		std::cout << "FPGA is not loaded:" << std::endl
-			  << "	Found size " << size << " KLE" << std::endl
-			  << "	Loaded FPGA image '" << path << "'" << std::endl
-			  << std::endl;
+		std::cout << "Load FPGA image '" << path << "': ";
+		BLADERF_CALL_EXIT(bladerf_load_fpga(dev, path.c_str()));
+		std::cout << " OK" << std::endl;
 	}
 
 	correctRXIQ(dev);
@@ -127,7 +128,7 @@ struct bladerf *brf_open_and_init(const char *device_identifier, bladerf_backend
 			devices[i].backend = backend;
 			ret = bladerf_open_with_devinfo(&dev, &devices[i]);
 			if (ret) {
-				std::cerr << "Cannot open bladeRF " << i
+				std::cerr << "Cannot open bladeRF id " << devices[i].instance
 					  << " (err = '" << bladerf_strerror(ret)
 					  << "). Trying the next one..."
 					  << std::endl;

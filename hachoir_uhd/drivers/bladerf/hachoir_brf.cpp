@@ -190,7 +190,7 @@ bool sendMessage(EmissionRunTime *txRT, Message &m)
 	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(433.9e6,
 									 sOn, sOff,
 									 sStop)));*/
-	m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(433.6e6,
+	m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(868.6e6,
 								      200.0e3,
 								      100e3, 1)));
 
@@ -249,6 +249,8 @@ int main(int argc, char *argv[])
 
 	// find one device
 	dev = brf_open_and_init(NULL);
+	if(!dev)
+		return 1;
 
 	brf_set_phy(dev, BLADERF_MODULE_RX, phyRX, defaultRXGain);
 	brf_set_phy(dev, BLADERF_MODULE_TX, phyTX, defaultTXGain);
