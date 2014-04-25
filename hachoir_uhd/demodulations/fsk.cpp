@@ -105,7 +105,7 @@ uint8_t FSK::likeliness(const burst_sc16_t * const burst)
 
 #include <fstream>
 #define SIG_AVR 5
-uint8_t FSK::likeliness(const burst_t * const burst)
+uint8_t FSK::likeliness(const Burst &burst)
 {
 	std::vector<float> diff_phase;
 	float phase_sum = 0;
@@ -119,9 +119,9 @@ uint8_t FSK::likeliness(const burst_t * const burst)
 	FILE *f = fopen("Diff_phase", "w");
 
 	/* compute the phase difference */
-	for (size_t i = 0; i < burst->sub_bursts[0].len - 1; i++) {
-		std::complex<float> f1 = std::complex<float>(burst->samples[i].real(), burst->samples[i].imag());
-		std::complex<float> f2 = std::complex<float>(burst->samples[i + 1].real(), burst->samples[i + 1].imag());
+	for (size_t i = 0; i < burst.subBursts()[0].len - 1; i++) {
+		std::complex<float> f1 = std::complex<float>(burst.samples()[i].real(), burst.samples()[i].imag());
+		std::complex<float> f2 = std::complex<float>(burst.samples()[i + 1].real(), burst.samples()[i + 1].imag());
 
 		float df = fmod((arg(f1) - arg(f2)),2*M_PI);
 		if (df < 0)
@@ -210,13 +210,13 @@ uint8_t FSK::likeliness(const burst_t * const burst)
 	return 255;
 }
 
-std::vector<Message> FSK::demod(const burst_t * const burst)
+std::vector<Message> FSK::demod(const Burst &burst)
 {
 	std::vector<Message> msg;
 	Message m;
 
 	char filename[100];
-	sprintf(filename, "burst_%u_fsk_freq.csv", burst->burst_id);
+	sprintf(filename, "burst_%u_fsk_freq.csv", burst.burstID());
 	FILE *f = fopen(filename, "w");
 
 	for (size_t i = 0; i < _cnt_table.size(); i++) {

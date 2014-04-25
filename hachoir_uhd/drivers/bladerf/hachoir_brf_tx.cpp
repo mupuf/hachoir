@@ -10,7 +10,6 @@
 
 #include "modulations/modulationOOK.h"
 #include "utils/emissionruntime.h"
-#include "utils/com_detect.h"
 #include "utils/message.h"
 #include "common.h"
 #include <time.h>

@@ -8,7 +8,7 @@
 #include <csignal>
 #include <complex>
 
-#include "utils/com_detect.h"
+#include "utils/rxtimedomain.h"
 
 namespace po = boost::program_options;
 
@@ -72,6 +72,9 @@ bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy, const std::string &f
 	int len;
 	bool ret = false;
 
+	RXTimeDomain rxTimeDomain;
+	rxTimeDomain.setPhyParameters(phy);
+
 	if (file != std::string()) {
 		char filename[100];
 		snprintf(filename, sizeof(filename), "%s-%.0fkHz-%.0fkSPS.dat",
@@ -95,7 +98,7 @@ bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy, const std::string &f
 			samples[i] = std::complex<short>(buf[i * 2] - 127, buf[(i * 2) + 1] - 127);
 		}
 
-		if (process_samples(phy, time_us(), samples, len / 2)) {
+		if (!rxTimeDomain.processSamples(time_us(), samples, len / 2)) {
 			ret = true;
 			break;
 		}

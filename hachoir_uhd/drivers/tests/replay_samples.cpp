@@ -6,7 +6,7 @@
 #include <csignal>
 #include <complex>
 
-#include "utils/com_detect.h"
+#include "utils/rxtimedomain.h"
 
 namespace po = boost::program_options;
 
@@ -31,6 +31,9 @@ void samples_read(std::string file, phy_parameters_t &phy)
 	bool stop = false;
 	uint64_t sample_count = 0;
 
+	RXTimeDomain rxTimeDomain;
+	rxTimeDomain.setPhyParameters(phy);
+
 	std::ifstream infile(file.c_str(), std::ifstream::binary);
 	if (!infile.is_open()) {
 		std::cerr << "Cannot open file '" << file << "'." << std::endl;
@@ -46,8 +49,8 @@ void samples_read(std::string file, phy_parameters_t &phy)
 			return;
 		}
 
-		process_samples(phy, sample_count * 1000000 / phy.sample_rate,
-				samples, num_tx_samps);
+		rxTimeDomain.processSamples(sample_count * 1000000 / phy.sample_rate,
+					    samples, num_tx_samps);
 		sample_count += num_tx_samps;
 	} while (!stop && !stop_signal_called);
 }

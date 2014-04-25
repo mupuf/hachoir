@@ -28,7 +28,7 @@
 #include <csignal>
 #include <complex>
 
-#include "utils/com_detect.h"
+#include "utils/rxtimedomain.h"
 
 namespace po = boost::program_options;
 
@@ -83,6 +83,9 @@ template<typename samp_type> bool recv_to_file(
 	typedef std::map<size_t,size_t> SizeMap;
 	SizeMap mapSizes;
 
+	RXTimeDomain rxTimeDomain;
+	rxTimeDomain.setPhyParameters(phy);
+
 	while(not stop_signal_called and (num_requested_samples != num_total_samps or num_requested_samples == 0)) {
 		boost::system_time now = boost::get_system_time();
 		size_t num_rx_samps = rx_stream->recv(&buff.front(), buff.size(), md, 3.0, enable_size_map);
@@ -126,7 +129,8 @@ template<typename samp_type> bool recv_to_file(
 		if (outfile.is_open())
 			outfile.write((const char*)&buff.front(), num_rx_samps*sizeof(samp_type));
 
-		if (process_samples(phy, md.time_spec.to_ticks(1000000), buff.data(), num_rx_samps) == RET_CH_PHY) {
+		if (rxTimeDomain.processSamples(md.time_spec.to_ticks(1000000),
+						buff.data(), num_rx_samps)) {
 			//tear-down streaming
 			uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
 			stream_cmd.stream_now = true;

@@ -1,7 +1,7 @@
 #include "ook.h"
 #include <iostream>
 
-#include "utils/com_decode.h"
+#include "utils/sig_proc.h"
 #include "utils/regulation.h"
 
 OOK::OOK()
@@ -76,7 +76,7 @@ bool OOK::mapSymbol(Message &m, state &st, size_t len)
 	return true;
 }
 
-uint8_t OOK::likeliness(const burst_t * const burst)
+uint8_t OOK::likeliness(const Burst &burst)
 {
 	Constellation cOn, cOff;
 	uint8_t score = 0;
@@ -87,7 +87,7 @@ uint8_t OOK::likeliness(const burst_t * const burst)
 
 	// put all the on and off times in two vectors
 	uint64_t last_stop = 0;
-	for (sub_burst_t sb : burst->sub_bursts) {
+	for (Burst::sub_burst_t sb : burst.subBursts()) {
 		if (last_stop > 0) {
 			size_t off_time = sb.time_start_us - last_stop;
 			cOff.addPoint(off_time);
@@ -107,18 +107,18 @@ uint8_t OOK::likeliness(const burst_t * const burst)
 	//std::cerr << cOn.histogram() << std::endl;
 
 	// calculate the number of bits per symbols
-	uint8_t score_on = getBPS(cOn, _on, burst->phy.sample_rate);
-	uint8_t score_off = getBPS(cOff, _off, burst->phy.sample_rate);
+	uint8_t score_on = getBPS(cOn, _on, burst.phy().sample_rate);
+	uint8_t score_off = getBPS(cOff, _off, burst.phy().sample_rate);
 
 	// calculate the score
 	score = ((score_on > score_off) ? score_on : score_off) / 2;
-	if (burst->sub_bursts.size() > 10)
+	if (burst.subBursts().size() > 10)
 		score += 128;
 
 	return score;
 }
 
-std::vector<Message> OOK::demod(const burst_t * const burst)
+std::vector<Message> OOK::demod(const Burst &burst)
 {
 	std::shared_ptr<Modulation> mod;
 	std::vector<Message> msgs;
@@ -144,7 +144,7 @@ std::vector<Message> OOK::demod(const burst_t * const burst)
 		if (!mapSymbol(m, _on, _on.data[i])) {
 			std::cerr << "OOK: Unknown ON symbol " << _on.data[i] << std::endl;
 			if (m.size() > 0) {
-				ModulationOOK::SymbolOOK stopSymbol(_on.data[i] * 1000000.0 / burst->phy.sample_rate);
+				ModulationOOK::SymbolOOK stopSymbol(_on.data[i] * 1000000.0 / burst.phy().sample_rate);
 				mod.reset(new ModulationOOK(central_freq, _on.symbol, _off.symbol, stopSymbol));
 				m.setModulation(mod);
 				msgs.push_back(m);
@@ -154,7 +154,7 @@ std::vector<Message> OOK::demod(const burst_t * const burst)
 		if (!mapSymbol(m, _off, _off.data[i])) {
 			std::cerr << "OOK: Unknown OFF symbol " << _off.data[i] << std::endl;
 			if (m.size() > 0) {
-				ModulationOOK::SymbolOOK stopSymbol(_off.data[i] * 1000000.0 / burst->phy.sample_rate);
+				ModulationOOK::SymbolOOK stopSymbol(_off.data[i] * 1000000.0 / burst.phy().sample_rate);
 				mod.reset(new ModulationOOK(central_freq, _on.symbol, _off.symbol, stopSymbol));
 				m.setModulation(mod);
 				msgs.push_back(m);

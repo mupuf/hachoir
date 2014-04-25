@@ -11,7 +11,7 @@
 #include <mutex>
 #include <time.h>
 
-#include "utils/com_detect.h"
+#include "utils/rxtimedomain.h"
 #include "utils/tapinterface.h"
 #include "utils/emissionruntime.h"
 #include "modulations/modulationOOK.h"
@@ -50,6 +50,8 @@ static uint64_t time_abs()
 struct rx_data {
 	std::ofstream outfile;
 	uint64_t sample_count;
+
+	RXTimeDomain *rxTimeDomain;
 };
 
 bool brf_RX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
@@ -68,7 +70,7 @@ bool brf_RX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
 	if (stop_signal_called)
 		return false;
 
-	return !process_samples(phy, time_us(), samples, len);
+	return !data->rxTimeDomain->processSamples(time_us(), samples, len);
 }
 
 void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy,
@@ -89,14 +91,17 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 		data.sample_count = 0;
 	}
 
+	data.rxTimeDomain = new RXTimeDomain();
+	data.rxTimeDomain->setPhyParameters(phy);
+
 	bool phy_ok;
 	do {
 		brf_start_stream(dev, BLADERF_MODULE_RX, 0.01, 4096, phy,
 				 brf_RX_stream_cb, &data);
-	mutex_conf->lock();
-	phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
-	sleep(1);
-	mutex_conf->unlock();
+		mutex_conf->lock();
+		phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
+		data.rxTimeDomain->setPhyParameters(phy);
+		mutex_conf->unlock();
 	} while (phy_ok && !stop_signal_called);
 
 	if (data.outfile.is_open()) {
