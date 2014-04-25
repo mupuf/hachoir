@@ -63,6 +63,11 @@ uint64_t time_us()
 	return (time.tv_sec * 1000000 + time.tv_usec) - (time_start.tv_sec * 1000000 + time_start.tv_usec);
 }
 
+bool RX_msg_cb(const Message &msg, phy_parameters_t &phy, void *userData)
+{
+	return true;
+}
+
 bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy, const std::string &file)
 {
 	std::complex<short> samples[4096];
@@ -72,7 +77,7 @@ bool samples_read(rtlsdr_dev_t *dev, phy_parameters_t &phy, const std::string &f
 	int len;
 	bool ret = false;
 
-	RXTimeDomain rxTimeDomain;
+	RXTimeDomain rxTimeDomain(RX_msg_cb, NULL);
 	rxTimeDomain.setPhyParameters(phy);
 
 	if (file != std::string()) {

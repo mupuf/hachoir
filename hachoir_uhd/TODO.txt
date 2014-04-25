@@ -1,0 +1,11 @@
+= TODO list for Hachoir UHD =
+
+== Stream ==
+
+- Use the RX ring buffer
+- Rework the demodulation stage to work in both the time and frequency domain
+
+== Utils ==
+
+- Unify messages and manchester
+

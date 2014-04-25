@@ -70,7 +70,13 @@ bool brf_RX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
 	if (stop_signal_called)
 		return false;
 
-	return !data->rxTimeDomain->processSamples(time_us(), samples, len);
+	return data->rxTimeDomain->processSamples(time_us(), samples, len);
+}
+
+bool RX_msg_cb(const Message &msg, phy_parameters_t &phy, void *userData)
+{
+	std::cout << "New message!" << std::endl;
+	return true;
 }
 
 void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy,
@@ -91,7 +97,7 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 		data.sample_count = 0;
 	}
 
-	data.rxTimeDomain = new RXTimeDomain();
+	data.rxTimeDomain = new RXTimeDomain(RX_msg_cb, &data);
 	data.rxTimeDomain->setPhyParameters(phy);
 
 	bool phy_ok;
@@ -103,6 +109,8 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 		data.rxTimeDomain->setPhyParameters(phy);
 		mutex_conf->unlock();
 	} while (phy_ok && !stop_signal_called);
+
+	delete data.rxTimeDomain;
 
 	if (data.outfile.is_open()) {
 		data.outfile.close();
@@ -140,9 +148,9 @@ void thread_tx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 		brf_start_stream(dev, BLADERF_MODULE_TX, 0.01, 4096, phy,
 				 brf_TX_stream_cb, &data);
 
-	mutex_conf->lock();
-	phy_ok = brf_set_phy(dev, BLADERF_MODULE_TX, phy);
-	mutex_conf->unlock();
+		mutex_conf->lock();
+		phy_ok = brf_set_phy(dev, BLADERF_MODULE_TX, phy);
+		mutex_conf->unlock();
 	} while (phy_ok && !stop_signal_called);
 }
 
@@ -195,8 +203,8 @@ bool sendMessage(EmissionRunTime *txRT, Message &m)
 	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(433.9e6,
 									 sOn, sOff,
 									 sStop)));*/
-	m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(868.6e6,
-								      200.0e3,
+	m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(433.6e6,
+								      100.0e3,
 								      100e3, 1)));
 
 	return txRT->addMessage(m);
@@ -272,11 +280,6 @@ int main(int argc, char *argv[])
 	tTx = std::thread(thread_tx, dev, &mutex_conf, phyTX, txRT);
 
 	system("rm samples.csv");
-	/*Message m({0xaa, 0x00, 0xff});
-	m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(433.6e6, 250.0e3, 50e3, 1)));
-	txRT->addMessage(m);*/
-
-	sleep(4);
 
 	do {
 		/*sleep(2 + rand() % 20);
@@ -294,6 +297,8 @@ int main(int argc, char *argv[])
 
 	tRx.join();
 	tTx.join();
+
+	delete txRT;
 
 	bladerf_close(dev);
 

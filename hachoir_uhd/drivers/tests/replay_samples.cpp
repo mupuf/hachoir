@@ -25,13 +25,18 @@ uint64_t time_us()
 	return (time.tv_sec * 1000000 + time.tv_usec) - (time_start.tv_sec * 1000000 + time_start.tv_usec);
 }
 
+bool RX_msg_cb(const Message &msg, phy_parameters_t &phy, void *userData)
+{
+	return true;
+}
+
 void samples_read(std::string file, phy_parameters_t &phy)
 {
 	std::complex<short> samples[4096];
 	bool stop = false;
 	uint64_t sample_count = 0;
 
-	RXTimeDomain rxTimeDomain;
+	RXTimeDomain rxTimeDomain(RX_msg_cb, NULL);
 	rxTimeDomain.setPhyParameters(phy);
 
 	std::ifstream infile(file.c_str(), std::ifstream::binary);

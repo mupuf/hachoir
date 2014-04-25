@@ -19,7 +19,8 @@
 #define COMS_DETECT_SAMPLES_UNDER_THRS 20
 #define COMS_DETECT_COALESCING_TIME_US 10000
 
-RXTimeDomain::RXTimeDomain()
+RXTimeDomain::RXTimeDomain(RXTimeDomainMessageCallback cb, void *userData) :
+	_userCb(cb), _userData(userData)
 {
 }
 
@@ -276,7 +277,15 @@ bool RXTimeDomain::process_burst(Burst &burst)
 			std::cerr << "Manchester code detected:" << std::endl
 				  << "BIN: " << man.toString(Message::BINARY) << std::endl
 				  << "HEX: " << man.toString(Message::HEX) << std::endl;
+			if (_userCb) {
+				if (!_userCb(man, _phy, _userData))
+					return false;
+			}
+		} else if (_userCb) {
+			if (!_userCb(msgs[i], _phy, _userData))
+					return false;
 		}
+
 
 		std::cerr << std::endl;
 	}

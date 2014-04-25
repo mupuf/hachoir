@@ -4,7 +4,12 @@
 #include <stddef.h>
 
 #include "utils/phy_parameters.h"
+#include "utils/message.h"
 #include "utils/burst.h"
+
+typedef bool(*RXTimeDomainMessageCallback)(const Message &msg,
+					   phy_parameters_t &phy,
+					   void *userData);
 
 class RXTimeDomain
 {
@@ -17,11 +22,14 @@ class RXTimeDomain
 	phy_parameters_t _phy;
 	Burst burst;
 
+	RXTimeDomainMessageCallback _userCb;
+	void *_userData;
+
 	void burst_dump_samples(const Burst &burst);
 	bool process_burst(Burst &burst);
 
 public:
-	RXTimeDomain();
+	RXTimeDomain(RXTimeDomainMessageCallback cb = NULL, void *userData = NULL);
 
 	phy_parameters_t phyParameters();
 	void setPhyParameters(const phy_parameters_t &phy); /* calls reset */

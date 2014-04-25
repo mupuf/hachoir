@@ -35,7 +35,10 @@ namespace po = boost::program_options;
 static bool stop_signal_called = false;
 void sig_int_handler(int){stop_signal_called = true;}
 
-
+bool RX_msg_cb(const Message &msg, phy_parameters_t &phy, void *userData)
+{
+	return true;
+}
 
 template<typename samp_type> bool recv_to_file(
     uhd::usrp::multi_usrp::sptr usrp,
@@ -83,7 +86,7 @@ template<typename samp_type> bool recv_to_file(
 	typedef std::map<size_t,size_t> SizeMap;
 	SizeMap mapSizes;
 
-	RXTimeDomain rxTimeDomain;
+	RXTimeDomain rxTimeDomain(RX_msg_cb, NULL);
 	rxTimeDomain.setPhyParameters(phy);
 
 	while(not stop_signal_called and (num_requested_samples != num_total_samps or num_requested_samples == 0)) {
