@@ -52,6 +52,7 @@ struct rx_data {
 	uint64_t sample_count;
 
 	RXTimeDomain *rxTimeDomain;
+	TapInterface *tapInterface;
 };
 
 bool brf_RX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
@@ -75,11 +76,15 @@ bool brf_RX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
 
 bool RX_msg_cb(const Message &msg, phy_parameters_t &phy, void *userData)
 {
-	std::cout << "New message!" << std::endl;
+	struct rx_data *data = (struct rx_data *)userData;
+
+	data->tapInterface->sendMessage(msg);
+
 	return true;
 }
 
 void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy,
+	       TapInterface *tapInterface = NULL,
 	       const std::string &file = std::string())
 {
 	struct rx_data data;
@@ -99,6 +104,8 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 
 	data.rxTimeDomain = new RXTimeDomain(RX_msg_cb, &data);
 	data.rxTimeDomain->setPhyParameters(phy);
+
+	data.tapInterface = tapInterface;
 
 	bool phy_ok;
 	do {
@@ -276,7 +283,7 @@ int main(int argc, char *argv[])
 
 	txRT = new EmissionRunTime(30, 4096, 2040);
 
-	tRx = std::thread(thread_rx, dev, &mutex_conf, phyRX, file);
+	tRx = std::thread(thread_rx, dev, &mutex_conf, phyRX, &tapInterface, file);
 	tTx = std::thread(thread_tx, dev, &mutex_conf, phyTX, txRT);
 
 	system("rm samples.csv");

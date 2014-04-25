@@ -112,6 +112,28 @@ void Message::setModulation(std::shared_ptr<Modulation> mod)
 	_modulation = mod;
 }
 
+bool Message::toBuffer(uint8_t *buf, size_t *len) const
+{
+	if (*len < data.size() / 8)
+		return false;
+
+	for (size_t i = 0; i < (data.size() / 8) * 8; i+=8) {
+		boost::dynamic_bitset<>::size_type b;
+		uint8_t tmp = 0;
+
+		for (b = 0; b < 8; b++) {
+			size_t bit_idx = 7 - b;
+			tmp |= (data[i + b] << bit_idx);
+		}
+
+		buf[i / 8] = tmp;
+	}
+
+	*len = data.size() / 8;
+
+	return true;
+}
+
 std::string Message::toString(MessagePrintStyle style) const
 {
 	switch(style) {

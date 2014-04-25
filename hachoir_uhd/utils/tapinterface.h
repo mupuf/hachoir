@@ -17,6 +17,7 @@ public:
 	bool removePersistent();
 
 	Message readNextMessage();
+	bool sendMessage(const Message &msg);
 };
 
 #endif // TAPINTERFACE_H

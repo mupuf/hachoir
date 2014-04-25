@@ -83,3 +83,17 @@ Message TapInterface::readNextMessage()
 	return m;
 }
 
+bool TapInterface::sendMessage(const Message &msg)
+{
+	uint8_t buf[2000];
+	size_t len = sizeof(buf);
+
+	if (!msg.toBuffer(buf, &len))
+		return false;
+
+	if (write(_tapFd, buf, len) != (int) len)
+		return false;
+
+	return true;
+}
+

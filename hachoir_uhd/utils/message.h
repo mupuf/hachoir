@@ -43,6 +43,7 @@ public:
 	std::shared_ptr<Modulation> modulation() const;
 	void setModulation(std::shared_ptr<Modulation> mod);
 
+	bool toBuffer(uint8_t *buf, size_t *len) const;
 	std::string toString(MessagePrintStyle style) const;
 	void print(std::ostream &stream, MessagePrintStyle style) const;
 
