@@ -204,15 +204,15 @@ void ringBell(EmissionRunTime *txRT, size_t channel, size_t music)
 
 bool sendMessage(EmissionRunTime *txRT, Message &m)
 {
-	/*ModulationOOK::SymbolOOK sOn(100, 200);
+	ModulationOOK::SymbolOOK sOn(100, 200);
 	ModulationOOK::SymbolOOK sOff(100, 200);
 	ModulationOOK::SymbolOOK sStop(500);
-	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(433.9e6,
+	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(868.6e6,
 									 sOn, sOff,
-									 sStop)));*/
-	m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(433.6e6,
+									 sStop)));
+	/*m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(433.6e6,
 								      100.0e3,
-								      100e3, 1)));
+								      100e3, 1)));*/
 
 	return txRT->addMessage(m);
 }
@@ -251,6 +251,12 @@ int main(int argc, char *argv[])
 	if (vm.count("help")){
 		std::cout << boost::format("Hachoir BRF %s") % desc << std::endl;
 		return ~0;
+	}
+
+	if (!vm.count("rx-freq") || !vm.count("rx-rate") ||
+	    !vm.count("tx-freq") || !vm.count("tx-rate")) {
+		std::cerr << "The RX-TX frequency and rate need to be set!" << std::endl;
+		return 1;
 	}
 
 	if (not vm.count("rx-bw"))

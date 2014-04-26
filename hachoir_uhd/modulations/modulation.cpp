@@ -1,5 +1,7 @@
 #include "modulation.h"
 
+#include <iostream>
+
 Modulation::Modulation() :
 	_freq(0.0),
 	_phase(0.0),
@@ -109,8 +111,8 @@ void Modulation::getNextSamples(std::complex<short> *samples, size_t *len)
 				_cur_index++;
 				break;
 			case command::GEN_SYMBOL:
-				_remaining_samples = _cmds[_cur_index].value *
-						       _sample_rate / 1000000.0;
+				_remaining_samples = ((size_t)_cmds[_cur_index].value) *
+						       _sample_rate / 1000000;
 				break;
 			case command::REPEAT:
 				if (_repeat_count < _cmds[_cur_index].value) {
@@ -144,8 +146,10 @@ void Modulation::modulate(std::complex<short> *samples, size_t len)
 {
 	float radian_step = 2 * M_PI * (_carrier_freq - _freq) / _sample_rate;
 	short I, Q;
+	FILE *f = NULL;
 
-	FILE *f = fopen("samples.csv", "a");
+	//f = fopen("samples.csv", "a");
+
 	for (size_t i = 0; i < len; i++) {
 		if (_amp != 0.0) {
 			float sin, cos;
@@ -158,9 +162,13 @@ void Modulation::modulate(std::complex<short> *samples, size_t len)
 		}
 		_phase += radian_step;
 		samples[i] = std::complex<short>(I, Q);
-		fprintf(f, "%i, %i\n", I, Q);
+
+		if (f)
+			fprintf(f, "%i, %i\n", I, Q);
 	}
-	fclose(f);
+
+	if (f)
+		fclose(f);
 
 	return;
 }

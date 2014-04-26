@@ -221,7 +221,7 @@ bool RXTimeDomain::process_burst(Burst &burst)
 	FSK fsk;
 	Demodulator *demod[] = {
 		&ook,
-		&fsk,
+		//&fsk,
 		// Add demodulations here
 	};
 

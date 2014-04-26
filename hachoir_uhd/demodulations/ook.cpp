@@ -26,7 +26,6 @@ uint8_t OOK::getBPS(const Constellation &constellation, state &st, float sample_
 	} while (cp.proba > 0.0);
 	std::cout << std::endl;*/
 
-
 	st.points.push_back(c[0]);
 	st.points.push_back(c[1]);
 
@@ -89,16 +88,16 @@ uint8_t OOK::likeliness(const Burst &burst)
 	uint64_t last_stop = 0;
 	for (Burst::sub_burst_t sb : burst.subBursts()) {
 		if (last_stop > 0) {
-			size_t off_time = sb.time_start_us - last_stop;
-			cOff.addPoint(off_time);
-			_off.data.push_back(off_time);
+			size_t off_len = sb.start - last_stop;
+			cOff.addPoint(off_len);
+			_off.data.push_back(off_len);
 		}
 
-		size_t on_time = sb.time_stop_us - sb.time_start_us;
-		cOn.addPoint(on_time);
-		_on.data.push_back(on_time);
+		size_t on_len = sb.len;
+		cOn.addPoint(on_len);
+		_on.data.push_back(on_len);
 
-		last_stop = sb.time_stop_us;
+		last_stop = sb.end;
 	}
 
 	cOn.clusterize(0.01);
