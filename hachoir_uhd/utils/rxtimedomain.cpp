@@ -9,7 +9,7 @@
 #include "utils/manchester.h"
 #include "utils/sig_proc.h"
 
-#define BURST_MIN_ALLOC_SIZE 10000
+#define BURST_MIN_ALLOC_SIZE 100000
 
 #define DC_OFFSET_SAMPLE_COUNT 32768
 #define NOISE_AVR_SAMPLE_COUNT 8192
