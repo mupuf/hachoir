@@ -62,6 +62,7 @@ bool ModulationFSK::prepareMessage(const Message &m, const phy_parameters_t &phy
 				freq_offset = _freqSpacing / 2.0;
 		} else {
 			std::cerr << "Unknown modulation!" << std::endl;
+			return false;
 		}
 
 		setFrequency(_centralFreq + freq_offset);

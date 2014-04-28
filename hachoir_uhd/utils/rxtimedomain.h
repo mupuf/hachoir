@@ -25,6 +25,9 @@ class RXTimeDomain
 	RXTimeDomainMessageCallback _userCb;
 	void *_userData;
 
+	void process_dump_samples(std::complex<short> &sample, float mag,
+				  float noise_cur_max, float com_thrs,
+				  rx_state_t state);
 	void burst_dump_samples(const Burst &burst);
 	bool process_burst(Burst &burst);
 

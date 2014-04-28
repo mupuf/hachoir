@@ -116,7 +116,7 @@ uint8_t FSK::likeliness(const Burst &burst)
 
 	diff_phase.reserve(10000);
 
-	FILE *f = fopen("Diff_phase", "w");
+	//FILE *f = fopen("Diff_phase", "w");
 
 	/* compute the phase difference */
 	for (size_t i = 0; i < burst.subBursts[0].len - 1; i++) {
@@ -137,7 +137,7 @@ uint8_t FSK::likeliness(const Burst &burst)
 			avg += lastN[i];
 		avg /= avg_len;
 
-		fprintf(f, "%f\n", avg);
+		//fprintf(f, "%f\n", avg);
 		diff_phase.push_back(avg);
 
 		if (i >= SIG_AVR)
@@ -145,7 +145,7 @@ uint8_t FSK::likeliness(const Burst &burst)
 		phase_sum += df;
 	}
 
-	fclose(f);
+	//fclose(f);
 
 	/* learn the different symbols */
 	cSymb.clusterize(0.01, 0.0);

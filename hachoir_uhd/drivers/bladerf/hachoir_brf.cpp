@@ -16,6 +16,7 @@
 #include "utils/emissionruntime.h"
 #include "modulations/modulationOOK.h"
 #include "modulations/modulationFSK.h"
+#include "modulations/modulationPSK.h"
 
 #include "common.h"
 
@@ -100,9 +101,9 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 
 		data.outfile = fopen(filename, "wb");
 		if (data.outfile)
-			std::cout << "Recording samples to '" << filename << "'." << std::endl;
+			std::cout << "RX: Recording samples to '" << filename << "'." << std::endl;
 		else
-			std::cerr << "Failed to open '" << filename << "'." << std::endl;
+			std::cerr << "RX: Failed to open '" << filename << "'." << std::endl;
 		data.sample_count = 0;
 	}
 
@@ -126,11 +127,14 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 
 	if (data.outfile) {
 		fclose(data.outfile);
-		std::cerr << "Wrote " << data.sample_count << " samples to the disk" << std::endl;
+		std::cerr << "RX: Wrote " << data.sample_count << " samples to the disk" << std::endl;
 	}
 }
 
 struct tx_data {
+	FILE *outfile;
+	uint64_t sample_count;
+
 	EmissionRunTime *txRT;
 };
 
@@ -146,14 +150,33 @@ bool brf_TX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
 
 	EmissionRunTime::Command ret = data->txRT->next_block(samples_next, len,
 							      phy);
+
+	if (ret == EmissionRunTime::OK && data->outfile) {
+		fwrite(samples_next, sizeof(std::complex<short>), len, data->outfile);
+		data->sample_count += len;
+	}
+
 	return ret == EmissionRunTime::OK;
 }
 
 void thread_tx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy,
-	       EmissionRunTime *txRT)
+	       EmissionRunTime *txRT, std::string file)
 {
 	struct tx_data data;
 	data.txRT = txRT;
+
+	if (file != std::string()) {
+		char filename[100];
+		snprintf(filename, sizeof(filename), "%s-%.0fkHz-%.0fkSPS.dat",
+			file.c_str(), phy.central_freq / 1000, phy.sample_rate / 1000);
+
+		data.outfile = fopen(filename, "wb");
+		if (data.outfile)
+			std::cout << "TX: Recording samples to '" << filename << "'." << std::endl;
+		else
+			std::cerr << "TX: Failed to open '" << filename << "'." << std::endl;
+		data.sample_count = 0;
+	}
 
 	bool phy_ok = true;
 	do {
@@ -165,6 +188,11 @@ void thread_tx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 			mutex_conf->unlock();
 		}
 	} while (phy_ok && !stop_signal_called);
+
+	if (data.outfile) {
+		fclose(data.outfile);
+		std::cerr << "TX: Wrote " << data.sample_count << " samples to the disk" << std::endl;
+	}
 }
 
 void ringBell(EmissionRunTime *txRT, size_t channel, size_t music)
@@ -210,15 +238,18 @@ void ringBell(EmissionRunTime *txRT, size_t channel, size_t music)
 
 bool sendMessage(EmissionRunTime *txRT, Message &m)
 {
-	ModulationOOK::SymbolOOK sOn(100, 200);
+	/*ModulationOOK::SymbolOOK sOn(100, 200);
 	ModulationOOK::SymbolOOK sOff(100, 200);
 	ModulationOOK::SymbolOOK sStop(500);
 	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(txFreq + 1e5,
 									 sOn, sOff,
-									 sStop)));
-	/*m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(810.6e6,
+									 sStop)));*/
+	/*m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(txFreq + 1e5,
 								      100.0e3,
 								      100e3, 1)));*/
+
+	m.setModulation(std::shared_ptr<Modulation>(new ModulationPSK(txFreq + 1e5,
+								      10e3, 1)));
 
 	return txRT->addMessage(m);
 }
@@ -227,7 +258,7 @@ int main(int argc, char *argv[])
 {
 	phy_parameters_t phyRX, phyTX;
 	struct bladerf *dev;
-	std::string file;
+	std::string rxFile, txFile;
 
 	TapInterface tapInterface("tap_brf");
 	std::thread tRx, tTx;
@@ -243,11 +274,12 @@ int main(int argc, char *argv[])
 		("rx-freq", po::value<float>(&phyRX.central_freq)->default_value(0.0), "RX RF center frequency in Hz")
 		("rx-gain", po::value<float>(&phyRX.gain), "gain for the RX RF chain")
 		("rx-bw", po::value<float>(&phyRX.gain), "bandwidth of the RF RX filter")
-		("rx-file", po::value<std::string>(&file), "output all the samples to this file")
+		("rx-file", po::value<std::string>(&rxFile), "output all the samples to this file")
 		("tx-rate", po::value<float>(&phyTX.sample_rate)->default_value(1e6), "rate of outgoing samples")
 		("tx-freq", po::value<float>(&phyTX.central_freq)->default_value(0.0), "TX RF center frequency in Hz")
 		("tx-gain", po::value<float>(&phyTX.gain), "gain for the TX RF chain")
 		("tx-bw", po::value<float>(&phyTX.gain), "bandwidth of the RF TX filter")
+		("tx-file", po::value<std::string>(&txFile), "output all the samples to this file")
 	;
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -297,8 +329,8 @@ int main(int argc, char *argv[])
 
 	txRT = new EmissionRunTime(30, 4096, 2040);
 
-	tRx = std::thread(thread_rx, dev, &mutex_conf, phyRX, &tapInterface, file);
-	tTx = std::thread(thread_tx, dev, &mutex_conf, phyTX, txRT);
+	tRx = std::thread(thread_rx, dev, &mutex_conf, phyRX, &tapInterface, rxFile);
+	tTx = std::thread(thread_tx, dev, &mutex_conf, phyTX, txRT, txFile);
 
 	system("rm samples.csv");
 

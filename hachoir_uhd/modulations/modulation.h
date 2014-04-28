@@ -21,6 +21,7 @@ private:
 		enum action_t {
 			SET_FREQ, // in Hz
 			SET_PHASE, // In radians
+			SET_PHASE_DIFF, // In radians
 			SET_AMP, // scaling factor
 			SET_CARRIER_FREQ, // in Hz
 			SET_SAMPLE_RATE, // in samples per seconds
@@ -43,6 +44,7 @@ protected:
 	void resetState();
 	void setFrequency(float freq);
 	void setPhase(float phase);
+	void setPhaseDiff(float phaseDiff);
 	void setAmp(float amp);
 	void setCarrierFrequency(float freq);
 	void setSampleRate(float sample_rate);

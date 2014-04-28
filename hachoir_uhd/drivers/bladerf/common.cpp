@@ -103,7 +103,7 @@ static void brf_init(struct bladerf *dev)
 		std::cout << " OK" << std::endl;
 	}
 
-	//correctRXIQ(dev);
+	correctRXIQ(dev);
 }
 
 struct bladerf *brf_open_and_init(const char *device_identifier, bladerf_backend backend)

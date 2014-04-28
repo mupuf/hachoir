@@ -6,6 +6,7 @@
 
 #include "demodulations/ook.h"
 #include "demodulations/fsk.h"
+#include "demodulations/psk.h"
 #include "utils/manchester.h"
 #include "utils/sig_proc.h"
 
@@ -45,6 +46,15 @@ uint64_t sample_count_from_time(float sample_rate, uint64_t time_us)
 	return time_us * sample_rate / 1000000;
 }
 
+void RXTimeDomain::process_dump_samples(std::complex<short> &sample, float mag,
+			  float noise_cur_max, float com_thrs, rx_state_t state)
+{
+	static FILE *f = fopen("processSamples_dump.csv", "w");
+
+	fprintf(f, "%i, %i, %f, %f, %f, %i\n", sample.real(), sample.imag(),
+		mag, noise_cur_max, com_thrs, state);
+}
+
 bool RXTimeDomain::processSamples(uint64_t time_us, std::complex<short> *samples,
 		     size_t count)
 {
@@ -77,7 +87,7 @@ bool RXTimeDomain::processSamples(uint64_t time_us, std::complex<short> *samples
 			//fprintf(stderr, "I_avr = %f, Q_avr = %f\n", I_avr, Q_avr);
 		}
 
-		//process_sc16_dump_samples(file, samples[i], mag, noise_avr, state == RX);
+		process_dump_samples(samples[i], mag, noise_cur_max, com_thrs, state);
 
 		/* calculate the noise level and thresholds */
 		if (mag > noise_cur_max)
@@ -86,6 +96,9 @@ bool RXTimeDomain::processSamples(uint64_t time_us, std::complex<short> *samples
 			if (noise_mag_max < 0 || noise_cur_max < noise_mag_max) {
 				noise_mag_max = noise_cur_max;
 				com_thrs = noise_mag_max * NOISE_THRESHOLD_FACTOR;
+
+				if (com_thrs == 0)
+					com_thrs = 1;
 			}
 			//fprintf(stderr, "noise_mag_max = %f, noise_cur_max = %f\n", noise_mag_max, noise_cur_max);
 			noise_cur_max = 0.0;
@@ -229,9 +242,11 @@ bool RXTimeDomain::process_burst(Burst &burst)
 	// List of available demodulators
 	OOK ook;
 	FSK fsk;
+	PSK psk;
 	Demodulator *demod[] = {
-		&ook,
+		//&ook,
 		//&fsk,
+		&psk,
 		// Add demodulations here
 	};
 

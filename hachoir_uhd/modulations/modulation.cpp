@@ -34,6 +34,12 @@ void Modulation::setPhase(float phase)
 	_cmds.push_back(cmd);
 }
 
+void Modulation::setPhaseDiff(float phaseDiff)
+{
+	command cmd = { command::SET_PHASE_DIFF, phaseDiff };
+	_cmds.push_back(cmd);
+}
+
 void Modulation::setAmp(float amp)
 {
 	command cmd = { command::SET_AMP, amp };
@@ -98,6 +104,10 @@ void Modulation::getNextSamples(std::complex<short> *samples, size_t *len)
 				_phase = _cmds[_cur_index].value;
 				_cur_index++;
 				break;
+			case command::SET_PHASE_DIFF:
+				_phase += _cmds[_cur_index].value;
+				_cur_index++;
+				break;
 			case command::SET_AMP:
 				_amp = _cmds[_cur_index].value;
 				_cur_index++;
@@ -150,7 +160,7 @@ void Modulation::modulate(std::complex<short> *samples, size_t len)
 	short I, Q;
 	FILE *f = NULL;
 
-	//f = fopen("samples.csv", "a");
+	f = fopen("samples.csv", "a");
 
 	for (size_t i = 0; i < len; i++) {
 		if (_amp != 0.0) {
