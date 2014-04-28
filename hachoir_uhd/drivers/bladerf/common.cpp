@@ -90,8 +90,8 @@ static void brf_init(struct bladerf *dev)
 
 	std::cout << "BladeRF opened: " << std::endl
 		  << "	Serial:		" << serial << std::endl
-		  << "	USB speed:		" << usbSpeed << std::endl
-		  << "	FPGA size:		" << size << " KLE" << std::endl
+		  << "	USB speed:	" << usbSpeed << std::endl
+		  << "	FPGA size:	" << size << " KLE" << std::endl
 		  << "	FPGA loaded:	" << (fpga_loaded ? "Yes" : "No") << std::endl
 		  << std::endl;
 
@@ -103,7 +103,7 @@ static void brf_init(struct bladerf *dev)
 		std::cout << " OK" << std::endl;
 	}
 
-	correctRXIQ(dev);
+	//correctRXIQ(dev);
 }
 
 struct bladerf *brf_open_and_init(const char *device_identifier, bladerf_backend backend)
@@ -245,6 +245,7 @@ bool brf_set_phy(struct bladerf *dev, bladerf_module module,
 struct stream_data {
 	void **buffers;
 	size_t buffers_count;
+	size_t num_transfers;
 	size_t block_size;
 	unsigned int buf_idx;
 	int exit_in;
@@ -253,6 +254,8 @@ struct stream_data {
 	phy_parameters_t phy;
 	brf_stream_cb user_cb;
 	void *user_data;
+
+	int lastError;
 };
 
 static void* bladerf_RX_cb(struct bladerf *dev, struct bladerf_stream *stream,
@@ -309,16 +312,21 @@ bool brf_start_stream(struct bladerf *dev, bladerf_module module,
 	struct bladerf_stream *stream;
 	bladerf_stream_cb internal_cb;
 	struct stream_data data;
+	const char *mod_s;
+	bool ret = true;
 
 	if (module == BLADERF_MODULE_TX) {
+		mod_s = "TX";
 		internal_cb = bladerf_TX_cb;
-		data.buffers_count = phy.sample_rate * buffering_min / block_size;
-		if (data.buffers_count < 2)
-			data.buffers_count = 2;
 	} else {
+		mod_s = "RX";
 		internal_cb = bladerf_RX_cb;
-		data.buffers_count = 2;
 	}
+
+	data.num_transfers = ceilf(1.1 * phy.sample_rate * buffering_min / block_size);
+	if (data.num_transfers < 1)
+		data.num_transfers = 1;
+	data.buffers_count = data.num_transfers * 2;
 
 	data.block_size = block_size;
 	data.buf_idx = 0;
@@ -328,20 +336,26 @@ bool brf_start_stream(struct bladerf *dev, bladerf_module module,
 	data.user_cb = cb;
 	data.user_data = user;
 
+	std::cout << "val = " << (data.buffers_count / (buffering_min)) * block_size << std::endl;
+
+	//BLADERF_CALL(bladerf_set_stream_timeout(dev, module, buffering_min * 1000));
+
 	BLADERF_CALL(bladerf_init_stream(&stream, dev, internal_cb, &data.buffers,
 			    data.buffers_count, BLADERF_FORMAT_SC16_Q11,
 			    data.block_size, data.buffers_count, &data));
 
 	BLADERF_CALL(bladerf_enable_module(dev, module, true));
 
-	BLADERF_CALL(bladerf_stream(stream, module));
+	int error = bladerf_stream(stream, module);
+	if (error < 0) {
+		std::cerr << mod_s << " streaming error: " << bladerf_strerror(error) << std::endl;
+		ret = false;
+	}
 
 	BLADERF_CALL(bladerf_enable_module(dev, module, false));
 
 	bladerf_deinit_stream(stream);
 
-	phy = data.phy;
-
-	return true;
+	return ret;
 
 }

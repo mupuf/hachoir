@@ -205,10 +205,17 @@ ConstellationPoint Constellation::mostProbabilisticPoint(size_t n) const
 std::string Constellation::histogram() const
 {
 	std::stringstream ss;
+	float last = 1.0;
 
 	ss << "value, proba (n=" << pos_count << ")" << std::endl;
 	for (int32_t i = pos_min; i < pos_max; i++) {
-		ss << i << "," << getHistAt(i) * 1.0 / pos_count << std::endl;
+		float val = getHistAt(i) * 1.0 / pos_count;
+		if (val > 0)
+			ss << i << "," << val << std::endl;
+		else if (last > 0)
+			ss << "[...]" << std::endl;
+
+		last = val;
 	}
 	ss << std::endl;
 

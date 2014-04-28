@@ -21,6 +21,8 @@
 
 namespace po = boost::program_options;
 
+uint64_t last_message;
+
 static volatile bool stop_signal_called = false;
 void sig_int_handler(int){
 	stop_signal_called = true;
@@ -78,6 +80,8 @@ bool RX_msg_cb(const Message &msg, phy_parameters_t &phy, void *userData)
 {
 	struct rx_data *data = (struct rx_data *)userData;
 
+	std::cerr << "Full Trip time = " << (time_abs() - last_message) / 1000 << " ms" << std::endl;
+
 	data->tapInterface->sendMessage(msg);
 
 	return true;
@@ -109,12 +113,13 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 
 	bool phy_ok;
 	do {
-		brf_start_stream(dev, BLADERF_MODULE_RX, 0.01, 4096, phy,
-				 brf_RX_stream_cb, &data);
 		mutex_conf->lock();
-		phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
-		data.rxTimeDomain->setPhyParameters(phy);
-		mutex_conf->unlock();
+		if (brf_start_stream(dev, BLADERF_MODULE_RX, 0.1, 4096, phy,
+				 brf_RX_stream_cb, &data)) {
+			phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
+			data.rxTimeDomain->setPhyParameters(phy);
+			mutex_conf->unlock();
+		}
 	} while (phy_ok && !stop_signal_called);
 
 	delete data.rxTimeDomain;
@@ -152,12 +157,13 @@ void thread_tx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 
 	bool phy_ok;
 	do {
-		brf_start_stream(dev, BLADERF_MODULE_TX, 0.01, 4096, phy,
-				 brf_TX_stream_cb, &data);
+		if (brf_start_stream(dev, BLADERF_MODULE_TX, 0.001, 4096, phy,
+				 brf_TX_stream_cb, &data)) {
 
-		mutex_conf->lock();
-		phy_ok = brf_set_phy(dev, BLADERF_MODULE_TX, phy);
-		mutex_conf->unlock();
+			mutex_conf->lock();
+			phy_ok = brf_set_phy(dev, BLADERF_MODULE_TX, phy);
+			mutex_conf->unlock();
+		}
 	} while (phy_ok && !stop_signal_called);
 }
 
@@ -207,7 +213,7 @@ bool sendMessage(EmissionRunTime *txRT, Message &m)
 	ModulationOOK::SymbolOOK sOn(100, 200);
 	ModulationOOK::SymbolOOK sOff(100, 200);
 	ModulationOOK::SymbolOOK sStop(500);
-	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(868.6e6,
+	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(800.6e6,
 									 sOn, sOff,
 									 sStop)));
 	/*m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(433.6e6,
@@ -305,6 +311,7 @@ int main(int argc, char *argv[])
 		Message m = tapInterface.readNextMessage();
 		std::cout << time_abs() << ": " << m.toString(Message::HEX) << std::endl;
 		sendMessage(txRT, m);
+		last_message = time_abs();
 
 	} while (!stop_signal_called);
 

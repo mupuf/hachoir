@@ -111,7 +111,7 @@ void Modulation::getNextSamples(std::complex<short> *samples, size_t *len)
 				_cur_index++;
 				break;
 			case command::GEN_SYMBOL:
-				_remaining_samples = ((size_t)_cmds[_cur_index].value) *
+				_remaining_samples = _cmds[_cur_index].value *
 						       _sample_rate / 1000000;
 				break;
 			case command::REPEAT:
@@ -128,6 +128,8 @@ void Modulation::getNextSamples(std::complex<short> *samples, size_t *len)
 		} else {
 			// Generate the sample, starting from where we left
 			size_t gen_len = _remaining_samples;
+			if (_remaining_samples > *len * 1000)
+					std::cout << "Problem!" << std::endl;
 			if (offset + gen_len > *len)
 				gen_len = *len - offset;
 
