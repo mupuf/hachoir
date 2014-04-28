@@ -14,7 +14,7 @@ void freq_get_avr(const Burst &burst, float &freq, float &freq_std)
 		const std::complex<short> *start = &burst.samples[burst.subBursts[b].start];
 
 		last_crossing = 0;
-		for (size_t i = 0; i < burst.subBursts[b].len - 1; i++) {
+		for (size_t i = 0; i < (burst.subBursts[b].len - 1) && i < 20; i++) {
 			if ((start[i].real() > 0 && start[i + 1].real() <= 0) ||
 			    (start[i].real() < 0 && start[i + 1].real() >= 0)) {
 				if (last_crossing > 0) {

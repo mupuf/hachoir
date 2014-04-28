@@ -20,6 +20,7 @@
 #include "common.h"
 
 namespace po = boost::program_options;
+float txFreq;
 
 uint64_t last_message;
 
@@ -209,10 +210,10 @@ void ringBell(EmissionRunTime *txRT, size_t channel, size_t music)
 
 bool sendMessage(EmissionRunTime *txRT, Message &m)
 {
-	ModulationOOK::SymbolOOK sOn(100, 200);
-	ModulationOOK::SymbolOOK sOff(100, 200);
-	ModulationOOK::SymbolOOK sStop(500);
-	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(810.6e6,
+	ModulationOOK::SymbolOOK sOn(40, 80);
+	ModulationOOK::SymbolOOK sOff(40, 80);
+	ModulationOOK::SymbolOOK sStop(120);
+	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(txFreq + 1e5,
 									 sOn, sOff,
 									 sStop)));
 	/*m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(810.6e6,
@@ -277,6 +278,8 @@ int main(int argc, char *argv[])
 		defaultTXGain = true;
 		phyTX.gain = -999.0;
 	}
+
+	txFreq = phyTX.central_freq;
 
 	// find one device
 	dev = brf_open_and_init(NULL);
