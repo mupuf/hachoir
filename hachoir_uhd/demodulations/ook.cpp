@@ -86,7 +86,7 @@ uint8_t OOK::likeliness(const Burst &burst)
 
 	// put all the on and off times in two vectors
 	uint64_t last_stop = 0;
-	for (Burst::sub_burst_t sb : burst.subBursts()) {
+	for (Burst::sub_burst_t sb : burst.subBursts) {
 		if (last_stop > 0) {
 			size_t off_len = sb.start - last_stop;
 			cOff.addPoint(off_len);
@@ -111,7 +111,7 @@ uint8_t OOK::likeliness(const Burst &burst)
 
 	// calculate the score
 	score = ((score_on > score_off) ? score_on : score_off) / 2;
-	if (burst.subBursts().size() > 10)
+	if (burst.subBursts.size() > 10)
 		score += 128;
 
 	return score;

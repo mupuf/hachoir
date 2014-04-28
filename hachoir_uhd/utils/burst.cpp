@@ -20,9 +20,9 @@ bool Burst::bumpBufferSize(size_t len)
 	}
 
 	/* make sure we have enough space in the sample buffer */
-	_samples = (std::complex<short> *) realloc(_samples,
+	samples = (std::complex<short> *) realloc(samples,
 				 _allocated_len * sizeof(std::complex<short>));
-	if (!_samples) {
+	if (!samples) {
 		std::cerr << "Burst: cannot allocate space for "
 			  << _allocated_len << " samples."
 			  << std::endl;
@@ -32,8 +32,8 @@ bool Burst::bumpBufferSize(size_t len)
 	return true;
 }
 
-Burst::Burst() : _samples(NULL), _allocated_len(0), _len(0), _burst_id(0),
-		 _start_time_us(0), _stop_time_us(0), _noise_mag_avr(0)
+Burst::Burst() : _allocated_len(0), _len(0), _burst_id(0), _start_time_us(0),
+		 _stop_time_us(0), _noise_mag_avr(0), samples(NULL)
 {
 	bumpBufferSize(1);
 }
@@ -42,7 +42,7 @@ void Burst::start(const phy_parameters_t &phy, float noise_mag_avr,
 		  uint64_t time_us, size_t blk_off)
 {
 	_len = 0;
-	_sub_bursts.clear();
+	subBursts.clear();
 	_phy = phy;
 	_noise_mag_avr = noise_mag_avr;
 	_burst_id = -1;
@@ -59,7 +59,7 @@ bool Burst::append(std::complex<short> *src, size_t src_len)
 		return false;
 
 	/* add the new data at the end of the current transmission */
-	memcpy(_samples + _len, src, src_len * sizeof(std::complex<short>));
+	memcpy(samples + _len, src, src_len * sizeof(std::complex<short>));
 	_len += src_len;
 
 	return true;
@@ -69,10 +69,10 @@ void Burst::done()
 {
 	static uint64_t burst_id = 0;
 
-	if (_sub_bursts.back().end < _sub_bursts.front().start)
+	if (subBursts.back().end < subBursts.front().start)
 		_len = 0;
 	else
-		_len = _sub_bursts.back().end - _sub_bursts.front().start;
+		_len = subBursts.back().end - subBursts.front().start;
 
 	_burst_id = burst_id++;
 	_stop_time_us = _start_time_us;
@@ -97,13 +97,13 @@ void Burst::subStart()
 	fprintf(stderr, "	substart[%i]: time = %u µs, start = %u\n",
 		_sub_bursts.size(), sb.time_start_us, sb.start);*/
 
-	_sub_bursts.push_back(sb);
+	subBursts.push_back(sb);
 }
 
 void Burst::subCancel()
 {
-	if (_sub_bursts.back().end == 0) {
-		_sub_bursts.pop_back();
+	if (subBursts.back().end == 0) {
+		subBursts.pop_back();
 		//fprintf(stderr, "	subcancel\n");
 	}
 	else {
@@ -115,7 +115,7 @@ void Burst::subCancel()
 
 void Burst::subStop(size_t trimSampleCount)
 {
-	struct sub_burst_t &sb = _sub_bursts.back();
+	struct sub_burst_t &sb = subBursts.back();
 
 	sb.end = _len - trimSampleCount;
 	sb.time_stop_us = _start_time_us;

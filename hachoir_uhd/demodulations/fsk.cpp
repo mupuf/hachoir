@@ -119,9 +119,9 @@ uint8_t FSK::likeliness(const Burst &burst)
 	FILE *f = fopen("Diff_phase", "w");
 
 	/* compute the phase difference */
-	for (size_t i = 0; i < burst.subBursts()[0].len - 1; i++) {
-		std::complex<float> f1 = std::complex<float>(burst.samples()[i].real(), burst.samples()[i].imag());
-		std::complex<float> f2 = std::complex<float>(burst.samples()[i + 1].real(), burst.samples()[i + 1].imag());
+	for (size_t i = 0; i < burst.subBursts[0].len - 1; i++) {
+		std::complex<float> f1 = std::complex<float>(burst.samples[i].real(), burst.samples[i].imag());
+		std::complex<float> f2 = std::complex<float>(burst.samples[i + 1].real(), burst.samples[i + 1].imag());
 
 		float df = fmod((arg(f1) - arg(f2)),2*M_PI);
 		if (df < 0)

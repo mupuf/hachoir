@@ -50,7 +50,7 @@ static uint64_t time_abs()
 }
 
 struct rx_data {
-	std::ofstream outfile;
+	FILE *outfile;
 	uint64_t sample_count;
 
 	RXTimeDomain *rxTimeDomain;
@@ -64,16 +64,15 @@ bool brf_RX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
 {
 	struct rx_data *data = (struct rx_data *)user_data;
 
-	if (data->outfile.is_open()) {
-		data->outfile.write((const char*)&samples,
-				    len * sizeof(std::complex<unsigned short>));
+	if (data->outfile) {
+		fwrite(samples, sizeof(std::complex<short>), len, data->outfile);
 		data->sample_count += len;
 	}
 
 	if (stop_signal_called)
 		return false;
 
-	return data->rxTimeDomain->processSamples(time_us(), samples, len);
+	return data->rxTimeDomain->processSamples(time_abs(), samples, len);
 }
 
 bool RX_msg_cb(const Message &msg, phy_parameters_t &phy, void *userData)
@@ -98,8 +97,8 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 		snprintf(filename, sizeof(filename), "%s-%.0fkHz-%.0fkSPS.dat",
 			file.c_str(), phy.central_freq / 1000, phy.sample_rate / 1000);
 
-		data.outfile.open(filename, std::ofstream::binary);
-		if (data.outfile.is_open())
+		data.outfile = fopen(filename, "wb");
+		if (data.outfile)
 			std::cout << "Recording samples to '" << filename << "'." << std::endl;
 		else
 			std::cerr << "Failed to open '" << filename << "'." << std::endl;
@@ -113,9 +112,9 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 
 	bool phy_ok;
 	do {
-		mutex_conf->lock();
-		if (brf_start_stream(dev, BLADERF_MODULE_RX, 0.1, 4096, phy,
-				 brf_RX_stream_cb, &data)) {
+		if (brf_start_stream(dev, BLADERF_MODULE_RX, 0.001, 4096, phy,
+				 brf_RX_stream_cb, &data) && !stop_signal_called) {
+			mutex_conf->lock();
 			phy_ok = brf_set_phy(dev, BLADERF_MODULE_RX, phy);
 			data.rxTimeDomain->setPhyParameters(phy);
 			mutex_conf->unlock();
@@ -124,9 +123,9 @@ void thread_rx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 
 	delete data.rxTimeDomain;
 
-	if (data.outfile.is_open()) {
-		data.outfile.close();
-		std::cout << "Wrote " << data.sample_count << " samples to the disk" << std::endl;
+	if (data.outfile) {
+		fclose(data.outfile);
+		std::cerr << "Wrote " << data.sample_count << " samples to the disk" << std::endl;
 	}
 }
 
@@ -155,10 +154,10 @@ void thread_tx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 	struct tx_data data;
 	data.txRT = txRT;
 
-	bool phy_ok;
+	bool phy_ok = true;
 	do {
 		if (brf_start_stream(dev, BLADERF_MODULE_TX, 0.001, 4096, phy,
-				 brf_TX_stream_cb, &data)) {
+				 brf_TX_stream_cb, &data) && !stop_signal_called) {
 
 			mutex_conf->lock();
 			phy_ok = brf_set_phy(dev, BLADERF_MODULE_TX, phy);
@@ -213,10 +212,10 @@ bool sendMessage(EmissionRunTime *txRT, Message &m)
 	ModulationOOK::SymbolOOK sOn(100, 200);
 	ModulationOOK::SymbolOOK sOff(100, 200);
 	ModulationOOK::SymbolOOK sStop(500);
-	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(800.6e6,
+	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(810.6e6,
 									 sOn, sOff,
 									 sStop)));
-	/*m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(433.6e6,
+	/*m.setModulation(std::shared_ptr<Modulation>(new ModulationFSK(810.6e6,
 								      100.0e3,
 								      100e3, 1)));*/
 

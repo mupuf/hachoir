@@ -10,11 +10,11 @@ void freq_get_avr(const Burst &burst, float &freq, float &freq_std)
 	size_t last_crossing = 0, samples_count = 0;
 	float diff_phase_sum = 0.0;
 
-	for (size_t b = 0; b < burst.subBursts().size(); b++) {
-		const std::complex<short> *start = &burst.samples()[burst.subBursts()[b].start];
+	for (size_t b = 0; b < burst.subBursts.size(); b++) {
+		const std::complex<short> *start = &burst.samples[burst.subBursts[b].start];
 
 		last_crossing = 0;
-		for (size_t i = 0; i < burst.subBursts()[b].len - 1; i++) {
+		for (size_t i = 0; i < burst.subBursts[b].len - 1; i++) {
 			if ((start[i].real() > 0 && start[i + 1].real() <= 0) ||
 			    (start[i].real() < 0 && start[i + 1].real() >= 0)) {
 				if (last_crossing > 0) {
@@ -26,8 +26,8 @@ void freq_get_avr(const Burst &burst, float &freq, float &freq_std)
 				last_crossing = i;
 			}
 
-			std::complex<float> f1 = std::complex<float>(burst.samples()[i].real(), burst.samples()[i].imag());
-			std::complex<float> f2 = std::complex<float>(burst.samples()[i + 1].real(), burst.samples()[i + 1].imag());
+			std::complex<float> f1 = std::complex<float>(burst.samples[i].real(), burst.samples[i].imag());
+			std::complex<float> f2 = std::complex<float>(burst.samples[i + 1].real(), burst.samples[i + 1].imag());
 
 			float df = fmod((arg(f1) - arg(f2)),2*M_PI);
 			if (df < 0)

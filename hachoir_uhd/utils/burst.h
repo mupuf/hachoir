@@ -21,11 +21,8 @@ public:
 	};
 
 private:
-	std::complex<short> *_samples;
 	size_t _allocated_len;
 	size_t _len;
-
-	std::vector<sub_burst_t> _sub_bursts;
 
 	uint64_t _burst_id;
 	uint64_t _start_time_us;
@@ -44,8 +41,9 @@ public:
 	uint64_t stopTimeUs() const { return _stop_time_us; }
 	float noiseMagAvr() const { return _noise_mag_avr; }
 	phy_parameters_t phy() const { return _phy; }
-	const std::complex<short> *samples() const { return _samples; }
-	std::vector<sub_burst_t> subBursts() const { return _sub_bursts; }
+
+	std::complex<short> *samples;
+	std::vector<sub_burst_t> subBursts;
 
 	void start(const phy_parameters_t &phy, float noise_mag_avr,
 		   uint64_t time_us, size_t blk_off);

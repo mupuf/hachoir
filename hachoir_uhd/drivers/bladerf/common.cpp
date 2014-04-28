@@ -28,7 +28,7 @@ static bool correctRXIQ(struct bladerf *dev)
 	// enable the RX module
 	BLADERF_CALL(bladerf_enable_module(dev, BLADERF_MODULE_RX, true));
 
-	for(size_t i = 0; i < 1000; i++) {
+	for(size_t i = 0; i < 100; i++) {
 		ret = bladerf_sync_rx(dev, samples, len, NULL, 1000);
 		if (ret) {
 			std::cerr << "bladerf_sync_rx: " << bladerf_strerror(ret) << std::endl;
@@ -89,10 +89,10 @@ static void brf_init(struct bladerf *dev)
 	BLADERF_CALL_EXIT(bladerf_get_fpga_size(dev, &size));
 
 	std::cout << "BladeRF opened: " << std::endl
-		  << "	Serial:		" << serial << std::endl
-		  << "	USB speed:	" << usbSpeed << std::endl
-		  << "	FPGA size:	" << size << " KLE" << std::endl
-		  << "	FPGA loaded:	" << (fpga_loaded ? "Yes" : "No") << std::endl
+		  << "	Serial      : " << serial << std::endl
+		  << "	USB speed   : " << usbSpeed << std::endl
+		  << "	FPGA size   : " << size << " KLE" << std::endl
+		  << "	FPGA loaded : " << (fpga_loaded ? "Yes" : "No") << std::endl
 		  << std::endl;
 
 	if (!fpga_loaded) {

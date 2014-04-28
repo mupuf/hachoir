@@ -141,7 +141,7 @@ bool RXTimeDomain::processSamples(uint64_t time_us, std::complex<short> *samples
 				state = LISTEN;
 
 				if (com_sample >= COMS_DETECT_MIN_SAMPLES) {
-					if (burst.subBursts().size() > 0) {
+					if (burst.subBursts.size() > 0) {
 
 						burst.done();
 
@@ -153,7 +153,7 @@ bool RXTimeDomain::processSamples(uint64_t time_us, std::complex<short> *samples
 							  << " samples, len_time = "
 							  << burst.lenTimeUs()
 							  << " µs, sub-burst = "
-							  << burst.subBursts().size()
+							  << burst.subBursts.size()
 							  << ", avg_pwr = "
 							  << (com_mag_sum / com_sample) * 100 / com_thrs
 							  << "% above threshold ("
@@ -195,7 +195,7 @@ void RXTimeDomain::burst_dump_samples(const Burst &burst)
 	char filename[100];
 	sprintf(filename, "burst_%i.dat", burst.burstID());
 	FILE *f = fopen(filename, "wb");
-	fwrite(burst.samples(), sizeof(std::complex<short>), burst.len(), f);
+	fwrite(burst.samples, sizeof(std::complex<short>), burst.len(), f);
 	fclose(f);
 
 	sprintf(filename, "burst_%i.csv", burst.burstID());
@@ -203,19 +203,29 @@ void RXTimeDomain::burst_dump_samples(const Burst &burst)
 	size_t b = 0;
 	for (size_t i = 0; i < burst.len(); i++) {
 		size_t inSubBurst = 0;
-		if (i >= burst.subBursts()[b].start) {
-			inSubBurst = (i < burst.subBursts()[b].end) ? 127 : 0;
-			if (i > burst.subBursts()[b].end && b < burst.subBursts().size())
+		if (i >= burst.subBursts[b].start) {
+			inSubBurst = (i < burst.subBursts[b].end) ? 127 : 0;
+			if (i > burst.subBursts[b].end && b < burst.subBursts.size())
 				b++;
 		}
 
-		fprintf(f, "%i, %i, %i\n", burst.samples()[i].real(), burst.samples()[i].imag(), inSubBurst);
+		fprintf(f, "%i, %i, %i\n", burst.samples[i].real(), burst.samples[i].imag(), inSubBurst);
 	}
 	fclose(f);
 }
 
+static uint64_t time_abs()
+{
+	struct timeval time;
+	gettimeofday(&time, NULL);
+
+	return (time.tv_sec * 1000000 + time.tv_usec);
+}
+
 bool RXTimeDomain::process_burst(Burst &burst)
 {
+	uint64_t process_start = time_abs();
+
 	// List of available demodulators
 	OOK ook;
 	FSK fsk;
@@ -226,7 +236,7 @@ bool RXTimeDomain::process_burst(Burst &burst)
 	};
 
 	// dump the samples to files
-	burst_dump_samples(burst);
+	//burst_dump_samples(burst);
 
 	Demodulator *fittest = NULL;
 	uint8_t bestScore = 0;
@@ -246,15 +256,17 @@ bool RXTimeDomain::process_burst(Burst &burst)
 	if (!fittest || bestScore < 128) {
 		float freq, freq_std;
 		freq_get_avr(burst, freq, freq_std);
+		uint64_t process_time = time_abs() - process_start;
 		std::cerr << "Demod: burst ID "
 			  << burst.burstID()
 			  << " has an unknown modulation. Len = "
 			  << burst.lenTimeUs()
 			  << " µs, sub-burst count = "
-			  << burst.subBursts().size()
+			  << burst.subBursts.size()
 			  << ", freq = "
 			  << freq / 1000000.0
-			  << " Mhz"
+			  << " Mhz, process time = "
+			  << process_time << " µs"
 			  << std::endl << std::endl;
 
 		return true;
@@ -262,8 +274,11 @@ bool RXTimeDomain::process_burst(Burst &burst)
 
 	std::vector<Message> msgs = fittest->demod(burst);
 
+	uint64_t process_time = time_abs() - process_start;
+
 	std::cerr << "New message: modulation = '" << fittest->modulationString()
-		  << "', sub messages = " << msgs.size() << std::endl;
+		  << "', sub messages = " << msgs.size() << ", process time = "
+		  << process_time << " µs" << std::endl;
 	for (size_t i = 0; i < msgs.size(); i++) {
 		std::cerr << "Sub msg " << i;
 		if (msgs[i].modulation())
@@ -291,6 +306,8 @@ bool RXTimeDomain::process_burst(Burst &burst)
 	}
 
 	std::cerr << std::endl;
+
+	//exit(1);
 
 	return true;
 }
