@@ -210,9 +210,9 @@ void ringBell(EmissionRunTime *txRT, size_t channel, size_t music)
 
 bool sendMessage(EmissionRunTime *txRT, Message &m)
 {
-	ModulationOOK::SymbolOOK sOn(40, 80);
-	ModulationOOK::SymbolOOK sOff(40, 80);
-	ModulationOOK::SymbolOOK sStop(120);
+	ModulationOOK::SymbolOOK sOn(30, 60);
+	ModulationOOK::SymbolOOK sOff(30, 60);
+	ModulationOOK::SymbolOOK sStop(100);
 	m.setModulation(std::shared_ptr<ModulationOOK>(new ModulationOOK(txFreq + 1e5,
 									 sOn, sOff,
 									 sStop)));
