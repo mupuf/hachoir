@@ -114,6 +114,12 @@ struct bladerf *brf_open_and_init(const char *device_identifier, bladerf_backend
 
 	// List devices
 	device_count = bladerf_get_device_list(&devices);
+	if (device_count < 0) {
+		std::cout << "No bladeRFs are available. Bailing out..." << std::endl;
+		return NULL;
+	}
+
+
 	std::cout << "Found " << device_count << " bladeRF:" << std::endl;
 	for (int i = 0; i < device_count; i++) {
 		std::cout << "	" << devices[i].instance
