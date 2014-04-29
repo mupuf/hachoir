@@ -138,8 +138,6 @@ void Modulation::getNextSamples(std::complex<short> *samples, size_t *len)
 		} else {
 			// Generate the sample, starting from where we left
 			size_t gen_len = _remaining_samples;
-			if (_remaining_samples > *len * 1000)
-					std::cout << "Problem!" << std::endl;
 			if (offset + gen_len > *len)
 				gen_len = *len - offset;
 

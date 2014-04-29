@@ -197,7 +197,7 @@ bool RXTimeDomain::processSamples(uint64_t time_us, std::complex<short> *samples
 	 * going on. Let's copy the data so as we don't loose it!
 	*/
 	if (state > LISTEN) {
-		burst.append(samples + com_blk_start, count - com_blk_start - 1);
+		burst.append(samples + com_blk_start, count - com_blk_start);
 	}
 
 	return true;
