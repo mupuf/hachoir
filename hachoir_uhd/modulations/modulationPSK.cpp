@@ -50,13 +50,16 @@ bool ModulationPSK::prepareMessage(const Message &m, const phy_parameters_t &phy
 	setSampleRate(phy.sample_rate);
 	setAmp(amp);
 
+	// start bit
+	genSymbol(symbol_us);
+
 	for (size_t i = 0; i < m.size(); i++) {
-		float phaseDiff;
+		float phaseDiff = 0;
 		if (_bps == 1) {
 			if (m[i])
-				phaseDiff = M_PI;
+				phaseDiff = M_PI_2;
 			else
-				phaseDiff = -M_PI;
+				phaseDiff = -M_PI_2;
 		} else {
 			std::cerr << "Unknown modulation!" << std::endl;
 			return false;
@@ -68,7 +71,7 @@ bool ModulationPSK::prepareMessage(const Message &m, const phy_parameters_t &phy
 
 	// stop bit
 	setAmp(0.0);
-	genSymbol(100);
+	genSymbol(symbol_us);
 
 	endMessage(m.repeatCount());
 

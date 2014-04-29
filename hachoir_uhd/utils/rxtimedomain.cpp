@@ -87,7 +87,7 @@ bool RXTimeDomain::processSamples(uint64_t time_us, std::complex<short> *samples
 			//fprintf(stderr, "I_avr = %f, Q_avr = %f\n", I_avr, Q_avr);
 		}
 
-		process_dump_samples(samples[i], mag, noise_cur_max, com_thrs, state);
+		//process_dump_samples(samples[i], mag, noise_cur_max, com_thrs, state);
 
 		/* calculate the noise level and thresholds */
 		if (mag > noise_cur_max)

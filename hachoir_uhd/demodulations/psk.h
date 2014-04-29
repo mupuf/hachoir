@@ -10,9 +10,11 @@ class PSK : public Demodulator
 		float len;
 	};
 
-	std::vector<symbolPSK> _cnt_table;
+	std::vector<float> _phase;
+	std::vector<float> _diff_phase;
 	float _TS;
-	float _threshold;
+	float _phaseDiff;
+	size_t _bps;
 
 	std::string _phy_params;
 public:

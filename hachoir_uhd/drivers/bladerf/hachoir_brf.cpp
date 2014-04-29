@@ -164,6 +164,7 @@ void thread_tx(struct bladerf *dev, std::mutex *mutex_conf, phy_parameters_t phy
 {
 	struct tx_data data;
 	data.txRT = txRT;
+	data.outfile = NULL;
 
 	if (file != std::string()) {
 		char filename[100];
@@ -249,7 +250,7 @@ bool sendMessage(EmissionRunTime *txRT, Message &m)
 								      100e3, 1)));*/
 
 	m.setModulation(std::shared_ptr<Modulation>(new ModulationPSK(txFreq + 1e5,
-								      10e3, 1)));
+								      1000e3, 1)));
 
 	return txRT->addMessage(m);
 }

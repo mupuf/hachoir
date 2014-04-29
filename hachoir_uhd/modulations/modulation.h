@@ -68,7 +68,7 @@ public:
 	virtual float centralFrequency() const = 0;
 	virtual float channelWidth() const = 0;
 
-	virtual bool chechPhyParameters(const phy_parameters_t &phy) const;
+	virtual bool checkPhyParameters(const phy_parameters_t &phy) const;
 
 	virtual bool prepareMessage(const Message &m, const phy_parameters_t &phy,
 				float amp) = 0;

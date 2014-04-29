@@ -129,7 +129,7 @@ EmissionRunTime::next_block(std::complex<short> *samples,
 
 	if (!cur_mod.get() && _heap.size() > 0) {
 		std::shared_ptr<Modulation> mod = _heap.at(0).modulation();
-		if (mod->chechPhyParameters(phy)) {
+		if (mod->checkPhyParameters(phy)) {
 			Message m = _heap.extract(0);
 			cur_mod = mod;
 			cur_mod->prepareMessage(m, phy, _amp);

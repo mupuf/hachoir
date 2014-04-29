@@ -77,7 +77,7 @@ void Modulation::endMessage(size_t repeat_count)
 	_cmds.push_back(cmd);
 }
 
-bool Modulation::chechPhyParameters(const phy_parameters_t &phy) const
+bool Modulation::checkPhyParameters(const phy_parameters_t &phy) const
 {
 	if (centralFrequency() + channelWidth() / 2 > (phy.central_freq + phy.sample_rate / 2.0) ||
 	    centralFrequency() - channelWidth() / 2 < (phy.central_freq - phy.sample_rate / 2.0))
@@ -158,7 +158,7 @@ void Modulation::modulate(std::complex<short> *samples, size_t len)
 	short I, Q;
 	FILE *f = NULL;
 
-	f = fopen("samples.csv", "a");
+	//f = fopen("samples.csv", "a");
 
 	for (size_t i = 0; i < len; i++) {
 		if (_amp != 0.0) {
