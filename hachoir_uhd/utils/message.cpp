@@ -23,13 +23,7 @@ std::string Message::toStringHex() const
 
 	// print in hex all the bytes
 	for (i = 0; i < (data.size() / 8) * 8; i+=8) {
-		boost::dynamic_bitset<>::size_type b;
-		uint8_t tmp = 0;
-
-		for (b = 0; b < 8; b++) {
-			size_t bit_idx = 7 - b;
-			tmp |= (data[i + b] << bit_idx);
-		}
+		uint8_t tmp = byteAt(i / 8);
 
 		ss << std::hex << std::setfill('0') << std::setw(2)
 		   << (int) tmp << " ";
@@ -92,6 +86,24 @@ void Message::clear()
 	data.clear();
 }
 
+bool Message::bitAt(size_t i) const
+{
+	return data[i];
+}
+
+uint8_t Message::byteAt(size_t i) const
+{
+	boost::dynamic_bitset<>::size_type b;
+	uint8_t tmp = 0;
+
+	for (b = 0; b < 8; b++) {
+		size_t bit_idx = 7 - b;
+		tmp |= (data[i + b] << bit_idx);
+	}
+
+	return tmp;
+}
+
 size_t Message::repeatCount() const
 {
 	return _repeat_count;
@@ -118,15 +130,7 @@ bool Message::toBuffer(uint8_t *buf, size_t *len) const
 		return false;
 
 	for (size_t i = 0; i < (data.size() / 8) * 8; i+=8) {
-		boost::dynamic_bitset<>::size_type b;
-		uint8_t tmp = 0;
-
-		for (b = 0; b < 8; b++) {
-			size_t bit_idx = 7 - b;
-			tmp |= (data[i + b] << bit_idx);
-		}
-
-		buf[i / 8] = tmp;
+		buf[i / 8] = byteAt(i / 8);
 	}
 
 	*len = data.size() / 8;
@@ -181,5 +185,5 @@ Message& Message::operator<< (std::initializer_list<uint8_t> bytes)
 
 bool Message::operator[](size_t i) const
 {
-	return data[i];
+	return bitAt(i);
 }

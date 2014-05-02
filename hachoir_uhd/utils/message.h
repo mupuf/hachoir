@@ -37,6 +37,9 @@ public:
 	size_t size() const;
 	void clear();
 
+	bool bitAt(size_t i) const;
+	uint8_t byteAt(size_t i) const;
+
 	size_t repeatCount() const;
 	void setRepeatCount(size_t repeat_count);
 
