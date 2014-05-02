@@ -80,10 +80,15 @@ bool brf_RX_stream_cb(struct bladerf *dev, struct bladerf_stream *stream,
 bool RX_msg_cb(const Message &msg, phy_parameters_t &phy, void *userData)
 {
 	struct rx_data *data = (struct rx_data *)userData;
+	size_t errors = 0;
+	uint64_t fullTripTimeMs = (time_abs() - last_message) / 1000;
 
-	std::cerr << "Full Trip time = " << (time_abs() - last_message) / 1000 << " ms" << std::endl;
+	for (size_t i = 0; i < 256; i++)
+		if (msg.byteAt(i) != (i % 256))
+			errors++;
 
-	data->tapInterface->sendMessage(msg);
+	//data->tapInterface->sendMessage(msg);
+	std::cerr << "New msg: Errors = " << errors << ", FTT = " << fullTripTimeMs << " ms" << std::endl;
 
 	return true;
 }
@@ -250,7 +255,7 @@ bool sendMessage(EmissionRunTime *txRT, Message &m)
 								      100e3, 1)));*/
 
 	m.setModulation(std::shared_ptr<Modulation>(new ModulationPSK(txFreq + 1e5,
-								      500e3, 1)));
+								      100e3, 1)));
 
 	return txRT->addMessage(m);
 }
@@ -343,10 +348,16 @@ int main(int argc, char *argv[])
 		for (size_t i = 0; i < 16; i++)
 			ringBell(txRT, i, music);*/
 
-		Message m = tapInterface.readNextMessage();
-		std::cout << time_abs() << ": " << m.toString(Message::HEX) << std::endl;
+		//Message m = tapInterface.readNextMessage();
+
+		Message m;
+		for (size_t i = 0; i < 256; i++)
+			m.addByte(i % 256);
+		std::cout << time_abs() << ": " << m.toString(Message::HEX) << std::endl << std::endl;
 		sendMessage(txRT, m);
 		last_message = time_abs();
+
+		sleep(1);
 
 	} while (!stop_signal_called);
 
