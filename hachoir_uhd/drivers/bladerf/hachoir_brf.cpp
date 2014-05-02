@@ -250,7 +250,7 @@ bool sendMessage(EmissionRunTime *txRT, Message &m)
 								      100e3, 1)));*/
 
 	m.setModulation(std::shared_ptr<Modulation>(new ModulationPSK(txFreq + 1e5,
-								      1000e3, 1)));
+								      500e3, 1)));
 
 	return txRT->addMessage(m);
 }
@@ -307,7 +307,7 @@ int main(int argc, char *argv[])
 		defaultRXGain = true;
 		phyRX.gain = -999.0;
 	}
-	if (not vm.count("rx-gain")) {
+	if (not vm.count("tx-gain")) {
 		defaultTXGain = true;
 		phyTX.gain = -999.0;
 	}

@@ -123,6 +123,8 @@ void Modulation::getNextSamples(std::complex<short> *samples, size_t *len)
 			case command::GEN_SYMBOL:
 				_remaining_samples = _cmds[_cur_index].value *
 						       _sample_rate / 1000000;
+				if (_remaining_samples == 0)
+					_cur_index++;
 				break;
 			case command::REPEAT:
 				if (_repeat_count < _cmds[_cur_index].value) {

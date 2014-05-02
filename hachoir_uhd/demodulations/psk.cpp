@@ -12,6 +12,7 @@ uint8_t PSK::likeliness(const Burst &burst)
 	float ph_last;
 	Constellation cTS, cPhaseDiff;
 	ConstellationPoint cpTS;
+	float phaseDiffSum = 0.0;
 
 	_diff_phase.reserve(burst.len());
 	_phase.reserve(burst.len());
@@ -22,7 +23,6 @@ uint8_t PSK::likeliness(const Burst &burst)
 	for (size_t i = 0; i < burst.subBursts[0].len; i++) {
 		float phase = arg(std::complex<float>(burst.samples[i].real(),
 						      burst.samples[i].imag()));
-
 		_phase.push_back(ph_last);
 
 		if (i > 1) {
@@ -34,6 +34,7 @@ uint8_t PSK::likeliness(const Burst &burst)
 
 			//fprintf(f, "%f\n", dph);
 			_diff_phase.push_back(dph);
+			phaseDiffSum += dph;
 
 			cPhaseDiff.addPoint(dph * 1000);
 		}
@@ -43,13 +44,13 @@ uint8_t PSK::likeliness(const Burst &burst)
 
 	//fclose(f);
 
-	std::ofstream outFile("histogram.csv");
+	/*std::ofstream outFile("histogram.csv");
 	outFile << cPhaseDiff.histogram() << std::endl;
-	outFile.close();
+	outFile.close();*/
 
-	cPhaseDiff.clusterize(0);
+	cPhaseDiff.clusterize(0.0, 0.0);
 
-	_phaseDiff = 0.62; //cPhaseDiff.mostProbabilisticPoint(0).pos / 1000.0;
+	_phaseDiff = cPhaseDiff.mostProbabilisticPoint(0).pos / 1000.0;
 
 	/* compute the symbol time */
 	size_t last_crossing = 0;
@@ -64,17 +65,17 @@ uint8_t PSK::likeliness(const Burst &burst)
 	// TODO
 	_bps = 2;
 
-	cTS.clusterize(1.0);
+	cTS.clusterize(0.0);
 	cpTS = cTS.mostProbabilisticPoint(0);
-	_TS = roundf(cpTS.pos);
+	_TS = roundf(cpTS.pos) * 1.0e6 / burst.phy().sample_rate;
 
 	//std::cout << cTS.histogram() << std::endl;
 
 	float freq_offset = (_phaseDiff * burst.phy().sample_rate) / (2 * M_PI); ;
 
 	char phy_params[150];
-	snprintf(phy_params, sizeof(phy_params), "%u-PSK: freq offset = %.3f kHz, symbol time = %.1f [%.1f, %.1f]",
-		_bps, freq_offset / 1000.0, _TS, cpTS.posMin, cpTS.posMax);
+	snprintf(phy_params, sizeof(phy_params), "%u-PSK: freq offset = %.3f kHz, symbol time = %.1f µs",
+		_bps, freq_offset / 1000.0, _TS);
 	_phy_params = phy_params;
 
 	return 255;

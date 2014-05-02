@@ -3,8 +3,8 @@
 
 #include <iostream>
 
-ModulationPSK::ModulationPSK(float centralFreq, float bauds, size_t bps) :
-	_centralFreq(centralFreq), _bauds(bauds), _bps(bps)
+ModulationPSK::ModulationPSK(float centralFreq, float bauds, size_t bps, bool dpsk) :
+	_centralFreq(centralFreq), _bauds(bauds), _bps(bps), _dpsk(dpsk)
 
 {
 }
@@ -41,6 +41,8 @@ float ModulationPSK::channelWidth() const
 bool ModulationPSK::prepareMessage(const Message &m, const phy_parameters_t &phy,
 		     float amp)
 {
+	bool previousBit = false;
+
 	size_t symbol_us = 1000000.0 / _bauds / _bps;
 
 	resetState();
@@ -56,10 +58,14 @@ bool ModulationPSK::prepareMessage(const Message &m, const phy_parameters_t &phy
 	for (size_t i = 0; i < m.size(); i++) {
 		float phaseDiff = 0;
 		if (_bps == 1) {
-			if (m[i])
-				phaseDiff = M_PI_2;
-			else
-				phaseDiff = -M_PI_2;
+			bool bit = m[i];
+			if (_dpsk || i == 0 || bit != previousBit) {
+				if (bit)
+					phaseDiff = M_PI_2;
+				else
+					phaseDiff = -M_PI_2;
+			}
+			previousBit = bit;
 		} else {
 			std::cerr << "Unknown modulation!" << std::endl;
 			return false;
