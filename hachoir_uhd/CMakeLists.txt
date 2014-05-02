@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (Hachoir_UHD)
 
-INCLUDE(FindPkgConfig)
+include(FindPkgConfig)
 
 include_directories(${CMAKE_SOURCE_DIR})
 
@@ -23,11 +23,17 @@ find_package(Boost COMPONENTS program_options system thread REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
+# Modulations / Demodulations
+include(cmake/FindLibLiquid.cmake)
+link_directories(${LIBLIQUID_LIBRARY_DIRS})
+
 # Find all the common files
 file(GLOB_RECURSE common_src "demodulations/*.cpp" "demodulations/*.h"
 			     "modulations/*.cpp" "modulations/*.h"
 			     "utils/*.cpp" "utils/*.h")
+set(common_libs ${Boost_LIBRARIES} ${LIBLIQUID_LIBRARY})
 
+# Backends
 pkg_search_module(libuhd uhd)
 option(APPS_UHD_ENABLE "Enable applications depending on the libuhd" ON)
 if(libuhd_FOUND AND APPS_UHD_ENABLE)
@@ -35,13 +41,13 @@ if(libuhd_FOUND AND APPS_UHD_ENABLE)
 	link_directories(${libuhd_LIBRARY_DIRS})
 
 	add_executable(hachoir_uhd ${common_src} "drivers/uhd/hachoir_uhd.cpp")
-	target_link_libraries(hachoir_uhd ${Boost_LIBRARIES} ${libuhd_LIBRARIES})
+        target_link_libraries(hachoir_uhd ${common_libs} ${libuhd_LIBRARIES})
 
 	add_executable(tx_samples_from_file ${common_src} "drivers/uhd/tx_samples_from_file.cpp")
-	target_link_libraries(tx_samples_from_file ${Boost_LIBRARIES} ${libuhd_LIBRARIES})
+        target_link_libraries(tx_samples_from_file ${common_libs} ${libuhd_LIBRARIES})
 
 	add_executable(rx_samples_to_file ${common_src} "drivers/uhd/rx_samples_to_file.cpp")
-	target_link_libraries(rx_samples_to_file ${Boost_LIBRARIES} ${libuhd_LIBRARIES})
+        target_link_libraries(rx_samples_to_file ${common_libs} ${libuhd_LIBRARIES})
 else()
 	set(APPS_UHD_ENABLE "OFF")
 endif()
@@ -53,7 +59,7 @@ if(librtl_FOUND AND APPS_RTL_ENABLE)
 	link_directories(${librtl_LIBRARY_DIRS})
 
 	add_executable(hachoir_rtl ${common_src} "drivers/rtl/hachoir_rtl.cpp")
-	target_link_libraries(hachoir_rtl ${Boost_LIBRARIES} ${librtl_LIBRARIES})
+        target_link_libraries(hachoir_rtl ${common_libs} ${librtl_LIBRARIES})
 else()
 	set(APPS_RTL_ENABLE "OFF")
 endif()
@@ -67,12 +73,12 @@ if(libbladerf_FOUND AND APPS_BRF_ENABLE)
 	add_executable(hachoir_brf ${common_src}
 				   "drivers/bladerf/common.cpp"
 				   "drivers/bladerf/hachoir_brf.cpp")
-	target_link_libraries(hachoir_brf ${Boost_LIBRARIES} ${libbladerf_LIBRARIES})
+        target_link_libraries(hachoir_brf ${common_libs} ${libbladerf_LIBRARIES})
 
 	add_executable(hachoir_brf_tx ${common_src}
 				   "drivers/bladerf/common.cpp"
 				   "drivers/bladerf/hachoir_brf_tx.cpp")
-	target_link_libraries(hachoir_brf_tx ${Boost_LIBRARIES} ${libbladerf_LIBRARIES})
+        target_link_libraries(hachoir_brf_tx ${common_libs} ${libbladerf_LIBRARIES})
 else()
 	set(APPS_BRF_ENABLE "OFF")
 endif()
@@ -80,8 +86,9 @@ endif()
 option(APPS_TEST_ENABLE "Enable test applications" ON)
 if(APPS_TEST_ENABLE)
 	add_executable(replay_samples ${common_src} "drivers/tests/replay_samples.cpp")
-	target_link_libraries(replay_samples ${Boost_LIBRARIES})
+        target_link_libraries(replay_samples ${common_libs})
 endif()
+
 
 message("")
 message("== Summary ==")
@@ -94,6 +101,9 @@ message("	UHD applications:  ${APPS_UHD_ENABLE} (-DAPPS_UHD_ENABLE=(ON|OFF))")
 message("	RTL applications:  ${APPS_RTL_ENABLE} (-DAPPS_RTL_ENABLE=(ON|OFF))")
 message("	BRF applications:  ${APPS_BRF_ENABLE} (-DAPPS_BRF_ENABLE=(ON|OFF))")
 message("	Test applications: ${APPS_TEST_ENABLE} (-DAPPS_TEST_ENABLE=(ON|OFF))")
+message("")
+message("Mods/Demods:")
+message("	liquid DSP:        ${LIBLIQUID_FOUND} (-DUSE_LIBLIQUID=(ON|OFF))")
 message("")
 message("== /Summary ==")
 message("")
