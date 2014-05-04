@@ -101,7 +101,7 @@ size_t Message::symbolAt(size_t i, size_t bps) const
 	boost::dynamic_bitset<>::size_type b;
 	size_t tmp = 0;
 
-	for (b = 0; b < bps; b++) {
+	for (b = 0; b < bps && (i * bps + b) < data.size(); b++) {
 		size_t bit_idx = bps - b - 1;
 		tmp |= (data[i * bps + b] << bit_idx);
 	}
