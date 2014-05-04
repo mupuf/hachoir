@@ -72,7 +72,7 @@ public:
 
 	virtual bool prepareMessage(const Message &m, const phy_parameters_t &phy,
 				float amp) = 0;
-	void getNextSamples(std::complex<short> *samples, size_t *len);
+	virtual void getNextSamples(std::complex<short> *samples, size_t *len);
 };
 
 #endif // MODULATION_H

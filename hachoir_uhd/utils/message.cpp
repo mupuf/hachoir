@@ -93,15 +93,28 @@ bool Message::bitAt(size_t i) const
 
 uint8_t Message::byteAt(size_t i) const
 {
-	boost::dynamic_bitset<>::size_type b;
-	uint8_t tmp = 0;
+	return symbolAt(i, 8);
+}
 
-	for (b = 0; b < 8; b++) {
-		size_t bit_idx = 7 - b;
-		tmp |= (data[i + b] << bit_idx);
+size_t Message::symbolAt(size_t i, size_t bps) const
+{
+	boost::dynamic_bitset<>::size_type b;
+	size_t tmp = 0;
+
+	for (b = 0; b < bps; b++) {
+		size_t bit_idx = bps - b - 1;
+		tmp |= (data[i * bps + b] << bit_idx);
 	}
 
 	return tmp;
+}
+
+size_t Message::symbolCount(size_t bps) const
+{
+	if (data.size() % bps == 0)
+		return data.size() / bps;
+	else
+		return (data.size() / bps) + 1;
 }
 
 size_t Message::repeatCount() const

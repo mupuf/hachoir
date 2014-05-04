@@ -17,6 +17,7 @@
 #include "modulations/modulationOOK.h"
 #include "modulations/modulationFSK.h"
 #include "modulations/modulationPSK.h"
+#include "modulations/modulationLiquidDSP.h"
 
 #include "common.h"
 
@@ -254,8 +255,11 @@ bool sendMessage(EmissionRunTime *txRT, Message &m)
 								      100.0e3,
 								      100e3, 1)));*/
 
-	m.setModulation(std::shared_ptr<Modulation>(new ModulationPSK(txFreq + 1e5,
-								      100e3, 1)));
+	/*m.setModulation(std::shared_ptr<Modulation>(new ModulationPSK(txFreq + 1e5,
+								      100e3, 1)));*/
+
+	m.setModulation(std::shared_ptr<Modulation>(new ModulationLiquidDSP(LIQUID_MODEM_DPSK2,
+									    txFreq + 1e5, 100e3)));
 
 	return txRT->addMessage(m);
 }

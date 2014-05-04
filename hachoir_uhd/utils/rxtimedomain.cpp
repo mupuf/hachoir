@@ -251,7 +251,7 @@ bool RXTimeDomain::process_burst(Burst &burst)
 	};
 
 	// dump the samples to files
-	//burst_dump_samples(burst);
+	burst_dump_samples(burst);
 
 	Demodulator *fittest = NULL;
 	uint8_t bestScore = 0;

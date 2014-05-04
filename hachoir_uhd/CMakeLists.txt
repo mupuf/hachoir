@@ -25,7 +25,12 @@ link_directories(${Boost_LIBRARY_DIRS})
 
 # Modulations / Demodulations
 include(cmake/FindLibLiquid.cmake)
-link_directories(${LIBLIQUID_LIBRARY_DIRS})
+option(LIB_LIQUID_ENABLE "Enable support for libliquid functions" ON)
+if(LIBLIQUID_FOUND AND LIB_LIQUID_ENABLE)
+	include_directories(${LIBLIQUID_INCLUDE_DIRS})
+	link_directories(${LIBLIQUID_LIBRARY_DIRS})
+	add_definitions("-DHAS_LIBLIQUID")
+endif(${LIBLIQUID_FOUND} AND ${LIB_LIQUID_ENABLE})
 
 # Find all the common files
 file(GLOB_RECURSE common_src "demodulations/*.cpp" "demodulations/*.h"
