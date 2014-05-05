@@ -30,7 +30,7 @@ if(LIBLIQUID_FOUND AND LIB_LIQUID_ENABLE)
 	include_directories(${LIBLIQUID_INCLUDE_DIRS})
 	link_directories(${LIBLIQUID_LIBRARY_DIRS})
 	add_definitions("-DHAS_LIBLIQUID")
-endif(${LIBLIQUID_FOUND} AND ${LIB_LIQUID_ENABLE})
+endif(LIBLIQUID_FOUND AND LIB_LIQUID_ENABLE)
 
 # Find all the common files
 file(GLOB_RECURSE common_src "demodulations/*.cpp" "demodulations/*.h"
