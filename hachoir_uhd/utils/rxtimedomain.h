@@ -25,6 +25,8 @@ class RXTimeDomain
 	RXTimeDomainMessageCallback _userCb;
 	void *_userData;
 
+	std::complex<short> _DC_offset;
+
 	void process_dump_samples(std::complex<short> &sample, float mag,
 				  float noise_cur_max, float com_thrs,
 				  rx_state_t state);
@@ -41,6 +43,8 @@ public:
 
 	bool processSamples(uint64_t time_us, std::complex<short> *samples,
 			     size_t count);
+
+	std::complex<short> DC_offset() const { return _DC_offset; }
 };
 
 #endif // RXTIMEDOMAIN_H

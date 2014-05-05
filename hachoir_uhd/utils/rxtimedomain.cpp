@@ -12,7 +12,7 @@
 
 #define BURST_MIN_ALLOC_SIZE 100000
 
-#define DC_OFFSET_SAMPLE_COUNT 32768
+#define DC_OFFSET_SAMPLE_COUNT 65535
 #define NOISE_AVR_SAMPLE_COUNT 8192
 #define NOISE_THRESHOLD_FACTOR 4.0
 
@@ -76,15 +76,18 @@ bool RXTimeDomain::processSamples(uint64_t time_us, std::complex<short> *samples
 		float Q = samples[i].imag() - Q_avr;
 		float mag = sqrtf(I*I + Q*Q);
 
+		samples[i] = std::complex<short>(I, Q);
+
 		/* calculate the I/Q DC-offsets */
 		I_sum += samples[i].real();
 		Q_sum += samples[i].imag();
 		if (IQ_count++ % DC_OFFSET_SAMPLE_COUNT == DC_OFFSET_SAMPLE_COUNT - 1) {
-			I_avr = I_sum / IQ_count;
-			Q_avr = Q_sum / IQ_count;
+			I_avr += I_sum / IQ_count;
+			Q_avr += Q_sum / IQ_count;
 			IQ_count = 0;
 			I_sum = Q_sum = 0.0;
-			//fprintf(stderr, "I_avr = %f, Q_avr = %f\n", I_avr, Q_avr);
+			_DC_offset = std::complex<short>(I_avr, Q_avr);
+			//fprintf(stderr, "I_avr = %f, Q_avr = %f\n\n", I_avr, Q_avr);
 		}
 
 		//process_dump_samples(samples[i], mag, noise_cur_max, com_thrs, state);
