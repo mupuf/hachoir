@@ -4,6 +4,7 @@
 #include "random.h"
 #include <unistd.h>
 #include <time.h>
+#include <math.h>
 
 uint64_t scenario1_run(uint64_t hoppingPeriod, uint64_t beaconningPeriod)
 {
@@ -53,13 +54,30 @@ int main(int argc, char **argv)
 {
 	init_rand(time(NULL));
 
-	uint64_t sum = 0;
+	std::cout << "Hopping Period (µs), Beaconning Period (µs), average time (s), std, min, max" << std::endl;
 
-	for (size_t i = 0; i < 1000; i++) {
-		uint64_t res = scenario1_run(10e3, 100e3);
-		sum += res;
+	for (size_t hp = 0; hp < 4; hp ++) {
+		for (size_t bp = 0; bp < 4; bp ++) {
+			size_t hp_us = pow(10, hp) * 1e3;
+			size_t bp_us = pow(10, bp) * 1e3;
+
+			uint64_t sum = 0, sum_sq = 0, count = 100, min = -1, max = 0;
+			for (size_t i = 0; i < count; i++) {
+				uint64_t res = scenario1_run(hp_us, bp_us);
+				sum_sq += (res * res);
+				sum += res;
+				if (res < min)
+					min = res;
+				if (res > max)
+					max = res;
+			}
+			std::cout << hp_us << ", " << bp_us << ", "
+				  << sum / count / 1.0e6 << ", "
+				  << sqrtf(sum_sq - (sum * sum)) << ", "
+				  << min << ", " << max
+				  << std::endl;
+		}
 	}
-	std::cout << "Node has been found in " << sum / 1000 / 1000.0 / 1000.0 << "s" << std::endl;
 
 	return 0;
 }
