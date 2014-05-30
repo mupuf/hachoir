@@ -56,12 +56,12 @@ int main(int argc, char **argv)
 
 	std::cout << "Hopping Period (µs), Beaconning Period (µs), average time (s), std, min, max" << std::endl;
 
-	for (size_t hp = 0; hp < 4; hp ++) {
-		for (size_t bp = 0; bp < 4; bp ++) {
+	for (size_t hp = 0; hp < 5; hp ++) {
+		for (size_t bp = 0; bp < 5; bp ++) {
 			size_t hp_us = pow(10, hp) * 1e3;
 			size_t bp_us = pow(10, bp) * 1e3;
 
-			uint64_t sum = 0, sum_sq = 0, count = 100, min = -1, max = 0;
+			uint64_t sum = 0, sum_sq = 0, count = 1000, min = -1, max = 0;
 			for (size_t i = 0; i < count; i++) {
 				uint64_t res = scenario1_run(hp_us, bp_us);
 				sum_sq += (res * res);
