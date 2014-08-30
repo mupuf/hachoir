@@ -20,6 +20,7 @@ class CogNode
 	float _x;
 	float _y;
 	uint64_t _beaconPeriod;
+	size_t _beaconCount;
 	HoppingPattern _hp;
 
 	uint64_t _ticks_count;
@@ -27,7 +28,7 @@ class CogNode
 	std::set<uint32_t> _neighbours;
 
 public:
-	CogNode(uint32_t id, float x, float y, uint64_t beaconPeriod, HoppingPattern hp);
+	CogNode(uint32_t id, float x, float y, uint64_t beaconPeriod, HoppingPattern hp, size_t beaconCount);
 	~CogNode();
 
 	uint32_t id() const { return _id; }

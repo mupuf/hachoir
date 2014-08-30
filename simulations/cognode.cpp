@@ -9,12 +9,13 @@ std::map<uint64_t, CogNode::frame_t> CogNode::_frames;
 #define BEACON_BANDWIDTH 500e3
 #define BEACON_BITRATE 1e6
 
-CogNode::CogNode(uint32_t id, float x, float y, uint64_t beaconPeriod, HoppingPattern hp) :
-	_id(id), _x(x), _y(y), _beaconPeriod(beaconPeriod), _hp(hp), _ticks_count(0)
+CogNode::CogNode(uint32_t id, float x, float y, uint64_t beaconPeriod, HoppingPattern hp, size_t beaconCount) :
+	_id(id), _x(x), _y(y), _beaconPeriod(beaconPeriod), _beaconCount(beaconCount),
+	_hp(hp), _ticks_count(0)
 {
 	_nodes.push_back(this);
 
-	for (size_t i = 0; i < hp.bandsCount(); i++)
+	for (size_t i = 0; i < hp.bandsCount() * _beaconCount; i++)
 		_frameIDs.push_back(0);
 }
 
@@ -66,7 +67,7 @@ uint64_t CogNode::usUntilNextOperation()
 			next = band_next;
 	}
 
-	if (next != -1)
+	if (next != (uint64_t) -1)
 		return next;
 	else
 		return nextAvailBand;
@@ -90,17 +91,25 @@ void CogNode::addTicks(uint64_t us)
 		if (!_hp.bandInfo(i, since_us, for_us))
 			continue;
 
-		Band cB = _hp.bandAt(i);
-		float centralFreq = cB.start() + (cB.end() - cB.start()) / 2;
-		Band beaconBand(centralFreq - BEACON_BANDWIDTH / 2, centralFreq + BEACON_BANDWIDTH / 2);
-
 		if (since_us == BEACON_EMIT_AFTER ||
 		    ((since_us - BEACON_EMIT_AFTER) % _beaconPeriod) == 0) {
-			uint64_t fID = startFrame(id(), beaconBand);
-			_frameIDs[i] = fID;
+			Band cB = _hp.bandAt(i);
+			float stride = (cB.end()-cB.start()) / _beaconCount;
+			float start = cB.start() + (stride / 2);
+			//std::cerr << since_us << ": New beacon round in range [" << cB.start() << ", " << cB.end() << "]:" << std::endl;
+			for (size_t e = 0; e < _beaconCount; e++) {
+				float centralFreq = start + e * stride;
+				//std::cerr << "	" << e << ": " << centralFreq << std::endl;
+				Band beaconBand(centralFreq - BEACON_BANDWIDTH / 2, centralFreq + BEACON_BANDWIDTH / 2);
+				uint64_t fID = startFrame(id(), beaconBand);
+				_frameIDs[i * _beaconCount + e] = fID;
+			}
+			//std::cerr << std::endl;
 		} else if(since_us == BEACON_EMIT_AFTER + beacon_tx_time_us ||
 			((since_us - BEACON_EMIT_AFTER) % _beaconPeriod) == beacon_tx_time_us)
-			stopFrame(_frameIDs[i]);
+			for (size_t e = 0; e < _beaconCount; e++) {
+				stopFrame(_frameIDs[i * _beaconCount + e]);
+			}
 	}
 }
 

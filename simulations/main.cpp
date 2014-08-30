@@ -17,10 +17,10 @@ uint64_t scenario1_run(uint64_t hoppingPeriod, uint64_t beaconningPeriod)
 	HoppingPattern hp1(1000e3, Band(300e6, 3e9), 25e6, HoppingPattern::LINEAR, 1e3);
 	hp1.addAvailableEntry(Band(band1, band1+25e6), 0.0, 0.4);
 	hp1.addAvailableEntry(Band(band2, band2+25e6), 0.5, 0.4);
-	CogNode n1(42, 0, 0, beaconningPeriod, hp1);
+	CogNode n1(42, 0, 0, beaconningPeriod, hp1, 1);
 
 	HoppingPattern hp2(60e6, Band(300e6, 3e9), 25e6, HoppingPattern::RANDOM, hoppingPeriod);
-	CogNode n2(43, 0, 0, 10e3, hp2);
+	CogNode n2(43, 0, 0, 10e3, hp2, 1);
 
 	CogNode *nodes[] = { &n1, &n2 };
 	size_t nodesCount = sizeof(nodes) / sizeof(CogNode *);
@@ -50,10 +50,7 @@ uint64_t scenario1_run(uint64_t hoppingPeriod, uint64_t beaconningPeriod)
 	//std::cout << std::endl;
 }
 
-int main(int argc, char **argv)
-{
-	init_rand(time(NULL));
-
+void scenario1() {
 	std::cout << "Hopping Period (µs), Beaconning Period (µs), average time (s), std, min, max" << std::endl;
 
 	for (size_t hp = 0; hp < 5; hp ++) {
@@ -78,6 +75,13 @@ int main(int argc, char **argv)
 				  << std::endl;
 		}
 	}
+}
+
+int main(int argc, char **argv)
+{
+	init_rand(time(NULL));
+
+	scenario1();
 
 	return 0;
 }
