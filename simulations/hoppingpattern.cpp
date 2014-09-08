@@ -32,6 +32,21 @@ Band HoppingPattern::bandAt(size_t idx) const
 		return Band();
 }
 
+void HoppingPattern::start()
+{
+	switch(_sensingType) {
+	case LINEAR:
+		_sensingFreq = _tunBand.start() + _spectrumWindow / 2;
+		break;
+	case RANDOM:
+		float start = _tunBand.start() + _spectrumWindow / 2;
+		float end = _tunBand.end() - _spectrumWindow / 2;
+		uint64_t range = end - start;
+		_sensingFreq = start + rand_cmwc() % range;
+		break;
+	}
+}
+
 void HoppingPattern::addTicks(uint64_t us)
 {
 	if (period_us() < 0) {
@@ -56,7 +71,6 @@ void HoppingPattern::addTicks(uint64_t us)
 
 	if (sensingSince_us % _hoppingPeriod)
 		return;
-
 
 	switch(_sensingType) {
 	case LINEAR:
@@ -128,8 +142,8 @@ bool HoppingPattern::isBandIncludedInCurrentBands(Band b) const
 	uint64_t s1, s2, s3;
 
 	if (isSensing(s1, s2, s3)) {
-		return b.start() > _sensingFreq - _spectrumWindow / 2 &&
-			b.end() < _sensingFreq + _spectrumWindow / 2;
+		return b.start() >= (_sensingFreq - _spectrumWindow / 2) &&
+			b.end() <= (_sensingFreq + _spectrumWindow / 2);
 	} else {
 		for (size_t i = 0; i < _hops.size(); i++) {
 			if(isBandActive(i) && _hops[i].b.isBandIncluded(b))

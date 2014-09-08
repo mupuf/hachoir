@@ -3,13 +3,13 @@
 #include <iostream>
 
 std::list<CogNode*> CogNode::_nodes;
-std::map<uint64_t, CogNode::frame_t> CogNode::_frames;
 
 #define BEACON_EMIT_AFTER 5000
 #define BEACON_BANDWIDTH 500e3
 #define BEACON_BITRATE 1e6
 
-CogNode::CogNode(uint32_t id, float x, float y, uint64_t beaconPeriod, HoppingPattern hp, size_t beaconCount) :
+CogNode::CogNode(uint32_t id, float x, float y, uint64_t beaconPeriod,
+		 HoppingPattern hp, size_t beaconCount) :
 	_id(id), _x(x), _y(y), _beaconPeriod(beaconPeriod), _beaconCount(beaconCount),
 	_hp(hp), _ticks_count(0)
 {
@@ -17,6 +17,8 @@ CogNode::CogNode(uint32_t id, float x, float y, uint64_t beaconPeriod, HoppingPa
 
 	for (size_t i = 0; i < hp.bandsCount() * _beaconCount; i++)
 		_frameIDs.push_back(0);
+
+	_hp.start();
 }
 
 CogNode::~CogNode()
@@ -94,13 +96,16 @@ void CogNode::addTicks(uint64_t us)
 		if (since_us == BEACON_EMIT_AFTER ||
 		    ((since_us - BEACON_EMIT_AFTER) % _beaconPeriod) == 0) {
 			Band cB = _hp.bandAt(i);
-			float stride = (cB.end()-cB.start()) / _beaconCount;
-			float start = cB.start() + (stride / 2);
+			float stride;
+			if (_beaconCount > 1)
+				stride = (cB.end()-cB.start() - BEACON_BANDWIDTH) / (_beaconCount - 1);
+			else
+				stride = 1;
 			//std::cerr << since_us << ": New beacon round in range [" << cB.start() << ", " << cB.end() << "]:" << std::endl;
 			for (size_t e = 0; e < _beaconCount; e++) {
-				float centralFreq = start + e * stride;
-				//std::cerr << "	" << e << ": " << centralFreq << std::endl;
-				Band beaconBand(centralFreq - BEACON_BANDWIDTH / 2, centralFreq + BEACON_BANDWIDTH / 2);
+				float beaconStartFreq = cB.start() + e * stride;
+				//std::cerr << "	" << e << ": " << beaconStartFreq + BEACON_BANDWIDTH / 2 << std::endl;
+				Band beaconBand(beaconStartFreq, beaconStartFreq + BEACON_BANDWIDTH);
 				uint64_t fID = startFrame(id(), beaconBand);
 				_frameIDs[i * _beaconCount + e] = fID;
 			}
@@ -131,14 +136,22 @@ uint64_t CogNode::startFrame(uint32_t src, Band b)
 	frame.src = src;
 	frame.b = b;
 
-	//std::cout << "startFrame " << _fID << " from node " << frame.src << ": ";
+	/*std::cout << _ticks_count << ": startFrame " << _fID << " from node " << frame.src
+		  << " at freq [" << b.start() << ", " << b.end() << "] MHz: ";*/
 	for (auto &n : _nodes) {
 		if (n->frameStarted(b)) {
 			frame.nodes.insert(n);
-			//std::cout << " " << n->id();
+
+			/*if (frame.nodes.size() == 2)
+				std::cout << _ticks_count << ": startFrame " << _fID % 3 << " from node " << frame.src
+						  << " at freq [" << b.start() << ", " << b.end() << "] MHz: ";
+
+			if (frame.nodes.size() > 1)
+				std::cout << " " << n->id();*/
 		}
 	}
-	//std::cout << std::endl;
+	/*if (frame.nodes.size() > 1)
+		std::cout << std::endl;*/
 
 	_frames[_fID] = frame;
 
@@ -160,12 +173,16 @@ void CogNode::stopFrame(uint64_t fID)
 			 recvSet.begin(), recvSet.end(),
 			 std::inserter(inters, inters.begin()));
 
-	//std::cout << "stopFrame " << fID << " from node " << frame.src << ":";
+	/*if (inters.size() > 1)
+		std::cout << _ticks_count << ": stopFrame " << fID << " from node " << frame.src << ":";*/
 	for (auto it=inters.begin(); it!=inters.end(); ++it) {
 		(*it)->_neighbours.insert(frame.src);
-		//std::cout << " " << (*it)->id();
+
+		/*if (inters.size() > 1)
+			std::cout << " " << (*it)->id();*/
 	}
-	//std::cout << '\n';
+	/*if (inters.size() > 1)
+		std::cout << '\n';*/
 
 	_frames.erase(_frames.find(fID));
 }

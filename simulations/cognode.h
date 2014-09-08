@@ -14,7 +14,7 @@ class CogNode
 	static std::list<CogNode*> _nodes;
 
 	struct frame_t { uint32_t src; Band b; std::set<CogNode*> nodes; };
-	static std::map<uint64_t, frame_t> _frames;
+	std::map<uint64_t, frame_t> _frames;
 
 	uint32_t _id;
 	float _x;
@@ -41,8 +41,8 @@ public:
 	bool frameStarted(Band b) const;
 	bool frameStopped(Band b) const;
 
-	static uint64_t startFrame(uint32_t src, Band b);
-	static void stopFrame(uint64_t fID);
+	uint64_t startFrame(uint32_t src, Band b);
+	void stopFrame(uint64_t fID);
 };
 
 #endif // COGNODE_H

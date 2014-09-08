@@ -43,6 +43,7 @@ public:
 	Band bandAt(size_t idx) const;
 	size_t beaconSize() const { return 15 + _hops.size() * 10; }
 
+	void start();
 	void addTicks(uint64_t us);
 
 	bool bandInfo(size_t idx, uint64_t &activeSince_us, uint64_t &activeFor_us) const;
