@@ -1,8 +1,8 @@
 #include "hoppingpattern.h"
-
 #include "random.h"
 
 #include <iostream>
+#include <tgmath.h>
 
 HoppingPattern::HoppingPattern() : _period(-1)
 {
@@ -11,9 +11,10 @@ HoppingPattern::HoppingPattern() : _period(-1)
 
 HoppingPattern::HoppingPattern(uint64_t period_us, Band tunBand,
 			      float spectrumWindow, SensingType sensingType,
-			      uint64_t hoppingPeriod) :
+			      uint64_t hoppingPeriod, float freqAccuracy) :
 _tunBand(tunBand), _spectrumWindow(spectrumWindow), _sensingType(sensingType),
- _hoppingPeriod(hoppingPeriod), _period(period_us), _curOffset(0.0), _sensingFreq(-1)
+ _hoppingPeriod(hoppingPeriod), _freqAccuracy(freqAccuracy), _period(period_us),
+ _curOffset(0.0), _sensingFreq(-1)
 {
 
 }
@@ -36,13 +37,15 @@ void HoppingPattern::start()
 {
 	switch(_sensingType) {
 	case LINEAR:
-		_sensingFreq = _tunBand.start() + _spectrumWindow / 2;
+		_sensingFreq = round((_tunBand.start() + _spectrumWindow / 2) / _freqAccuracy);
+		_sensingFreq *= _freqAccuracy;
 		break;
 	case RANDOM:
 		float start = _tunBand.start() + _spectrumWindow / 2;
 		float end = _tunBand.end() - _spectrumWindow / 2;
 		uint64_t range = end - start;
-		_sensingFreq = start + rand_cmwc() % range;
+		_sensingFreq = round((start + rand_cmwc() % range) / _freqAccuracy);
+		_sensingFreq *= _freqAccuracy;
 		break;
 	}
 }
@@ -82,7 +85,8 @@ void HoppingPattern::addTicks(uint64_t us)
 		float start = _tunBand.start() + _spectrumWindow / 2;
 		float end = _tunBand.end() - _spectrumWindow / 2;
 		uint64_t range = end - start;
-		_sensingFreq = start + rand_cmwc() % range;
+		_sensingFreq = round((start + rand_cmwc() % range) / _freqAccuracy);
+		_sensingFreq *= _freqAccuracy;
 		break;
 	}
 	//std::cout << "Sensing Freq = " << _sensingFreq / 1e6 << std::endl;

@@ -24,6 +24,7 @@ private:
 	float _spectrumWindow;
 	SensingType _sensingType;
 	uint64_t _hoppingPeriod;
+	float _freqAccuracy;
 
 	uint64_t _period;
 	uint64_t _curOffset;
@@ -32,7 +33,8 @@ private:
 public:
 	HoppingPattern();
 	HoppingPattern(uint64_t period_us, Band tunBand, float spectrumWindow,
-			SensingType sensingType, uint64_t hoppingPeriod);
+			SensingType sensingType, uint64_t hoppingPeriod,
+			float freqAccuracy = 1);
 
 	void addAvailableEntry(Band b, float start, float len);
 
