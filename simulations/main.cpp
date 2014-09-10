@@ -103,15 +103,15 @@ uint64_t scenario2(uint64_t hoppingPeriod, uint64_t beaconningPeriod,
 	//std::cout << std::endl;
 }
 
-void scenario1_periods_vs_avgtime(scenario_t scenario) {
+void periods_vs_avgtime(scenario_t scenario) {
 	std::cout << "Hopping Period (µs), Beaconning Period (µs), average time (s), std, min, max" << std::endl;
 
-	for (size_t hp = 1; hp < 5; hp ++) {
+	for (size_t hp = 0; hp < 5; hp ++) {
 		for (size_t bp = 0; bp < 5; bp ++) {
 			size_t hp_us = pow(10, hp) * 1e3;
 			size_t bp_us = pow(10, bp) * 1e3;
 
-			uint64_t sum = 0, sum_sq = 0, count = 10000, min = -1, max = 0;
+			uint64_t sum = 0, sum_sq = 0, count = 100000, min = -1, max = 0;
 			for (size_t i = 0; i < count; i++) {
 				uint64_t res = scenario(hp_us, bp_us, 1, 0e6);
 				sum_sq += (res * res);
@@ -130,7 +130,7 @@ void scenario1_periods_vs_avgtime(scenario_t scenario) {
 	}
 }
 
-void scenario1_beaconCount_vs_time(scenario_t scenario) {
+void beaconCount_vs_time(scenario_t scenario) {
 	std::cout << "Beacon Count, Hopping Period (µs), Beaconning Period (µs), average time (s), std, min (s), max (s)" << std::endl;
 
 	size_t hp_us = pow(10, 1) * 1e3;
@@ -154,7 +154,7 @@ void scenario1_beaconCount_vs_time(scenario_t scenario) {
 	}
 }
 
-void scenario1_bandwidth_vs_time(scenario_t scenario) {
+void bandwidth_vs_time(scenario_t scenario) {
 	std::cout << "Bandwidth, Beacon Count, Hopping Period (µs), Beaconning Period (µs), average time (s), std, min (s), max (s)" << std::endl;
 
 	size_t hp_us = pow(10, 1) * 1e3;
@@ -184,9 +184,9 @@ int main(int argc, char **argv)
 {
 	init_rand(time(NULL));
 
-	scenario1_periods_vs_avgtime(scenario2);
-	//scenario1_beaconCount_vs_time();
-	//scenario1_bandwidth_vs_time(scenario2);
+	periods_vs_avgtime(scenario2);
+	//beaconCount_vs_time(scenario1);
+	//bandwidth_vs_time(scenario1);
 
 	return 0;
 }
