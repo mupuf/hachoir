@@ -23,18 +23,18 @@
  *            for the latest n elements of a stream regardless of who is going
  *            to read them. The point is that the producer should never be
  *            blocked. The problem with that property is that consumers cannot
- *            lock the content they are reading so it can be overriden by the
- *            producer at any time. This means that the consummer should be
+ *            lock the content they are reading so it can be overridden by the
+ *            producer at any time. This means that the consumer should be
  *            able to check if the data it read is correct. This results in
  *            multiple calls for reading.
  *
  *            The second property is important when some meta-data need to be
- *            attached to samples such as the time at which they have been taken
- *            in scenarios where the sampling rate isn't fixed. This increases
- *            the complexity of the ring buffer as both the meta data and the
- *            data cannot be added at the same time. For this reason, a staging
- *            area is introduced by this class to keep an atomic commit of both
- *            the data and its meta-data.
+ *            attached to the samples such as the time at which they have been
+ *            taken in scenarios where the sampling rate isn't fixed. This
+ *            increases the complexity of the ring buffer as both the meta data
+ *            and the data cannot be added at the same time. For this reason, a
+ *            staging area is introduced by this class to keep an atomic commit
+ *            of both the data and its meta-data.
  *
  *            **Thread-safety:** There can be only one producer without locking.
  *            Multiple consumers are ok.
