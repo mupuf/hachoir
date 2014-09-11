@@ -33,7 +33,8 @@
  *            in scenarios where the sampling rate isn't fixed. This increases
  *            the complexity of the ring buffer as both the meta data and the
  *            data cannot be added at the same time. For this reason, a staging
- *            area is introduced by this class that allows
+ *            area is introduced by this class to keep an atomic commit of both
+ *            the data and its meta-data.
  *
  *            **Thread-safety:** There can be only one producer without locking.
  *            Multiple consumers are ok.
